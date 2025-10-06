@@ -68,14 +68,26 @@ export default function Header() {
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
-    let productsResults = getProducts().filter((p) => p.name.toLocaleLowerCase().includes(searchQuery.toLocaleLowerCase())).length;
-    let categoriesResults = getCategories().filter((c) => c.toLocaleLowerCase().includes(searchQuery.toLocaleLowerCase())).length;
-    setSearchResults({
-      products: productsResults,
-      categories: categoriesResults,
-      users: 0
-    });
-    setShowSearchResults(e.target.value.length > 0);
+    const fetchSearchResults = async () => {
+      const query = e.target.value.toLocaleLowerCase();
+      try {
+        const { data: productsData } = await getProducts();
+        const productsResults = productsData.filter((p) => p.name.toLocaleLowerCase().includes(query)).length;
+        const { data: categoriesData } = await getCategories();
+        const categoriesResults = categoriesData.filter((c) => c.toLocaleLowerCase().includes(query)).length;
+
+        setSearchResults({
+          products: productsResults,
+          categories: categoriesResults,
+          users: 0, // Pesquisa de usuários não implementada
+        });
+        setShowSearchResults(e.target.value.length > 0);
+      } catch (err) {
+        setSearchResults({ products: 0, categories: 0, users: 0 });
+        setShowSearchResults(false);
+      }
+    };
+    fetchSearchResults();
   };
 
   const clearSearch = () => {

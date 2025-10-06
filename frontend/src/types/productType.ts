@@ -1,35 +1,39 @@
-export type Product = {
-  id: number;
+export interface Category {
+  id: string;
+  name: string;
+  description?: string;
+  parentId?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export interface Product {
+  id: string;
   name: string;
   description: string;
   price: number;
   originalPrice?: number;
-  category: string;
+  categoryId: string;
+  category?: Category;
   subcategory?: string;
   brand?: string;
   sku: string;
   status: "complete" | "incomplete";
   image?: string;
-  images?: string[];
+  images: string[];
   stock: number;
   minStock: number;
   weight?: number;
-  dimensions?: {
-    length?: number;
-    width?: number;
-    height?: number;
-  };
+  length?: number;
+  width?: number;
+  height?: number;
   tags: string[];
   rating?: number;
-  reviewCount?: number;
+  reviewCount: number;
   views: number;
   sales: number;
-  createdAt: Date;
-  updatedAt: Date;
   featured: boolean;
   active: boolean;
-  templateData?: { [key: string]: any };
-  // Novos campos para a página de detalhes
   model?: string;
   color?: string;
   size?: string;
@@ -39,6 +43,15 @@ export type Product = {
   origin?: "manual" | "import";
   createdBy?: string;
   lastEditedBy?: string;
-  marketplaceIntegrations?: { [key: string]: any }; // Ex: { shopee: { id: '123' }, mercadoLivre: { id: '456' } }
+  marketplaceIntegrations?: any; // JSON
   internalNotes?: string;
-};
+  userId?: string;
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  createdAt: Date;
+  updatedAt: Date;
+  templateData?: { [key: string]: any };
+}

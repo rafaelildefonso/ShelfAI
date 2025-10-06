@@ -9,42 +9,80 @@ import type { Product } from "../types/productType";
 
 interface ProductContextType {
   products: Product[];
-  addProduct: (data: Omit<Product, "id">) => void;
-  editProduct: (id: number, updated: Partial<Product>) => void;
-  removeProduct: (id: number) => void;
+  loading: boolean;
+  error: string | null;
+  addProduct: (data: Partial<Product>) => Promise<void>;
+  editProduct: (id: string, updated: Partial<Product>) => Promise<void>;
+  removeProduct: (id: string) => Promise<void>;
+  reload: () => Promise<void>;
 }
 
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
 
 export function ProductProvider({ children }: { children: React.ReactNode }) {
   const [products, setProducts] = useState<Product[]>([]);
-  // const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // carregar produtos ao iniciar
-  useEffect(() => {
-    setProducts(getProducts());
-  }, []);
-
-  function addProduct(product: Omit<Product, "id">) {
-    const newProduct = createProduct(product);
-    setProducts((prev) => [...prev, newProduct]);
-  }
-
-  function editProduct(id: number, updated: Partial<Product>) {
-    const product = updateProduct(id, updated);
-    if (product) {
-      setProducts((prev) => prev.map((p) => (p.id === id ? product : p)));
+  async function reload() {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data } = await getProducts();
+      setProducts(data);
+    } catch (err: any) {
+      setError(err?.error?.message || "Erro ao carregar produtos");
+    } finally {
+      setLoading(false);
     }
   }
 
-  function removeProduct(id: number) {
-    deleteProduct(id);
-    setProducts((prev) => prev.filter((p) => p.id !== id));
+  useEffect(() => {
+    reload();
+  }, []);
+
+  async function addProduct(product: Partial<Product>) {
+    setError(null);
+    setLoading(true);
+    try {
+      await createProduct(product);
+      await reload();
+    } catch (err: any) {
+      setError(err?.error?.message || "Erro ao adicionar produto");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function editProduct(id: string, updated: Partial<Product>) {
+    setError(null);
+    setLoading(true);
+    try {
+      await updateProduct(id, updated);
+      await reload();
+    } catch (err: any) {
+      setError(err?.error?.message || "Erro ao editar produto");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function removeProduct(id: string) {
+    setError(null);
+    setLoading(true);
+    try {
+      await deleteProduct(id);
+      await reload();
+    } catch (err: any) {
+      setError(err?.error?.message || "Erro ao remover produto");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
     <ProductContext.Provider
-      value={{ products, addProduct, editProduct, removeProduct }}
+      value={{ products, loading, error, addProduct, editProduct, removeProduct, reload }}
     >
       {children}
     </ProductContext.Provider>
@@ -53,6 +91,6 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
 
 export function useProducts() {
   const context = useContext(ProductContext);
-  if(!context) throw new Error("useProducts deve ser usado dentro de ProductProvider");
+  if (!context) throw new Error("useProducts deve ser usado dentro de ProductProvider");
   return context;
 }

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import CurrencyInput from 'react-currency-input-field';
 import SideBarMenu from "../components/SideBarMenu";
 import Header from "../components/Header";
 import "./../App.css";
-import { getProductById } from "../services/productService";
+import { getProductById, getCategories } from "../services/productService";
 import { useProducts } from "../context/ProductContext";
 import type { Product } from "../types/productType";
 
@@ -47,32 +48,73 @@ const ProductFormPage = () => {
   function handleAdd(product: Product) {
     addProduct(product);
   }
-  function handleEdit(id: number, editedProduct: Product) {
+  function handleEdit(id: string, editedProduct: Product) {
     editProduct(id, editedProduct);
   }
 
-  const [product, setProduct] = useState<Product>({
-    id: Number(id) || 0,
+  interface ProductFormData {
+    id?: string;
+    name: string;
+    description: string;
+    price: number;
+    originalPrice?: number;
+    categoryId: string;
+    subcategory?: string;
+    brand?: string;
+    sku: string;
+    stock: number;
+    minStock: number;
+    weight?: number;
+    length?: number;
+    width?: number;
+    height?: number;
+    tags: string[];
+    images: string[];
+    image?: string; // Adicionado campo image
+    featured: boolean;
+    active: boolean;
+    model?: string;
+    color?: string;
+    size?: string;
+    material?: string;
+    stockLocation?: string;
+    costPrice?: number;
+    origin?: 'manual' | 'import';
+    internalNotes?: string;
+    templateData?: Record<string, any>;
+    // Campos adicionais para compatibilidade
+    reviewCount?: number;
+    views?: number;
+    sales?: number;
+    rating?: number;
+  }
+
+  const [product, setProduct] = useState<ProductFormData>({
+    id,
     name: "",
     description: "",
     price: 0,
-    originalPrice: 0,
-    category: "",
+    originalPrice: undefined,
+    categoryId: "",
     subcategory: "",
     brand: "",
     sku: "",
-    status: "incomplete",
     stock: 0,
     minStock: 0,
     tags: [],
-    views: 0,
-    sales: 0,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    images: [],
     featured: false,
     active: true,
     templateData: {},
   });
+
+  interface Category {
+    id: string;
+    name: string;
+    description?: string;
+  }
+
+  const [categories, setCategories] = useState<Category[]>([]);
 
   const [templateData, setTemplateData] = useState<{ [key: string]: any }>({});
 
@@ -468,28 +510,95 @@ const ProductFormPage = () => {
   ];
 
   useEffect(() => {
-    if (isEditing && id) {
-      const editingProduct = getProductById(Number(id));
-      setProduct(editingProduct);
-      setTemplateData(editingProduct.templateData || {});
-
-      // Encontrar template baseado na categoria
-      const template = productTemplates.find(
-        (t) => t.category === editingProduct.category
-      );
-      if (template) {
-        setSelectedTemplate(template);
-        setShowTemplateSelector(false);
+    // Carregar categorias
+    const loadCategories = async () => {
+      try {
+        const response = await getCategories();
+        // Transform the string array into Category objects
+        const categories = response.data.map((name: string, index: number) => ({
+          id: `cat-${index}`,  // Generate an ID if not provided
+          name: name
+        }));
+        setCategories(categories);
+      } catch (error) {
+        console.error("Erro ao carregar categorias:", error);
       }
+    };
+
+    loadCategories();
+    // Carregar produto se estiver editando
+    if (isEditing && id) {
+      const loadProduct = async () => {
+        try {
+          const editingProduct = await getProductById(id);
+          const productData: ProductFormData = {
+            ...editingProduct,
+            categoryId: editingProduct.category?.id || "",
+            images: editingProduct.images || [],
+            templateData: editingProduct.templateData || {},
+            // Garantir que todos os campos obrigatórios estejam presentes
+            name: editingProduct.name || "",
+            description: editingProduct.description || "",
+            price: editingProduct.price || 0,
+            sku: editingProduct.sku || "",
+            stock: editingProduct.stock || 0,
+            minStock: editingProduct.minStock || 0,
+            tags: editingProduct.tags || [],
+            featured: editingProduct.featured || false,
+            active: editingProduct.active !== undefined ? editingProduct.active : true,
+            // Inicializar campos opcionais
+            originalPrice: editingProduct.originalPrice,
+            subcategory: editingProduct.subcategory,
+            brand: editingProduct.brand,
+            weight: editingProduct.weight,
+            length: editingProduct.length,
+            width: editingProduct.width,
+            height: editingProduct.height,
+            model: editingProduct.model,
+            color: editingProduct.color,
+            size: editingProduct.size,
+            material: editingProduct.material,
+            stockLocation: editingProduct.stockLocation,
+            costPrice: editingProduct.costPrice,
+            origin: editingProduct.origin as 'manual' | 'import' | undefined,
+            internalNotes: editingProduct.internalNotes,
+            // Campos de compatibilidade
+            reviewCount: editingProduct.reviewCount,
+            views: editingProduct.views,
+            sales: editingProduct.sales,
+            rating: editingProduct.rating,
+          };
+          setProduct(productData);
+          setTemplateData(editingProduct.templateData || {});
+
+          const template = productTemplates.find(
+            (t) => t.category === editingProduct.category?.name
+          );
+          if (template) {
+            setSelectedTemplate(template);
+            setShowTemplateSelector(false);
+          }
+        } catch (error) {
+          console.error("Erro ao carregar produto:", error);
+        }
+      };
+      loadProduct();
     }
   }, [id, isEditing]);
 
   const handleTemplateSelect = (template: ProductTemplate) => {
     setSelectedTemplate(template);
-    setProduct((prev) => ({
-      ...prev,
-      category: template.category,
-    }));
+    
+    // Encontrar a categoria correspondente
+    const selectedCategory = categories.find(cat => cat.name === template.category);
+    
+    if (selectedCategory) {
+      setProduct((prev: ProductFormData) => ({
+        ...prev,
+        categoryId: selectedCategory.id,
+      }));
+    }
+    
     setShowTemplateSelector(false);
     setTemplateData({});
   };
@@ -503,17 +612,17 @@ const ProductFormPage = () => {
 
     if (type === "checkbox") {
       const checked = (e.target as HTMLInputElement).checked;
-      setProduct((prev) => ({
+      setProduct((prev: ProductFormData) => ({
         ...prev,
         [name]: checked,
       }));
     } else if (type === "number") {
-      setProduct((prev) => ({
+      setProduct((prev: ProductFormData) => ({
         ...prev,
         [name]: parseFloat(value) || 0,
       }));
     } else {
-      setProduct((prev) => ({
+      setProduct((prev: ProductFormData) => ({
         ...prev,
         [name]: value,
       }));
@@ -540,7 +649,7 @@ const ProductFormPage = () => {
       .split(",")
       .map((tag) => tag.trim())
       .filter((tag) => tag);
-    setProduct((prev) => ({
+    setProduct((prev: ProductFormData) => ({
       ...prev,
       tags,
     }));
@@ -553,16 +662,12 @@ const ProductFormPage = () => {
       newErrors.name = "Nome do produto é obrigatório";
     }
 
-    if (!product.description.trim()) {
-      newErrors.description = "Descrição é obrigatória";
-    }
-
     if (product.price <= 0) {
       newErrors.price = "Preço deve ser maior que zero";
     }
 
-    if (!product.category) {
-      newErrors.category = "Categoria é obrigatória";
+    if (!product.categoryId) {
+      newErrors.categoryId = "Categoria é obrigatória";
     }
 
     if (!product.sku.trim()) {
@@ -599,52 +704,46 @@ const ProductFormPage = () => {
 
     setIsLoading(true);
 
-    if (isEditing && id) {
-      try {
+    // Preparar os dados do produto para envio
+    const productData = {
+      ...product,
+      templateData,
+      images: product.images || [],
+      reviewCount: product.reviewCount || 0,
+      views: product.views || 0,
+      sales: product.sales || 0,
+      rating: product.rating,
+      status: "complete" as const,
+      // Garantir que as dimensões sejam números
+      length: product.length ? Number(product.length) : undefined,
+      width: product.width ? Number(product.width) : undefined,
+      height: product.height ? Number(product.height) : undefined,
+    };
+
+    try {
+      if (isEditing && id) {
+        // Atualizar produto existente
         await new Promise((resolve) => setTimeout(resolve, 2000));
-
-        const productData = {
-          ...product,
-          templateData,
-          updatedAt: new Date(),
-          status: "complete" as const,
-        };
-
-        handleEdit(Number(id), productData);
-
-        console.log("Produto editado:", productData);
-
-        // Redirecionar para a lista de produtos
-        navigate("/products");
-      } catch (error) {
-        console.error("Erro ao editar produto:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    } else {
-      try {
-        // Simular API call
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-
-        const productData = {
-          ...product,
-          templateData,
+        handleEdit(id, productData as unknown as Product);
+        console.log("Produto atualizado:", productData);
+      } else {
+        // Criar novo produto
+        const newProductData = {
+          ...productData,
           createdAt: new Date(),
-          updatedAt: new Date(),
-          status: "complete" as const,
         };
-
-        handleAdd(productData);
-
-        console.log("Produto salvo:", productData);
-
-        // Redirecionar para a lista de produtos
-        navigate("/products");
-      } catch (error) {
-        console.error("Erro ao salvar produto:", error);
-      } finally {
-        setIsLoading(false);
+        handleAdd(newProductData as unknown as Product);
+        console.log("Novo produto criado:", newProductData);
       }
+
+      // Redirecionar para a lista de produtos
+      navigate("/products");
+    } catch (error) {
+      console.error("Erro ao salvar produto:", error);
+      // Aqui você pode adicionar tratamento de erro mais específico
+      // Por exemplo, mostrar uma mensagem de erro para o usuário
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -835,8 +934,47 @@ const ProductFormPage = () => {
     );
   }
 
+  const handleCurrencyChange = (value: string | undefined, field: string) => {
+    setProduct(prev => ({
+      ...prev,
+      [field]: value || '0'
+    }));
+  };
+
+  // Handler para upload de imagem principal
+  const handleMainImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProduct((prev: ProductFormData) => ({ 
+          ...prev, 
+          image: reader.result as string 
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Handler para upload de múltiplas imagens
+  const handleImagesUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      Promise.all(
+        files.map(
+          (file) =>
+            new Promise<string>((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.readAsDataURL(file);
+            })
+        )
+      ).then((imgs) => setProduct((prev: ProductFormData) => ({ ...prev, images: imgs })));
+    }
+  };
+
   return (
-    <div>
+    <div className="app-container">
       <Header />
       <SideBarMenu pageName="products" />
       <main className="app-main">
@@ -863,6 +1001,60 @@ const ProductFormPage = () => {
 
           <form onSubmit={handleSubmit} className="product-form">
             <div className="form-sections">
+              {/* Imagens */}
+              <div className="form-section">
+                <div className="section-header">
+                  <h2>
+                    <i className="fa-solid fa-image"></i>
+                    Imagens
+                  </h2>
+                </div>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">Imagem Principal</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleMainImageUpload}
+                    />
+                    {product.image && (
+                      <img
+                        src={product.image}
+                        alt="Imagem principal"
+                        style={{ maxWidth: 120, marginTop: 8 }}
+                      />
+                    )}
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Imagens Adicionais</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleImagesUpload}
+                    />
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 8,
+                        flexWrap: "wrap",
+                        marginTop: 8,
+                      }}
+                    >
+                      {product.images &&
+                        product.images.map((img, idx) => (
+                          <img
+                            key={idx}
+                            src={img}
+                            alt={`Imagem ${idx + 1}`}
+                            style={{ maxWidth: 80 }}
+                          />
+                        ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Informações Básicas */}
               <div className="form-section">
                 <div className="section-header">
@@ -911,7 +1103,7 @@ const ProductFormPage = () => {
 
                 <div className="form-group">
                   <label htmlFor="description" className="form-label">
-                    Descrição <span className="required">*</span>
+                    Descrição
                   </label>
                   <textarea
                     id="description"
@@ -992,22 +1184,24 @@ const ProductFormPage = () => {
                   </h2>
                 </div>
                 <div className="form-row">
+                  {/* Preço de Venda */}
                   <div className="form-group">
                     <label htmlFor="price" className="form-label">
                       Preço de Venda <span className="required">*</span>
                     </label>
                     <div className="input-group">
                       <span className="input-prefix">R$</span>
-                      <input
-                        type="number"
+                      <CurrencyInput
                         id="price"
                         name="price"
                         value={product.price}
-                        onChange={handleInputChange}
+                        onValueChange={(value) => handleCurrencyChange(value, "price")}
+                        allowDecimals={true}
+                        decimalSeparator=","
+                        groupSeparator="."
+                        decimalsLimit={2}
                         className={`form-input ${errors.price ? "error" : ""}`}
                         placeholder="0,00"
-                        step="0.01"
-                        min="0"
                       />
                     </div>
                     {errors.price && (
@@ -1015,31 +1209,53 @@ const ProductFormPage = () => {
                     )}
                   </div>
 
+                  {/* Preço Original */}
                   <div className="form-group">
                     <label htmlFor="originalPrice" className="form-label">
                       Preço Original
                     </label>
                     <div className="input-group">
                       <span className="input-prefix">R$</span>
-                      <input
-                        type="number"
+                      <CurrencyInput
                         id="originalPrice"
                         name="originalPrice"
                         value={product.originalPrice}
-                        onChange={handleInputChange}
+                        onValueChange={(value) => handleCurrencyChange(value, "originalPrice")}
+                        allowDecimals={true}
+                        decimalSeparator=","
+                        groupSeparator="."
+                        decimalsLimit={2}
                         className="form-input"
                         placeholder="0,00"
-                        step="0.01"
-                        min="0"
                       />
                     </div>
                   </div>
-                </div>
 
-                <div className="form-row">
+                  {/* Preço de Custo */}
+                  <div className="form-group">
+                    <label htmlFor="costPrice" className="form-label">
+                      Preço de Custo
+                    </label>
+                    <div className="input-group">
+                      <span className="input-prefix">R$</span>
+                      <CurrencyInput
+                        id="costPrice"
+                        name="costPrice"
+                        value={product.costPrice || 0}
+                        onValueChange={(value) => handleCurrencyChange(value, "costPrice")}
+                        allowDecimals={true}
+                        decimalSeparator=","
+                        groupSeparator="."
+                        decimalsLimit={2}
+                        className="form-input"
+                        placeholder="0,00"
+                      />
+                    </div>
+                  </div>
+                  {/* Estoque */}
                   <div className="form-group">
                     <label htmlFor="stock" className="form-label">
-                      Estoque Atual <span className="required">*</span>
+                      Estoque <span className="required">*</span>
                     </label>
                     <input
                       type="number"
@@ -1048,7 +1264,6 @@ const ProductFormPage = () => {
                       value={product.stock}
                       onChange={handleInputChange}
                       className={`form-input ${errors.stock ? "error" : ""}`}
-                      placeholder="0"
                       min="0"
                     />
                     {errors.stock && (
@@ -1056,9 +1271,10 @@ const ProductFormPage = () => {
                     )}
                   </div>
 
+                  {/* Estoque Mínimo */}
                   <div className="form-group">
                     <label htmlFor="minStock" className="form-label">
-                      Estoque Mínimo <span className="required">*</span>
+                      Estoque Mínimo
                     </label>
                     <input
                       type="number"
@@ -1066,13 +1282,25 @@ const ProductFormPage = () => {
                       name="minStock"
                       value={product.minStock}
                       onChange={handleInputChange}
-                      className={`form-input ${errors.minStock ? "error" : ""}`}
-                      placeholder="0"
+                      className="form-input"
                       min="0"
                     />
-                    {errors.minStock && (
-                      <span className="error-text">{errors.minStock}</span>
-                    )}
+                  </div>
+
+                  {/* Localização do Estoque */}
+                  <div className="form-group">
+                    <label htmlFor="stockLocation" className="form-label">
+                      Localização do Estoque
+                    </label>
+                    <input
+                      type="text"
+                      id="stockLocation"
+                      name="stockLocation"
+                      value={product.stockLocation || ""}
+                      onChange={handleInputChange}
+                      className="form-input"
+                      placeholder="Ex: Depósito A, Prateleira 5"
+                    />
                   </div>
                 </div>
               </div>
@@ -1112,52 +1340,46 @@ const ProductFormPage = () => {
                       <input
                         type="number"
                         placeholder="L"
-                        value={product.dimensions?.length}
+                        value={product.length || ''}
                         onChange={(e) =>
                           setProduct((prev) => ({
                             ...prev,
-                            dimensions: {
-                              ...prev.dimensions,
-                              length: parseFloat(e.target.value) || 0,
-                            },
+                            length: e.target.value ? parseFloat(e.target.value) : undefined,
                           }))
                         }
                         className="form-input"
                         min="0"
+                        step="0.01"
                       />
                       <span>×</span>
                       <input
                         type="number"
                         placeholder="A"
-                        value={product.dimensions?.width}
+                        value={product.width || ''}
                         onChange={(e) =>
                           setProduct((prev) => ({
                             ...prev,
-                            dimensions: {
-                              ...prev.dimensions,
-                              width: parseFloat(e.target.value) || 0,
-                            },
+                            width: e.target.value ? parseFloat(e.target.value) : undefined,
                           }))
                         }
                         className="form-input"
                         min="0"
+                        step="0.01"
                       />
                       <span>×</span>
                       <input
                         type="number"
                         placeholder="P"
-                        value={product.dimensions?.height}
+                        value={product.height || ''}
                         onChange={(e) =>
                           setProduct((prev) => ({
                             ...prev,
-                            dimensions: {
-                              ...prev.dimensions,
-                              height: parseFloat(e.target.value) || 0,
-                            },
+                            height: e.target.value ? parseFloat(e.target.value) : undefined,
                           }))
                         }
                         className="form-input"
                         min="0"
+                        step="0.01"
                       />
                     </div>
                   </div>
@@ -1235,14 +1457,12 @@ const ProductFormPage = () => {
               >
                 {isLoading ? (
                   <>
-                    <i className="fa-solid fa-spinner fa-spin"></i>
-                    Salvando...
+                    <i className="fa-solid fa-spinner fa-spin"></i> Salvando...
                   </>
+                ) : isEditing ? (
+                  "Atualizar Produto"
                 ) : (
-                  <>
-                    <i className="fa-solid fa-save"></i>
-                    {isEditing ? "Atualizar Produto" : "Criar Produto"}
-                  </>
+                  "Criar Produto"
                 )}
               </button>
             </div>

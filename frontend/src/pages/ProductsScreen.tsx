@@ -8,7 +8,7 @@ import type { Product } from "../types/productType";
 type ProductCardProps = {
   product: Product;
   onEdit: (product: Product) => void;
-  onDelete: (id: number) => void;
+  onDelete: (id: string) => void;
   onDuplicate: (product: Product) => void;
 };
 
@@ -107,7 +107,7 @@ const ProductCard = ({
         )}
 
         <div className="product-categories">
-          <span className="product-category">{product.category}</span>
+          <span className="product-category">{product.category?.name || 'Sem categoria'}</span>
           {product.subcategory && (
             <span className="product-subcategory">• {product.subcategory}</span>
           )}
@@ -247,7 +247,7 @@ const MainContent = () => {
     navigate(`/products/edit/${product.id}`);
   };
 
-  const handleDeleteProduct = (id: number) => {
+  const handleDeleteProduct = (id: string) => {
     if (window.confirm("Tem certeza que deseja excluir este produto?")) {
       removeProduct(id);
     }
@@ -353,9 +353,9 @@ const MainContent = () => {
 
         <div className="products-grid">
           {filteredProducts.length > 0 ? (
-            filteredProducts.map((product) => (
+            filteredProducts.map((product, index) => (
               <ProductCard
-                key={product.id}
+                key={index}
                 product={product}
                 onEdit={handleEditProduct}
                 onDelete={handleDeleteProduct}

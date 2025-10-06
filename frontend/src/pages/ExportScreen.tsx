@@ -1,45 +1,80 @@
 import SideBarMenu from "../components/SideBarMenu";
 import Header from "../components/Header";
 
+import { useState } from "react";
+
 const MainContent = () => {
+  const [status, setStatus] = useState<
+    "idle" | "downloading" | "success" | "error"
+  >("idle");
+  const [message, setMessage] = useState("");
+  const [currentExport, setCurrentExport] = useState<string | null>(null);
+
+  const handleExport = async (format: string) => {
+    setStatus("downloading");
+    setCurrentExport(format);
+    setMessage("");
+    try {
+      // Para CSV e Excel, endpoint é igual, só muda o nome do arquivo
+      const res = await fetch("/api/v1/export", {
+        method: "GET",
+        headers: { Authorization: "Bearer demo-token" },
+      });
+      if (!res.ok) throw await res.json();
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `produtos_exportados.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+      setStatus("success");
+      setMessage("Exportação concluída!");
+    } catch (err: any) {
+      setStatus("error");
+      setMessage(err?.error?.message || "Erro ao exportar produtos.");
+    } finally {
+      setCurrentExport(null);
+    }
+  };
+
   const exportOptions = [
     {
-      name: 'Shopify',
-      icon: 'fa-brands fa-shopify',
-      description: 'Exporte para sua loja Shopify'
+      name: "Shopify",
+      icon: "fa-brands fa-shopify",
+      description: "Exporte para sua loja Shopify",
     },
     {
-      name: 'Amazon',
-      icon: 'fa-brands fa-amazon',
-      description: 'Exporte para Amazon Marketplace'
+      name: "Amazon",
+      icon: "fa-brands fa-amazon",
+      description: "Exporte para Amazon Marketplace",
     },
     {
-      name: 'CSV',
-      icon: 'fa-solid fa-file-csv',
-      description: 'Exporte em formato CSV'
+      name: "CSV",
+      icon: "fa-solid fa-file-csv",
+      description: "Exporte em formato CSV",
     },
     {
-      name: 'Excel',
-      icon: 'fa-solid fa-file-excel',
-      description: 'Exporte em formato Excel'
+      name: "Excel",
+      icon: "fa-solid fa-file-excel",
+      description: "Exporte em formato Excel",
     },
     {
-      name: 'Shopee',
-      icon: 'fa-solid fa-bag-shopping',
-      description: 'Exporte em formato Excel'
+      name: "Shopee",
+      icon: "fa-solid fa-bag-shopping",
+      description: "Exporte em formato Excel",
     },
     {
-      name: 'Mercado Livre',
-      icon: 'fa-solid fa-handshake',
-      description: 'Exporte em formato Excel'
+      name: "Mercado Livre",
+      icon: "fa-solid fa-handshake",
+      description: "Exporte em formato Excel",
     },
     {
-      name: 'Aliexpress',
-      icon: 'fa-solid fa-store',
-      description: 'Exporte em formato Excel'
+      name: "Aliexpress",
+      icon: "fa-solid fa-store",
+      description: "Exporte em formato Excel",
     },
-
-  ]
+  ];
   return (
     <main className="app-main">
       <div className="export-container">
@@ -51,19 +86,29 @@ const MainContent = () => {
         </div>
 
         <div className="export-options">
-          {exportOptions.map((option)=> (
-            <div className="export-card">
-            <div className="export-icon">
-              <i className={option.icon}></i>
+          {exportOptions.map((option) => (
+            <div className="export-card" key={option.name}>
+              <div className="export-icon">
+                <i className={option.icon}></i>
+              </div>
+              <div className="export-content">
+                <h3>{option.name}</h3>
+                <p>{option.description}</p>
+                <button
+                  className="export-btn"
+                  onClick={() => handleExport(option.name)}
+                  disabled={
+                    status === "downloading" && currentExport !== option.name
+                  }
+                >
+                  {status === "downloading" && currentExport === option.name
+                    ? "Exportando..."
+                    : "Exportar"}
+                </button>
+              </div>
             </div>
-            <div className="export-content">
-              <h3>{option.name}</h3>
-              <p>{option.description}</p>
-              <button className="export-btn">Exportar</button>
-            </div>
-          </div>
           ))}
-          
+          {status === "error" && <div className="export-error">{message}</div>}
         </div>
       </div>
     </main>
@@ -74,7 +119,7 @@ const ExportScreen = () => {
   return (
     <div>
       <Header />
-      <SideBarMenu pageName="export"/>
+      <SideBarMenu pageName="export" />
       <MainContent />
     </div>
   );

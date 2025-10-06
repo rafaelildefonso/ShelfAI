@@ -79,23 +79,58 @@ const coresCategorias: Record<string, string> = {
   Casa: "#3B82F6",
 };
 
+import { useEffect } from "react";
+import type { Product } from "../types/productType";
 const MainContent = () => {
-  var products = getProducts();
-  var uniqueCategories = getCategories();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [chartPeriod, setChartPeriod] = useState<ChartPeriod>("12M");
   const [dashboardData, setDashboardData] = useState<DashboardData>({
-    totalProducts: products.length,
-    completeProducts: products.filter((p) => p.status === "complete").length,
-    incompleteProducts: products.filter((p) => p.status === "incomplete")
-      .length,
-    totalCategories: uniqueCategories.length,
+    totalProducts: 0,
+    completeProducts: 0,
+    incompleteProducts: 0,
+    totalCategories: 0,
     recentImports: 45,
     recentExports: 12,
-    lowStockProducts: products.filter((p) => p.stock <= p.minStock).length,
+    lowStockProducts: 0,
     pendingReviews: 23,
   });
 
-  const [quickStats, setQuickStats] = useState<QuickStats>({
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    Promise.all([
+      getProducts().then((res) => res.data),
+      getCategories().then((res) => res.data),
+    ])
+      .then(([productsData, categoriesData]) => {
+        setProducts(productsData);
+        setCategories(categoriesData);
+        setDashboardData({
+          totalProducts: productsData.length,
+          completeProducts: productsData.filter(
+            (p: any) => p.status === "complete"
+          ).length,
+          incompleteProducts: productsData.filter(
+            (p: any) => p.status === "incomplete"
+          ).length,
+          totalCategories: categoriesData.length,
+          recentImports: 45,
+          recentExports: 12,
+          lowStockProducts: productsData.filter(
+            (p: any) => p.stock <= p.minStock
+          ).length,
+          pendingReviews: 23,
+        });
+      })
+      .catch(() => setError("Erro ao carregar dados do dashboard"))
+      .finally(() => setLoading(false));
+  }, []);
+
+  // 3. Todos os outros hooks devem vir depois dos efeitos
+  const [quickStats] = useState<QuickStats>({
     todayImports: 12,
     weekImports: 67,
     monthImports: 234,
@@ -104,7 +139,7 @@ const MainContent = () => {
     monthExports: 156,
   });
 
-  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([
+  const [recentActivities] = useState<RecentActivity[]>([
     {
       id: "1",
       type: "import",
@@ -147,41 +182,67 @@ const MainContent = () => {
     },
   ]);
 
-  const countCategories: Record<string, number> = {};
-  products.forEach((p) => {
-    countCategories[p.category] = (countCategories[p.category] || 0) + 1;
-  });
-
-  const categorizedDistribution: CategoriaDistribuicao[] = Object.entries(
-    countCategories
-  ).map(([categoria, qtd]) => ({
-    name: categoria,
-    value: Math.round((qtd / products.length) * 100),
-    color: coresCategorias[categoria] || "#000000",
-  }));
-
-  const contarProdutosPorMes = (produtos: any[]) => {
-    const meses = Array(12).fill(0);
-    const anoAtual = new Date().getFullYear();
-
-    produtos.forEach((p) => {
-      if (p.createdAt && new Date(p.createdAt).getFullYear() === anoAtual) {
-        const mes = new Date(p.createdAt).getMonth();
-        meses[mes] += 1;
-      }
-    });
-
-    return meses;
-  };
-
-  const [chartData, setChartData] = useState({
-    productsByMonth: contarProdutosPorMes(products),
-    categoriesDistribution: categorizedDistribution,
+  const [chartData, setChartData] = useState<{
+    productsByMonth: number[];
+    categoriesDistribution: CategoriaDistribuicao[];
+    importExportTrend: {
+      imports: number[];
+      exports: number[];
+    };
+  }>({
+    productsByMonth: [],
+    categoriesDistribution: [],
     importExportTrend: {
       imports: [12, 15, 18, 22, 25, 28, 32, 35, 38, 42, 45, 48],
       exports: [8, 10, 12, 15, 18, 20, 22, 25, 28, 30, 32, 35],
     },
   });
+
+  // 5. Efeito para atualizar os dados dos gráficos quando produtos mudarem
+  useEffect(() => {
+    const countCategories: Record<string, number> = {};
+    products.forEach((p) => {
+      const categoryName = typeof p.category === 'string' ? p.category : p.category?.name || 'Sem Categoria';
+      countCategories[categoryName] = (countCategories[categoryName] || 0) + 1;
+    });
+
+    const categorizedDistribution: CategoriaDistribuicao[] = Object.entries(
+      countCategories
+    ).map(([categoryName, qtd]) => ({
+      name: categoryName,
+      value: Math.round((qtd / products.length) * 100),
+      color: coresCategorias[categoryName] || "#000000",
+    }));
+
+    const contarProdutosPorMes = (produtos: Product[]) => {
+      const meses = Array(12).fill(0);
+      const anoAtual = new Date().getFullYear();
+
+      produtos.forEach((p) => {
+        if (p.createdAt && new Date(p.createdAt).getFullYear() === anoAtual) {
+          const mes = new Date(p.createdAt).getMonth();
+          meses[mes] += 1;
+        }
+      });
+
+      return meses;
+    };
+
+    setChartData({
+      productsByMonth: contarProdutosPorMes(products),
+      categoriesDistribution: categorizedDistribution,
+      importExportTrend: {
+        imports: [12, 15, 18, 22, 25, 28, 32, 35, 38, 42, 45, 48],
+        exports: [8, 10, 12, 15, 18, 20, 22, 25, 28, 30, 32, 35],
+      },
+    });
+  }, [products]);
+
+  // 4. Condicionais de renderização vêm por último
+  if (loading)
+    return <div className="p-10 text-center">Carregando dashboard...</div>;
+  if (error)
+    return <div className="p-10 text-center text-red-500">{error}</div>;
 
   const completionRate =
     Math.round(

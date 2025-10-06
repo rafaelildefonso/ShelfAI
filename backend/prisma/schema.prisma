@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
   output   = "../generated/prisma"
@@ -12,4 +6,73 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(cuid())
+  name      String
+  email     String    @unique
+  password  String
+  role      String    @default("USER") // "ADMIN" | "USER"
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  products  Product[]
+
+  @@index([email])
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String?
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Product {
+  id                      String    @id @default(cuid())
+  name                    String
+  description             String?
+  price                   Float?
+  originalPrice           Float?
+  costPrice               Float?
+  categoryId              String?
+  category                Category? @relation(fields: [categoryId], references: [id])
+  subcategory             String?
+  brand                   String?
+  sku                     String?
+  status                  String    @default("incomplete")
+  weight                  Float?
+  length                  Float?
+  width                   Float?
+  height                  Float?
+  tags                    String[]
+  featured                Boolean   @default(false)
+  active                  Boolean   @default(true)
+  image                   String?
+  images                  String[]
+  model                   String?
+  color                   String?
+  size                    String?
+  material                String?
+  stockLocation           String?
+  origin                  String?
+  createdBy               String?
+  lastEditedBy            String?
+  marketplaceIntegrations Json?
+  internalNotes           String?
+  rating                  Float?    @default(0)
+  reviewCount             Int       @default(0)
+  views                   Int       @default(0)
+  sales                   Int       @default(0)
+  userId                  String
+  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  @@index([sku])
+  @@index([categoryId])
+  @@index([status])
+  @@index([userId])
 }
