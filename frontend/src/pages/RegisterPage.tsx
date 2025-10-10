@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { authService, validateEmail, validatePassword, type RegisterData } from '../services/authService';
 import './../App.css';
 
 const RegisterPage = () => {
@@ -46,16 +47,17 @@ const RegisterPage = () => {
 
     if (!formData.email) {
       newErrors.email = 'Email é obrigatório';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+    } else if (!validateEmail(formData.email)) {
       newErrors.email = 'Email inválido';
     }
 
     if (!formData.password) {
       newErrors.password = 'Senha é obrigatória';
-    } else if (formData.password.length < 8) {
-      newErrors.password = 'Senha deve ter pelo menos 8 caracteres';
-    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
-      newErrors.password = 'Senha deve conter pelo menos uma letra maiúscula, uma minúscula e um número';
+    } else {
+      const passwordValidation = validatePassword(formData.password);
+      if (!passwordValidation.isValid) {
+        newErrors.password = passwordValidation.errors.join(', ');
+      }
     }
 
     if (!formData.confirmPassword) {
@@ -64,14 +66,8 @@ const RegisterPage = () => {
       newErrors.confirmPassword = 'Senhas não coincidem';
     }
 
-    if (!formData.company.trim()) {
-      newErrors.company = 'Nome da empresa é obrigatório';
-    }
-
-    if (!formData.phone.trim()) {
-      newErrors.phone = 'Telefone é obrigatório';
-    } else if (!/^\(\d{2}\)\s\d{4,5}-\d{4}$/.test(formData.phone)) {
-      newErrors.phone = 'Formato: (11) 99999-9999';
+    if (formData.phone && formData.phone.length < 10) {
+      newErrors.phone = 'Telefone deve ter pelo menos 10 dígitos';
     }
 
     if (!formData.acceptTerms) {
@@ -113,25 +109,23 @@ const RegisterPage = () => {
     setIsLoading(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 3000));
-
-      // For demo purposes, create account
-      const userData = {
+      const registerData: RegisterData = {
         name: formData.name,
         email: formData.email,
-        company: formData.company,
-        phone: formData.phone,
-        createdAt: new Date().toISOString()
+        password: formData.password,
+        phone: formData.phone || undefined,
+        company: formData.company || undefined,
       };
 
+      const user = await authService.register(registerData);
+
       // Store user session
-      localStorage.setItem('user', JSON.stringify(userData));
+      localStorage.setItem('user', JSON.stringify(user));
 
       // Redirect to dashboard
       navigate('/dashboard');
-    } catch (error) {
-      setErrors({ general: 'Erro ao criar conta. Tente novamente.' });
+    } catch (error: any) {
+      setErrors({ general: error.message || 'Erro ao criar conta. Tente novamente.' });
     } finally {
       setIsLoading(false);
     }

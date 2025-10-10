@@ -56,8 +56,9 @@ const ProductFormPage = () => {
     id?: string;
     name: string;
     description: string;
-    price: number;
-    originalPrice?: number;
+    price: string;
+  originalPrice?: string;
+  costPrice?: string;
     categoryId: string;
     subcategory?: string;
     brand?: string;
@@ -78,7 +79,6 @@ const ProductFormPage = () => {
     size?: string;
     material?: string;
     stockLocation?: string;
-    costPrice?: number;
     origin?: 'manual' | 'import';
     internalNotes?: string;
     templateData?: Record<string, any>;
@@ -93,8 +93,9 @@ const ProductFormPage = () => {
     id,
     name: "",
     description: "",
-    price: 0,
-    originalPrice: undefined,
+    price: "",
+    originalPrice: "",
+    costPrice: "",
     categoryId: "",
     subcategory: "",
     brand: "",
@@ -539,7 +540,7 @@ const ProductFormPage = () => {
             // Garantir que todos os campos obrigatórios estejam presentes
             name: editingProduct.name || "",
             description: editingProduct.description || "",
-            price: editingProduct.price || 0,
+            price: editingProduct.price?.toString() || "0",
             sku: editingProduct.sku || "",
             stock: editingProduct.stock || 0,
             minStock: editingProduct.minStock || 0,
@@ -547,7 +548,8 @@ const ProductFormPage = () => {
             featured: editingProduct.featured || false,
             active: editingProduct.active !== undefined ? editingProduct.active : true,
             // Inicializar campos opcionais
-            originalPrice: editingProduct.originalPrice,
+            originalPrice: editingProduct.originalPrice?.toString() || "0",
+            costPrice: editingProduct.costPrice?.toString() || "0",
             subcategory: editingProduct.subcategory,
             brand: editingProduct.brand,
             weight: editingProduct.weight,
@@ -559,7 +561,6 @@ const ProductFormPage = () => {
             size: editingProduct.size,
             material: editingProduct.material,
             stockLocation: editingProduct.stockLocation,
-            costPrice: editingProduct.costPrice,
             origin: editingProduct.origin as 'manual' | 'import' | undefined,
             internalNotes: editingProduct.internalNotes,
             // Campos de compatibilidade
@@ -657,31 +658,33 @@ const ProductFormPage = () => {
 
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
-
+  
     if (!product.name.trim()) {
       newErrors.name = "Nome do produto é obrigatório";
     }
-
-    if (product.price <= 0) {
-      newErrors.price = "Preço deve ser maior que zero";
+  
+    // Validar preço
+    const priceValue = parseFloat(product.price.replace('.', '').replace(',', '.'));
+    if (isNaN(priceValue) || priceValue <= 0) {
+      newErrors.price = "Preço inválido";
     }
-
+  
     if (!product.categoryId) {
       newErrors.categoryId = "Categoria é obrigatória";
     }
-
+  
     if (!product.sku.trim()) {
       newErrors.sku = "SKU é obrigatório";
     }
-
+  
     if (product.stock < 0) {
       newErrors.stock = "Estoque não pode ser negativo";
     }
-
+  
     if (product.minStock < 0) {
       newErrors.minStock = "Estoque mínimo não pode ser negativo";
     }
-
+  
     // Validar campos obrigatórios do template
     if (selectedTemplate) {
       selectedTemplate.fields.forEach((field) => {
@@ -690,23 +693,35 @@ const ProductFormPage = () => {
         }
       });
     }
-
+  
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+  
     if (!validateForm()) {
       return;
     }
-
+  
     setIsLoading(true);
+  
+    // Converter valores monetários para número
+    const priceValue = parseFloat(product.price.replace('.', '').replace(',', '.'));
+    const originalPriceValue = product.originalPrice 
+      ? parseFloat(product.originalPrice.replace('.', '').replace(',', '.')) 
+      : undefined;
+    const costPriceValue = product.costPrice 
+      ? parseFloat(product.costPrice.replace('.', '').replace(',', '.')) 
+      : undefined;
 
     // Preparar os dados do produto para envio
     const productData = {
       ...product,
+      price: priceValue,
+    originalPrice: originalPriceValue,
+    costPrice: costPriceValue,
       templateData,
       images: product.images || [],
       reviewCount: product.reviewCount || 0,
@@ -722,26 +737,14 @@ const ProductFormPage = () => {
 
     try {
       if (isEditing && id) {
-        // Atualizar produto existente
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        handleEdit(id, productData as unknown as Product);
-        console.log("Produto atualizado:", productData);
+        await handleEdit(id, productData as unknown as Product);
       } else {
-        // Criar novo produto
-        const newProductData = {
-          ...productData,
-          createdAt: new Date(),
-        };
-        handleAdd(newProductData as unknown as Product);
-        console.log("Novo produto criado:", newProductData);
+        await handleAdd(productData as unknown as Product);
       }
-
-      // Redirecionar para a lista de produtos
       navigate("/products");
     } catch (error) {
       console.error("Erro ao salvar produto:", error);
-      // Aqui você pode adicionar tratamento de erro mais específico
-      // Por exemplo, mostrar uma mensagem de erro para o usuário
+      // Adicionar tratamento de erro para o usuário
     } finally {
       setIsLoading(false);
     }
@@ -935,10 +938,18 @@ const ProductFormPage = () => {
   }
 
   const handleCurrencyChange = (value: string | undefined, field: string) => {
+    // Remover caracteres não numéricos exceto vírgula e ponto
+    const numericValue = value ? value.replace(/[^\d,.-]/g, '') : '';
+    
     setProduct(prev => ({
       ...prev,
-      [field]: value || '0'
+      [field]: numericValue
     }));
+  
+    // Limpar erro se existir
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }));
+    }
   };
 
   // Handler para upload de imagem principal

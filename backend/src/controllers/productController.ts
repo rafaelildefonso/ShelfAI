@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import prisma from '../prisma/client';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 export const productController = {
   async list(req: Request, res: Response, next: NextFunction) {

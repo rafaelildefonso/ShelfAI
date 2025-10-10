@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
@@ -9,16 +8,41 @@ datasource db {
 }
 
 model User {
-  id        String    @id @default(cuid())
-  name      String
-  email     String    @unique
-  password  String
-  role      String    @default("USER") // "ADMIN" | "USER"
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  products  Product[]
+  id          String    @id @default(cuid())
+  name        String
+  email       String    @unique
+  password    String
+  role        String    @default("USER") // "ADMIN" | "USER"
+  // Campos adicionais de informações do usuário
+  phone       String?
+  avatar      String?
+  company     String?
+  department  String?
+  position    String?
+  location    String?
+  timezone    String    @default("America/Sao_Paulo")
+  language    String    @default("pt-BR")
+  // Configurações e preferências
+  preferences Json?     // Para armazenar configurações personalizadas do usuário
+  settings    Json?     // Para configurações específicas da aplicação
+  // Status e controle
+  isActive    Boolean   @default(true)
+  lastLogin   DateTime?
+  loginCount  Int       @default(0)
+  // Auditoria
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdBy   String?
+  updatedBy   String?
+  // Relacionamentos
+  products    Product[]
+  createdProducts Product[] @relation("CreatedByUser")
+  updatedProducts Product[] @relation("UpdatedByUser")
 
   @@index([email])
+  @@index([phone])
+  @@index([company])
+  @@index([isActive])
 }
 
 model Category {
@@ -58,8 +82,10 @@ model Product {
   material                String?
   stockLocation           String?
   origin                  String?
-  createdBy               String?
-  lastEditedBy            String?
+  createdById             String?
+  createdBy               User?     @relation("CreatedByUser", fields: [createdById], references: [id])
+  lastEditedById          String?
+  lastEditedBy            User?     @relation("UpdatedByUser", fields: [lastEditedById], references: [id])
   marketplaceIntegrations Json?
   internalNotes           String?
   rating                  Float?    @default(0)
@@ -75,4 +101,6 @@ model Product {
   @@index([categoryId])
   @@index([status])
   @@index([userId])
+  @@index([createdById])
+  @@index([lastEditedById])
 }

@@ -180,17 +180,44 @@ Authorization: Bearer <seu_token>
 
 ## Usuários
 
+### Modelo de Dados do Usuário
+```json
+{
+  "id": "string",
+  "name": "string",
+  "email": "string",
+  "phone": "string?",
+  "avatar": "string?",
+  "company": "string?",
+  "department": "string?",
+  "position": "string?",
+  "location": "string?",
+  "timezone": "string",
+  "language": "string",
+  "preferences": "object?",
+  "settings": "object?",
+  "role": "string",
+  "isActive": "boolean",
+  "lastLogin": "datetime?",
+  "loginCount": "number",
+  "createdAt": "datetime",
+  "updatedAt": "datetime"
+}
+```
+
 ### Listar Usuários
 - **GET** `/api/v1/users`
   - Apenas para administradores
   - Query params:
-    - `page`: Número da página
-    - `pageSize`: Itens por página
-    - `search`: Termo de busca
+    - `page`: Número da página (padrão: 1)
+    - `pageSize`: Itens por página (padrão: 10, máximo: 100)
+    - `search`: Termo de busca (nome, email ou empresa)
+  - Exemplo: `/api/v1/users?page=1&pageSize=10&search=empresa`
 
 ### Detalhes do Usuário
 - **GET** `/api/v1/users/:id`
   - Apenas para o próprio usuário ou administradores
+  - Retorna informações completas do usuário
 
 ### Criar Usuário
 - **POST** `/api/v1/users`
@@ -201,18 +228,30 @@ Authorization: Bearer <seu_token>
       "name": "Novo Usuário",
       "email": "usuario@exemplo.com",
       "password": "senha123",
-      "role": "user"
+      "role": "USER",
+      "phone": "+55 11 99999-9999",
+      "company": "Empresa XYZ",
+      "department": "TI",
+      "position": "Desenvolvedor",
+      "location": "São Paulo, SP"
     }
     ```
 
 ### Atualizar Usuário
 - **PUT** `/api/v1/users/:id`
   - Apenas para o próprio usuário ou administradores
+  - Body: Campos opcionais para atualização
 
 ### Remover Usuário
 - **DELETE** `/api/v1/users/:id`
   - Apenas para administradores
   - Não é possível remover o próprio usuário
+
+### Ativar/Desativar Usuário
+- **PATCH** `/api/v1/users/:id/activate`
+  - Ativa um usuário (apenas administradores)
+- **PATCH** `/api/v1/users/:id/deactivate`
+  - Desativa um usuário (apenas administradores)
 
 ---
 
@@ -220,6 +259,7 @@ Authorization: Bearer <seu_token>
 
 ### Login
 - **POST** `/api/v1/auth/login`
+  - Realiza login do usuário
   - Body (exemplo):
     ```json
     {
@@ -230,27 +270,72 @@ Authorization: Bearer <seu_token>
   - Resposta (exemplo):
     ```json
     {
+      "message": "Login realizado com sucesso",
       "user": {
         "id": "user_id",
         "name": "Admin",
         "email": "admin@exemplo.com",
-        "role": "admin"
+        "role": "ADMIN",
+        "phone": "+55 11 99999-9999",
+        "company": "Empresa XYZ",
+        "department": "TI",
+        "position": "Administrador",
+        "location": "São Paulo, SP",
+        "avatar": "https://exemplo.com/avatar.jpg",
+        "lastLogin": "2024-01-15T10:30:00Z",
+        "loginCount": 5
       },
-      "token": "jwt_token"
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    }
+    ```
+
+### Registro
+- **POST** `/api/v1/auth/register`
+  - Registra um novo usuário
+  - Body (exemplo):
+    ```json
+    {
+      "name": "Novo Usuário",
+      "email": "usuario@exemplo.com",
+      "password": "senha123",
+      "phone": "+55 11 99999-9999",
+      "company": "Empresa ABC",
+      "department": "Marketing",
+      "position": "Analista",
+      "location": "Rio de Janeiro, RJ"
     }
     ```
 
 ### Obter Perfil
 - **GET** `/api/v1/auth/me`
   - Retorna os dados do usuário autenticado
+  - Inclui produtos recentes e estatísticas
 
 ### Atualizar Senha
 - **PUT** `/api/v1/auth/update-password`
+  - Atualiza a senha do usuário autenticado
   - Body (exemplo):
     ```json
     {
       "currentPassword": "senha_atual",
       "newPassword": "nova_senha"
+    }
+    ```
+
+### Atualizar Perfil
+- **PUT** `/api/v1/auth/update-profile`
+  - Atualiza o perfil do usuário autenticado
+  - Body (exemplo):
+    ```json
+    {
+      "name": "Nome Atualizado",
+      "phone": "+55 11 88888-8888",
+      "company": "Nova Empresa",
+      "department": "Vendas",
+      "position": "Gerente",
+      "location": "São Paulo, SP",
+      "timezone": "America/Sao_Paulo",
+      "language": "pt-BR"
     }
     ```
 

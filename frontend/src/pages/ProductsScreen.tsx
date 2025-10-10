@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SideBarMenu from "../components/SideBarMenu";
 import Header from "../components/Header";
@@ -6,7 +6,10 @@ import { useProducts } from "../context/ProductContext";
 import type { Product } from "../types/productType";
 
 type ProductCardProps = {
-  product: Product;
+  product: Omit<Product, 'stock' | 'minStock'> & {
+    stock?: number;
+    minStock?: number;
+  };
   onEdit: (product: Product) => void;
   onDelete: (id: string) => void;
   onDuplicate: (product: Product) => void;
@@ -20,29 +23,30 @@ const ProductCard = ({
 }: ProductCardProps) => {
   const navigate = useNavigate();
 
-  const handleCardClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    // Impede a navegação se o clique foi em um botão ou elemento interativo
+  const handleCardClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!navigate) return;
     if ((e.target as HTMLElement).closest('button, a, input')) {
       return;
     }
     navigate(`/products/${product.id}`);
-  };
+  }, [navigate, product.id]);
 
-  const discountPercentage = product.originalPrice
-    ? Math.round(
-        ((product.originalPrice - product.price) / product.originalPrice) * 100
-      )
-    : 0;
+  const discountPercentage = useMemo(() => {
+    if (!product.originalPrice || !product.price) return 0;
+    return Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
+  }, [product.originalPrice, product.price]);
 
-  const stockStatus =
-    product.stock <= product.minStock
-      ? "low"
-      : product.stock === 0
-      ? "out"
-      : "good";
+  const stockStatus = useMemo(() => {
+    const stock = product.stock ?? 0;
+    const minStock = product.minStock ?? 0;
+
+    if (stock <= 0) return "out";
+    if (stock <= minStock) return "low";
+    return "good";
+  }, [product.stock, product.minStock]);
 
   const formatDate = (date: Date | string) => {
-    if (!date) return ""; // retorna vazio se não tiver data
+    if (!date) return "";
 
     const dateToFormat = typeof date === "string" ? new Date(date) : date;
 
@@ -97,7 +101,7 @@ const ProductCard = ({
           <div className="product-sku">SKU: {product.sku}</div>
         </div>
 
-        <p className="product-description">{product.description}</p>
+        <p className="product-description">{product.description || 'Sem descrição'}</p>
 
         {product.brand && (
           <div className="product-brand">
@@ -115,7 +119,7 @@ const ProductCard = ({
 
         <div className="product-pricing">
           <div className="price-container">
-            <span className="product-price">R$ {product.price.toFixed(2)}</span>
+            <span className="product-price">R$ {product.price?.toFixed(2) || '0,00'}</span>
             {product.originalPrice && (
               <span className="product-original-price">
                 R$ {product.originalPrice.toFixed(2)}
@@ -162,7 +166,7 @@ const ProductCard = ({
                 : "Em estoque"}
             </span>
           </div>
-          <span className="stock-quantity">{product.stock} unidades</span>
+          <span className="stock-quantity">{product.stock ?? 0} unidades</span>
         </div>
 
         {product.tags.length > 0 && (
@@ -228,41 +232,44 @@ const ProductCard = ({
 
 const MainContent = () => {
   const navigate = useNavigate();
-  const { products, addProduct, removeProduct } = useProducts();
+  const { products, addProduct, removeProduct, editProduct } = useProducts();
 
-  const [filter, setFilter] = useState<"all" | "complete" | "incomplete">(
-    "all"
-  );
+  const [filter, setFilter] = useState<"all" | Product['status']>('all');
   const [searchTerm, setSearchTerm] = useState("");
 
-  const filteredProducts = products.filter((product) => {
-    const matchesFilter = filter === "all" || product.status === filter;
-    const matchesSearch =
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.description.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesFilter && matchesSearch;
-  });
+  const filteredProducts = useMemo(() => {
+    return products.filter((product) => {
+      const matchesFilter = filter === "all" || product.status === filter;
+      const matchesSearch = searchTerm
+        ? (product.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+           product.description?.toLowerCase().includes(searchTerm.toLowerCase()))
+        : true;
+      return matchesFilter && matchesSearch;
+    });
+  }, [products, filter, searchTerm]);
 
-  const handleEditProduct = (product: Product) => {
-    navigate(`/products/edit/${product.id}`);
-  };
+  const handleEditProduct = useCallback((product: Product) => {
+    if (navigate) {
+      navigate(`/products/edit/${product.id}`);
+    }
+  }, [navigate]);
 
-  const handleDeleteProduct = (id: string) => {
+  const handleDeleteProduct = useCallback((id: string) => {
     if (window.confirm("Tem certeza que deseja excluir este produto?")) {
       removeProduct(id);
     }
-  };
+  }, [removeProduct]);
 
-  const handleDuplicateProduct = (product: Product) => {
-    const duplicatedProduct = { ...product, id: undefined };
+  const handleDuplicateProduct = useCallback((product: Product) => {
+    const duplicatedProduct = { ...product, id: undefined, name: `${product.name} (Cópia)` };
     addProduct(duplicatedProduct);
-  };
+  }, [addProduct]);
 
-  const stats = {
+  const stats = useMemo(() => ({
     total: products.length,
     complete: products.filter((p) => p.status === "complete").length,
     incomplete: products.filter((p) => p.status === "incomplete").length,
-  };
+  }), [products]);
 
   return (
     <div className="products-container">
@@ -353,9 +360,9 @@ const MainContent = () => {
 
         <div className="products-grid">
           {filteredProducts.length > 0 ? (
-            filteredProducts.map((product, index) => (
+            filteredProducts.map((product) => (
               <ProductCard
-                key={index}
+                key={product.id}
                 product={product}
                 onEdit={handleEditProduct}
                 onDelete={handleDeleteProduct}

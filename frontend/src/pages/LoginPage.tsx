@@ -1,9 +1,15 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { authService, validateEmail } from '../services/authService';
 import './../App.css';
 
+interface LoginFormData {
+  email: string;
+  password: string;
+}
+
 const LoginPage = () => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<LoginFormData>({
     email: '',
     password: ''
   });
@@ -11,7 +17,7 @@ const LoginPage = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{[key: string]: string}>({});
-  
+
   const navigate = useNavigate();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -20,7 +26,7 @@ const LoginPage = () => {
       ...prev,
       [name]: value
     }));
-    
+
     // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
@@ -35,14 +41,12 @@ const LoginPage = () => {
 
     if (!formData.email) {
       newErrors.email = 'Email é obrigatório';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+    } else if (!validateEmail(formData.email)) {
       newErrors.email = 'Email inválido';
     }
 
     if (!formData.password) {
       newErrors.password = 'Senha é obrigatória';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Senha deve ter pelo menos 6 caracteres';
     }
 
     setErrors(newErrors);
@@ -51,30 +55,33 @@ const LoginPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
 
     setIsLoading(true);
-    
+
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // For demo purposes, accept any valid email/password
-      if (formData.email && formData.password) {
-        // Store user session (in real app, this would be handled by auth service)
-        localStorage.setItem('user', JSON.stringify({
-          email: formData.email,
-          name: formData.email.split('@')[0],
-          loginTime: new Date().toISOString()
-        }));
-        
-        navigate('/dashboard');
+      const loginData = {
+        email: formData.email,
+        password: formData.password,
+      };
+
+      const response = await authService.login(loginData);
+
+      // Store user session and token
+      localStorage.setItem('user', JSON.stringify(response.user));
+      localStorage.setItem('token', response.token);
+
+      // Store remember me preference
+      if (rememberMe) {
+        localStorage.setItem('rememberMe', 'true');
       }
-    } catch (error) {
-      setErrors({ general: 'Erro ao fazer login. Tente novamente.' });
+
+      navigate('/dashboard');
+    } catch (error: any) {
+      setErrors({ general: error.message || 'Erro ao fazer login. Tente novamente.' });
     } finally {
       setIsLoading(false);
     }
@@ -82,7 +89,8 @@ const LoginPage = () => {
 
   const handleSocialLogin = (provider: string) => {
     console.log(`Login with ${provider}`);
-    // In real app, this would integrate with OAuth providers
+    // TODO: Implement OAuth integration
+    setErrors({ general: 'Login social ainda não implementado' });
   };
 
   return (
@@ -128,6 +136,7 @@ const LoginPage = () => {
                       className={`form-input ${errors.email ? 'error' : ''}`}
                       placeholder="seu@email.com"
                       disabled={isLoading}
+                      autoComplete="email"
                     />
                   </div>
                   {errors.email && (
@@ -150,12 +159,14 @@ const LoginPage = () => {
                       className={`form-input ${errors.password ? 'error' : ''}`}
                       placeholder="Sua senha"
                       disabled={isLoading}
+                      autoComplete="current-password"
                     />
                     <button
                       type="button"
                       className="password-toggle"
                       onClick={() => setShowPassword(!showPassword)}
                       disabled={isLoading}
+                      aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
                     >
                       <i className={`fa-solid ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
                     </button>
@@ -243,10 +254,10 @@ const LoginPage = () => {
                 Gerencie seus produtos com inteligência artificial
               </h2>
               <p className="info-description">
-                Acesse sua dashboard personalizada e continue organizando seus produtos 
+                Acesse sua dashboard personalizada e continue organizando seus produtos
                 para múltiplos marketplaces de forma eficiente.
               </p>
-              
+
               <div className="info-features">
                 <div className="info-feature">
                   <i className="fa-solid fa-chart-line"></i>

@@ -41,11 +41,18 @@ if (process.env.NODE_ENV !== 'production') {
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 }
 
+import authRoutes from './routes/authRoutes.js';
+import importExportRoutes from './routes/importExportRoutes.js';
+
 // Rotas
 app.use('/api/files', fileRoutes);
 app.use('/api/v1/products', productRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/categories', categoryRoutes);
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/import-export', importExportRoutes);
+
+// Rota de saúde
 
 // Rota de saúde
 app.get('/health', (req, res) => {

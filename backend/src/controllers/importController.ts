@@ -1,7 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import csv from 'csv-parser';
 import fs from 'fs';
-import prisma from '../prisma/client';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 export const importController = {
   async importProducts(req: Request, res: Response, next: NextFunction) {

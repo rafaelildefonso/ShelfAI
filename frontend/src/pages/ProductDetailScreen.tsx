@@ -282,7 +282,7 @@ const ProductDetailScreen = () => {
               />
               <DetailItem
                 label="Preço de Venda"
-                value={`R$ ${product.price.toFixed(2)}`}
+                value={`R$ ${product.price?.toFixed(2)}`}
               />
               <DetailItem
                 label="Margem de Lucro"
