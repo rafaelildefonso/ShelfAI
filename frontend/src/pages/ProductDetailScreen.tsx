@@ -260,14 +260,6 @@ const ProductDetailScreen = () => {
 
             <DetailSection title="Estoque e Localização">
               <DetailItem
-                label="Quantidade em Estoque"
-                value={`${product.stock} unidades`}
-              />
-              <DetailItem
-                label="Nível Mínimo de Estoque"
-                value={`${product.minStock} unidades`}
-              />
-              <DetailItem
                 label="Localização no Estoque"
                 value={product.stockLocation}
               />
@@ -301,10 +293,10 @@ const ProductDetailScreen = () => {
                 value={new Date(product.updatedAt).toLocaleDateString("pt-BR")}
               />
               <DetailItem label="Origem do Cadastro" value={product.origin} />
-              <DetailItem label="Cadastrado por" value={product.createdBy} />
+              <DetailItem label="Cadastrado por" value={product.createdBy?.name || "-"} />
               <DetailItem
                 label="Última Edição por"
-                value={product.lastEditedBy}
+                value={product.lastEditedBy?.name || "-"}
               />
             </DetailSection>
 

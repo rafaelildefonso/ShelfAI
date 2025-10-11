@@ -1,17 +1,22 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { authService, validateEmail, validatePassword, type RegisterData } from '../services/authService';
-import './../App.css';
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  authService,
+  validateEmail,
+  validatePassword,
+  type RegisterData,
+} from "../services/authService";
+import "./../App.css";
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    company: '',
-    phone: '',
-    acceptTerms: false
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    company: "",
+    phone: "",
+    acceptTerms: false,
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -22,16 +27,16 @@ const RegisterPage = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === "checkbox" ? checked : value,
     }));
 
     // Clear error when user starts typing
     if (errors[name]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [name]: ''
+        [name]: "",
       }));
     }
   };
@@ -40,38 +45,38 @@ const RegisterPage = () => {
     const newErrors: { [key: string]: string } = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = 'Nome é obrigatório';
+      newErrors.name = "Nome é obrigatório";
     } else if (formData.name.trim().length < 2) {
-      newErrors.name = 'Nome deve ter pelo menos 2 caracteres';
+      newErrors.name = "Nome deve ter pelo menos 2 caracteres";
     }
 
     if (!formData.email) {
-      newErrors.email = 'Email é obrigatório';
+      newErrors.email = "Email é obrigatório";
     } else if (!validateEmail(formData.email)) {
-      newErrors.email = 'Email inválido';
+      newErrors.email = "Email inválido";
     }
 
     if (!formData.password) {
-      newErrors.password = 'Senha é obrigatória';
+      newErrors.password = "Senha é obrigatória";
     } else {
       const passwordValidation = validatePassword(formData.password);
       if (!passwordValidation.isValid) {
-        newErrors.password = passwordValidation.errors.join(', ');
+        newErrors.password = passwordValidation.errors.join(", ");
       }
     }
 
     if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Confirmação de senha é obrigatória';
+      newErrors.confirmPassword = "Confirmação de senha é obrigatória";
     } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Senhas não coincidem';
+      newErrors.confirmPassword = "Senhas não coincidem";
     }
 
     if (formData.phone && formData.phone.length < 10) {
-      newErrors.phone = 'Telefone deve ter pelo menos 10 dígitos';
+      newErrors.phone = "Telefone deve ter pelo menos 10 dígitos";
     }
 
     if (!formData.acceptTerms) {
-      newErrors.acceptTerms = 'Você deve aceitar os termos de uso';
+      newErrors.acceptTerms = "Você deve aceitar os termos de uso";
     }
 
     setErrors(newErrors);
@@ -79,23 +84,28 @@ const RegisterPage = () => {
   };
 
   const formatPhone = (value: string) => {
-    const numbers = value.replace(/\D/g, '');
+    const numbers = value.replace(/\D/g, "");
     if (numbers.length <= 2) {
       return numbers;
     } else if (numbers.length <= 6) {
       return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
     } else if (numbers.length <= 10) {
-      return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 6)}-${numbers.slice(6)}`;
+      return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 6)}-${numbers.slice(
+        6
+      )}`;
     } else {
-      return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`;
+      return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(
+        7,
+        11
+      )}`;
     }
   };
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatPhone(e.target.value);
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      phone: formatted
+      phone: formatted,
     }));
   };
 
@@ -117,15 +127,21 @@ const RegisterPage = () => {
         company: formData.company || undefined,
       };
 
-      const user = await authService.register(registerData);
+      const response = await authService.register(registerData);
 
       // Store user session
-      localStorage.setItem('user', JSON.stringify(user));
+      // Se o backend retornar { user, token }
+      if (response.token) {
+        localStorage.setItem("token", response.token);
+        localStorage.setItem("user", JSON.stringify(response.user));
+      }
 
       // Redirect to dashboard
-      navigate('/dashboard');
+      navigate("/dashboard");
     } catch (error: any) {
-      setErrors({ general: error.message || 'Erro ao criar conta. Tente novamente.' });
+      setErrors({
+        general: error.message || "Erro ao criar conta. Tente novamente.",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -176,7 +192,7 @@ const RegisterPage = () => {
                       name="name"
                       value={formData.name}
                       onChange={handleInputChange}
-                      className={`form-input ${errors.name ? 'error' : ''}`}
+                      className={`form-input ${errors.name ? "error" : ""}`}
                       placeholder="Seu nome completo"
                       disabled={isLoading}
                     />
@@ -198,7 +214,7 @@ const RegisterPage = () => {
                       name="email"
                       value={formData.email}
                       onChange={handleInputChange}
-                      className={`form-input ${errors.email ? 'error' : ''}`}
+                      className={`form-input ${errors.email ? "error" : ""}`}
                       placeholder="seu@email.com"
                       disabled={isLoading}
                     />
@@ -220,7 +236,7 @@ const RegisterPage = () => {
                       name="company"
                       value={formData.company}
                       onChange={handleInputChange}
-                      className={`form-input ${errors.company ? 'error' : ''}`}
+                      className={`form-input ${errors.company ? "error" : ""}`}
                       placeholder="Nome da sua loja/empresa"
                       disabled={isLoading}
                     />
@@ -242,7 +258,7 @@ const RegisterPage = () => {
                       name="phone"
                       value={formData.phone}
                       onChange={handlePhoneChange}
-                      className={`form-input ${errors.phone ? 'error' : ''}`}
+                      className={`form-input ${errors.phone ? "error" : ""}`}
                       placeholder="(11) 99999-9999"
                       disabled={isLoading}
                     />
@@ -259,12 +275,12 @@ const RegisterPage = () => {
                   <div className="input-container">
                     <i className="fa-solid fa-lock input-icon"></i>
                     <input
-                      type={showPassword ? 'text' : 'password'}
+                      type={showPassword ? "text" : "password"}
                       id="password"
                       name="password"
                       value={formData.password}
                       onChange={handleInputChange}
-                      className={`form-input ${errors.password ? 'error' : ''}`}
+                      className={`form-input ${errors.password ? "error" : ""}`}
                       placeholder="Mínimo 8 caracteres"
                       disabled={isLoading}
                     />
@@ -274,7 +290,11 @@ const RegisterPage = () => {
                       onClick={() => setShowPassword(!showPassword)}
                       disabled={isLoading}
                     >
-                      <i className={`fa-solid ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                      <i
+                        className={`fa-solid ${
+                          showPassword ? "fa-eye-slash" : "fa-eye"
+                        }`}
+                      ></i>
                     </button>
                   </div>
                   {errors.password && (
@@ -289,22 +309,30 @@ const RegisterPage = () => {
                   <div className="input-container">
                     <i className="fa-solid fa-lock input-icon"></i>
                     <input
-                      type={showConfirmPassword ? 'text' : 'password'}
+                      type={showConfirmPassword ? "text" : "password"}
                       id="confirmPassword"
                       name="confirmPassword"
                       value={formData.confirmPassword}
                       onChange={handleInputChange}
-                      className={`form-input ${errors.confirmPassword ? 'error' : ''}`}
+                      className={`form-input ${
+                        errors.confirmPassword ? "error" : ""
+                      }`}
                       placeholder="Confirme sua senha"
                       disabled={isLoading}
                     />
                     <button
                       type="button"
                       className="password-toggle"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      onClick={() =>
+                        setShowConfirmPassword(!showConfirmPassword)
+                      }
                       disabled={isLoading}
                     >
-                      <i className={`fa-solid ${showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                      <i
+                        className={`fa-solid ${
+                          showConfirmPassword ? "fa-eye-slash" : "fa-eye"
+                        }`}
+                      ></i>
                     </button>
                   </div>
                   {errors.confirmPassword && (
@@ -322,11 +350,11 @@ const RegisterPage = () => {
                       disabled={isLoading}
                     />
                     <span className="checkmark"></span>
-                    Eu aceito os{' '}
+                    Eu aceito os{" "}
                     <Link to="/terms" className="terms-link">
                       Termos de Uso
-                    </Link>{' '}
-                    e a{' '}
+                    </Link>{" "}
+                    e a{" "}
                     <Link to="/privacy" className="terms-link">
                       Política de Privacidade
                     </Link>
@@ -338,7 +366,9 @@ const RegisterPage = () => {
 
                 <button
                   type="submit"
-                  className={`btn btn-primary btn-full ${isLoading ? 'loading' : ''}`}
+                  className={`btn btn-primary btn-full ${
+                    isLoading ? "loading" : ""
+                  }`}
                   disabled={isLoading}
                 >
                   {isLoading ? (
@@ -362,7 +392,7 @@ const RegisterPage = () => {
                   <button
                     type="button"
                     className="social-btn google"
-                    onClick={() => handleSocialRegister('google')}
+                    onClick={() => handleSocialRegister("google")}
                     disabled={isLoading}
                   >
                     <i className="fa-brands fa-google"></i>
@@ -371,7 +401,7 @@ const RegisterPage = () => {
                   <button
                     type="button"
                     className="social-btn facebook"
-                    onClick={() => handleSocialRegister('facebook')}
+                    onClick={() => handleSocialRegister("facebook")}
                     disabled={isLoading}
                   >
                     <i className="fa-brands fa-facebook-f"></i>
@@ -381,7 +411,7 @@ const RegisterPage = () => {
 
                 <div className="auth-footer">
                   <p>
-                    Já tem uma conta?{' '}
+                    Já tem uma conta?{" "}
                     <Link to="/login" className="auth-link">
                       Faça login
                     </Link>
@@ -394,12 +424,10 @@ const RegisterPage = () => {
           {/* Right Side - Info */}
           <div className="auth-info">
             <div className="auth-info-content">
-              <h2 className="info-title">
-                Transforme sua loja em minutos
-              </h2>
+              <h2 className="info-title">Transforme sua loja em minutos</h2>
               <p className="info-description">
-                Junte-se a mais de 1.200 lojas que já usam o ShelfAI para organizar
-                seus produtos e aumentar suas vendas online.
+                Junte-se a mais de 1.200 lojas que já usam o ShelfAI para
+                organizar seus produtos e aumentar suas vendas online.
               </p>
 
               <div className="info-features">
@@ -407,14 +435,20 @@ const RegisterPage = () => {
                   <i className="fa-solid fa-rocket"></i>
                   <div>
                     <h4>Setup em 5 minutos</h4>
-                    <p>Configure sua conta e comece a importar produtos imediatamente</p>
+                    <p>
+                      Configure sua conta e comece a importar produtos
+                      imediatamente
+                    </p>
                   </div>
                 </div>
                 <div className="info-feature">
                   <i className="fa-solid fa-lock"></i>
                   <div>
                     <h4>Dados seguros</h4>
-                    <p>Seus dados são protegidos com criptografia de nível bancário</p>
+                    <p>
+                      Seus dados são protegidos com criptografia de nível
+                      bancário
+                    </p>
                   </div>
                 </div>
                 <div className="info-feature">

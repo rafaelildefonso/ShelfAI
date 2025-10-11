@@ -28,7 +28,7 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
     req.user = decoded;
     next();
   } catch (error) {
-    next(new AppError('Token inválido ou expirado', 401));
+    next(new AppError('Token inválido ou expirado: ' + req.headers.authorization, 401));
   }
 };
 

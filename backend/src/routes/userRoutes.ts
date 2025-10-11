@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { userController } from '../controllers/userController';
-import { auth } from '../middlewares/auth';
+import { authenticate } from '../middlewares/authMiddleware';
 import { validate } from '../middlewares/validate';
 import { z } from 'zod';
 
@@ -13,10 +13,10 @@ const userSchema = z.object({
   role: z.string(),
 });
 
-router.get('/', auth, userController.list);
-router.get('/:id', auth, userController.get);
-router.post('/', auth, validate(userSchema), userController.create);
-router.put('/:id', auth, validate(userSchema.partial()), userController.update);
-router.delete('/:id', auth, userController.remove);
+router.get('/', authenticate, userController.list);
+router.get('/:id', authenticate, userController.get);
+router.post('/', authenticate, validate(userSchema), userController.create);
+router.put('/:id', authenticate, validate(userSchema.partial()), userController.update);
+router.delete('/:id', authenticate, userController.remove);
 
 export default router;

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { productController } from '../controllers/productController.js';
-import { auth } from '../middlewares/auth.js';
+import { authenticate } from '../middlewares/authMiddleware.js';
 import { validate } from '../middlewares/validate.js';
 import { z } from 'zod';
 
@@ -11,6 +11,7 @@ const productSchema = z.object({
   description: z.string().optional(),
   price: z.number().optional(),
   originalPrice: z.number().optional(),
+  costPrice: z.number().optional(),
   categoryId: z.string().optional(),
   subcategory: z.string().optional(),
   brand: z.string().optional(),
@@ -24,12 +25,13 @@ const productSchema = z.object({
   featured: z.boolean().optional(),
   active: z.boolean().optional(),
   userId: z.string().optional(),
+  templateData: z.any().optional(),
 });
 
-router.get('/', auth, productController.list);
-router.get('/:id', auth, productController.get);
-router.post('/', auth, validate(productSchema), productController.create);
-router.put('/:id', auth, validate(productSchema.partial()), productController.update);
-router.delete('/:id', auth, productController.remove);
+router.get('/', authenticate, productController.list);
+router.get('/:id', authenticate, productController.get);
+router.post('/', authenticate, validate(productSchema), productController.create);
+router.put('/:id', authenticate, validate(productSchema.partial()), productController.update);
+router.delete('/:id', authenticate, productController.remove);
 
 export default router;

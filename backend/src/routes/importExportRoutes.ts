@@ -2,7 +2,7 @@ import { Router } from 'express';
 import multer from 'multer';
 import { importController } from '../controllers/importController.js';
 import { exportController } from '../controllers/exportController.js';
-import { auth } from '../middlewares/auth.js';
+import { authenticate } from '../middlewares/authMiddleware.js';
 
 const router = Router();
 
@@ -20,15 +20,15 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // Rotas de importação/exportação
-router.post('/import', auth, upload.single('file'), importController.importProducts);
+router.post('/import', authenticate, upload.single('file'), importController.importProducts);
 
 // Rota para listar formatos de exportação disponíveis
-router.get('/export/formats', auth, exportController.getExportFormats);
+router.get('/export/formats', authenticate, exportController.getExportFormats);
 
 // Rota para exportar produtos (formato padrão: CSV)
-router.get('/export', auth, exportController.exportProducts);
+router.get('/export', authenticate, exportController.exportProducts);
 
 // Rota para exportar produtos em um formato específico
-router.get('/export/:format', auth, exportController.exportProducts);
+router.get('/export/:format', authenticate, exportController.exportProducts);
 
 export default router;

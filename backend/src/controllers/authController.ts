@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from "express";
 import {
   registerUser,
   authenticateUser,
@@ -8,17 +8,19 @@ import {
   getAllUsers,
   deactivateUser,
   activateUser,
-  verifyToken
-} from '../services/authService.js';
+  verifyToken,
+  generateToken,
+} from "../services/authService.js";
 
 export const authController = {
   // Registro de usuário
   async register(req: Request, res: Response, next: NextFunction) {
     try {
       const user = await registerUser(req.body);
+      const token = generateToken(user);
 
       res.status(201).json({
-        message: 'Usuário registrado com sucesso',
+        message: "Usuário registrado com sucesso",
         user: {
           id: user.id,
           name: user.name,
@@ -28,8 +30,9 @@ export const authController = {
           company: user.company,
           department: user.department,
           position: user.position,
-          location: user.location
-        }
+          location: user.location,
+        },
+        token,
       });
     } catch (error: any) {
       next(error);
@@ -42,7 +45,7 @@ export const authController = {
       const { user, token } = await authenticateUser(req.body);
 
       res.json({
-        message: 'Login realizado com sucesso',
+        message: "Login realizado com sucesso",
         user: {
           id: user.id,
           name: user.name,
@@ -55,9 +58,9 @@ export const authController = {
           location: user.location,
           avatar: user.avatar,
           lastLogin: user.lastLogin,
-          loginCount: user.loginCount
+          loginCount: user.loginCount,
         },
-        token
+        token,
       });
     } catch (error: any) {
       next(error);
@@ -69,8 +72,10 @@ export const authController = {
     try {
       const authHeader = req.headers.authorization;
 
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: { message: 'Token não fornecido', status: 401 } });
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res
+          .status(401)
+          .json({ error: { message: "Token não fornecido", status: 401 } });
       }
 
       const token = authHeader.substring(7);
@@ -79,7 +84,9 @@ export const authController = {
       const user = await getUserProfile(decoded.userId);
 
       if (!user) {
-        return res.status(404).json({ error: { message: 'Usuário não encontrado', status: 404 } });
+        return res
+          .status(404)
+          .json({ error: { message: "Usuário não encontrado", status: 404 } });
       }
 
       res.json({
@@ -104,8 +111,8 @@ export const authController = {
           createdAt: user.createdAt,
           updatedAt: user.updatedAt,
           products: user.products,
-          _count: user._count
-        }
+          _count: user._count,
+        },
       });
     } catch (error: any) {
       next(error);
@@ -117,8 +124,10 @@ export const authController = {
     try {
       const authHeader = req.headers.authorization;
 
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: { message: 'Token não fornecido', status: 401 } });
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res
+          .status(401)
+          .json({ error: { message: "Token não fornecido", status: 401 } });
       }
 
       const token = authHeader.substring(7);
@@ -126,7 +135,7 @@ export const authController = {
 
       await updatePassword(decoded.userId, req.body);
 
-      res.json({ message: 'Senha atualizada com sucesso' });
+      res.json({ message: "Senha atualizada com sucesso" });
     } catch (error: any) {
       next(error);
     }
@@ -137,8 +146,10 @@ export const authController = {
     try {
       const authHeader = req.headers.authorization;
 
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: { message: 'Token não fornecido', status: 401 } });
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res
+          .status(401)
+          .json({ error: { message: "Token não fornecido", status: 401 } });
       }
 
       const token = authHeader.substring(7);
@@ -147,7 +158,7 @@ export const authController = {
       const updatedUser = await updateProfile(decoded.userId, req.body);
 
       res.json({
-        message: 'Perfil atualizado com sucesso',
+        message: "Perfil atualizado com sucesso",
         user: {
           id: updatedUser.id,
           name: updatedUser.name,
@@ -163,8 +174,8 @@ export const authController = {
           language: updatedUser.language,
           preferences: updatedUser.preferences,
           settings: updatedUser.settings,
-          updatedAt: updatedUser.updatedAt
-        }
+          updatedAt: updatedUser.updatedAt,
+        },
       });
     } catch (error: any) {
       next(error);
@@ -176,16 +187,20 @@ export const authController = {
     try {
       const authHeader = req.headers.authorization;
 
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: { message: 'Token não fornecido', status: 401 } });
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res
+          .status(401)
+          .json({ error: { message: "Token não fornecido", status: 401 } });
       }
 
       const token = authHeader.substring(7);
       const decoded = verifyToken(token);
 
       // Verificar se é admin
-      if (decoded.role !== 'ADMIN') {
-        return res.status(403).json({ error: { message: 'Acesso negado', status: 403 } });
+      if (decoded.role !== "ADMIN") {
+        return res
+          .status(403)
+          .json({ error: { message: "Acesso negado", status: 403 } });
       }
 
       const { page = 1, pageSize = 10, search } = req.query;
@@ -207,29 +222,33 @@ export const authController = {
     try {
       const authHeader = req.headers.authorization;
 
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: { message: 'Token não fornecido', status: 401 } });
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res
+          .status(401)
+          .json({ error: { message: "Token não fornecido", status: 401 } });
       }
 
       const token = authHeader.substring(7);
       const decoded = verifyToken(token);
 
       // Verificar se é admin
-      if (decoded.role !== 'ADMIN') {
-        return res.status(403).json({ error: { message: 'Acesso negado', status: 403 } });
+      if (decoded.role !== "ADMIN") {
+        return res
+          .status(403)
+          .json({ error: { message: "Acesso negado", status: 403 } });
       }
 
       const { id } = req.params;
       const user = await deactivateUser(id);
 
       res.json({
-        message: 'Usuário desativado com sucesso',
+        message: "Usuário desativado com sucesso",
         user: {
           id: user.id,
           name: user.name,
           email: user.email,
-          isActive: user.isActive
-        }
+          isActive: user.isActive,
+        },
       });
     } catch (error: any) {
       next(error);
@@ -241,32 +260,36 @@ export const authController = {
     try {
       const authHeader = req.headers.authorization;
 
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: { message: 'Token não fornecido', status: 401 } });
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res
+          .status(401)
+          .json({ error: { message: "Token não fornecido", status: 401 } });
       }
 
       const token = authHeader.substring(7);
       const decoded = verifyToken(token);
 
       // Verificar se é admin
-      if (decoded.role !== 'ADMIN') {
-        return res.status(403).json({ error: { message: 'Acesso negado', status: 403 } });
+      if (decoded.role !== "ADMIN") {
+        return res
+          .status(403)
+          .json({ error: { message: "Acesso negado", status: 403 } });
       }
 
       const { id } = req.params;
       const user = await activateUser(id);
 
       res.json({
-        message: 'Usuário ativado com sucesso',
+        message: "Usuário ativado com sucesso",
         user: {
           id: user.id,
           name: user.name,
           email: user.email,
-          isActive: user.isActive
-        }
+          isActive: user.isActive,
+        },
       });
     } catch (error: any) {
       next(error);
     }
-  }
+  },
 };

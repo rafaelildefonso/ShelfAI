@@ -131,11 +131,11 @@ const ProductCard = ({
         <div className="product-stats">
           <div className="stat-item">
             <i className="fa-solid fa-eye"></i>
-            <span>{product.views.toLocaleString()}</span>
+            <span>{product.views?.toLocaleString() || 0}</span>
           </div>
           <div className="stat-item">
             <i className="fa-solid fa-shopping-cart"></i>
-            <span>{product.sales.toLocaleString()}</span>
+            <span>{product.sales?.toLocaleString() || 0}</span>
           </div>
           {product.rating && (
             <div className="stat-item">
@@ -147,37 +147,15 @@ const ProductCard = ({
           )}
         </div>
 
-        <div className="product-stock">
-          <div className={`stock-indicator ${stockStatus}`}>
-            <i
-              className={`fa-solid ${
-                stockStatus === "out"
-                  ? "fa-times-circle"
-                  : stockStatus === "low"
-                  ? "fa-exclamation-triangle"
-                  : "fa-check-circle"
-              }`}
-            ></i>
-            <span>
-              {stockStatus === "out"
-                ? "Sem estoque"
-                : stockStatus === "low"
-                ? "Estoque baixo"
-                : "Em estoque"}
-            </span>
-          </div>
-          <span className="stock-quantity">{product.stock ?? 0} unidades</span>
-        </div>
-
-        {product.tags.length > 0 && (
+        {product.tags?.length > 0 && (
           <div className="product-tags">
-            {product.tags.slice(0, 3).map((tag, index) => (
+            {product.tags?.slice(0, 3).map((tag, index) => (
               <span key={index} className="tag">
                 {tag}
               </span>
             ))}
-            {product.tags.length > 3 && (
-              <span className="tag more">+{product.tags.length - 3}</span>
+            {product.tags?.length > 3 && (
+              <span className="tag more">+{product.tags?.length - 3}</span>
             )}
           </div>
         )}
@@ -185,11 +163,11 @@ const ProductCard = ({
         <div className="product-dates">
           <div className="date-item">
             <i className="fa-solid fa-calendar-plus"></i>
-            <span>Criado: {formatDate(product.createdAt)}</span>
+            <span>Criado: {formatDate(product?.createdAt)}</span>
           </div>
           <div className="date-item">
             <i className="fa-solid fa-calendar-edit"></i>
-            <span>Atualizado: {formatDate(product.updatedAt)}</span>
+            <span>Atualizado: {formatDate(product?.updatedAt)}</span>
           </div>
         </div>
       </div>
@@ -232,7 +210,7 @@ const ProductCard = ({
 
 const MainContent = () => {
   const navigate = useNavigate();
-  const { products, addProduct, removeProduct, editProduct } = useProducts();
+  const { products, addProduct, removeProduct } = useProducts();
 
   const [filter, setFilter] = useState<"all" | Product['status']>('all');
   const [searchTerm, setSearchTerm] = useState("");

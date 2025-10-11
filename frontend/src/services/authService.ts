@@ -114,7 +114,7 @@ export const validatePassword = (password: string): { isValid: boolean; errors: 
 // Serviço de autenticação
 export const authService = {
   // Registrar usuário
-  async register(userData: RegisterData): Promise<User> {
+  async register(userData: RegisterData): Promise<any> {
     const res = await fetch(`${API_URL}/register`, {
       method: 'POST',
       headers: {

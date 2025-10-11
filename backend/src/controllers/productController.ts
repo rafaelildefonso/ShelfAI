@@ -49,6 +49,19 @@ export const productController = {
     try {
       const data = req.body;
 
+      // Usar userId do token JWT se disponível, caso contrário deixar sem userId
+      if (req.user?.userId) {
+        data.userId = req.user.userId;
+        data.createdById = req.user.userId;
+        data.lastEditedById = req.user.userId;
+      } else {
+        console.warn("Nenhum usuário autenticado encontrado no token!");
+      }
+      // Não definir userId se não há usuário autenticado
+      delete (data as any).user;
+    delete (data as any).createdBy;
+    delete (data as any).lastEditedBy;
+
       // Se foi enviado categoryName ao invés de categoryId, criar ou encontrar a categoria
       if (data.categoryName && !data.categoryId) {
         let category = await (prisma as any).category.findUnique({
@@ -65,8 +78,26 @@ export const productController = {
         }
 
         data.categoryId = category.id;
-        delete data.categoryName; // Remover o campo que não existe no schema
+        delete data.categoryName;
       }
+
+      // 🧠 Função auxiliar para validar usuários
+    const validateUserId = async (key: string) => {
+      if (data[key]) {
+        const userExists = await prisma.user.findUnique({
+          where: { id: data[key] },
+        });
+        if (!userExists) {
+          console.warn(`${key} inválido, removendo do payload: ${data[key]}`);
+          delete data[key];
+        }
+      }
+    };
+
+    // 🔍 Validar IDs relacionados a usuários
+    await validateUserId("userId");
+    await validateUserId("createdById");
+    await validateUserId("lastEditedById");
 
       const product = await prisma.product.create({ data });
       res.status(201).json(product);
@@ -79,6 +110,12 @@ export const productController = {
     try {
       const { id } = req.params;
       const data = req.body;
+
+      // Usar userId do token JWT se disponível, caso contrário deixar sem userId
+      if (req.user?.userId) {
+        data.userId = req.user.userId;
+      }
+      // Não definir userId se não há usuário autenticado
 
       // Se foi enviado categoryName ao invés de categoryId, criar ou encontrar a categoria
       if (data.categoryName && !data.categoryId) {

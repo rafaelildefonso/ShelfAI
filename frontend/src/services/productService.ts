@@ -1,5 +1,11 @@
 import type { Product } from "../types/productType";
 import { categoryService } from "./categoryService";
+// Função para obter userId do usuário logado
+const getCurrentUser = (): any => {
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  console.log(user)
+  return user.user || {};
+};
 
 const API_URL = "/api/v1/products";
 
@@ -38,8 +44,7 @@ export async function getProducts(params?: { page?: number; pageSize?: number; s
     brand: backendProduct.brand,
     sku: backendProduct.sku,
     status: backendProduct.status,
-    stock: 0, // Backend não tem stock, frontend usa 0 como padrão
-    minStock: 0, // Backend não tem minStock, frontend usa 0 como padrão
+    stock: backendProduct.stock,
     weight: backendProduct.weight,
     length: backendProduct.length,
     width: backendProduct.width,
@@ -96,8 +101,6 @@ export async function getProductById(id: string): Promise<Product> {
     brand: backendProduct.brand,
     sku: backendProduct.sku,
     status: backendProduct.status,
-    stock: 0, 
-    minStock: 0, 
     weight: backendProduct.weight,
     length: backendProduct.length,
     width: backendProduct.width,
@@ -140,8 +143,9 @@ export async function getCategories(): Promise<{ data: string[] }> {
 }
 
 export async function createProduct(product: Partial<Product>): Promise<Product> {
+  let user = getCurrentUser();
   // Adaptar os dados do frontend para o formato do backend
-  const adaptedData = {
+  const adaptedData: any = {
     name: product.name,
     description: product.description,
     price: product.price,
@@ -169,7 +173,34 @@ export async function createProduct(product: Partial<Product>): Promise<Product>
     origin: product.origin,
     marketplaceIntegrations: product.marketplaceIntegrations,
     internalNotes: product.internalNotes,
+    user: product.user || user,
+    userId: product.userId || user.id,
+    createdById: product.createdById || user.id,
+    lastEditedById: product.lastEditedById || user.id,
+    templateData: product.templateData || {},
+    // Campos de estatísticas - manter mesmo com valor 0 para inicialização
+    rating: product.rating ?? 0,
+    reviewCount: product.reviewCount ?? 0,
+    views: product.views ?? 0,
+    sales: product.sales ?? 0,
   };
+
+  // Remover apenas campos que são realmente opcionais e estão completamente vazios
+  const optionalFields = ['description', 'originalPrice', 'costPrice', 'subcategory', 'brand', 'weight', 'length', 'width', 'height', 'image', 'model', 'color', 'size', 'material', 'stockLocation', 'origin', 'marketplaceIntegrations', 'internalNotes'];
+  optionalFields.forEach(field => {
+    const value = adaptedData[field];
+    if (value === undefined || value === null || value === '') {
+      delete adaptedData[field];
+    }
+  });
+
+  // Manter arrays vazios se foram explicitamente definidos
+  if (product.tags !== undefined && Array.isArray(product.tags)) {
+    adaptedData.tags = product.tags;
+  }
+  if (product.images !== undefined && Array.isArray(product.images)) {
+    adaptedData.images = product.images;
+  }
 
   const res = await fetch(API_URL, {
     method: "POST",
@@ -184,8 +215,9 @@ export async function createProduct(product: Partial<Product>): Promise<Product>
 }
 
 export async function updateProduct(id: string, updated: Partial<Product>): Promise<Product> {
+  let user = getCurrentUser();
   // Adaptar os dados do frontend para o formato do backend
-  const adaptedData = {
+  const adaptedData: any = {
     name: updated.name,
     description: updated.description,
     price: updated.price,
@@ -213,7 +245,33 @@ export async function updateProduct(id: string, updated: Partial<Product>): Prom
     origin: updated.origin,
     marketplaceIntegrations: updated.marketplaceIntegrations,
     internalNotes: updated.internalNotes,
+    userId: updated.userId || user.id,
+    user: updated.user || user,
+    lastEditedById: updated.lastEditedById || user.id,
+    templateData: updated.templateData || {},
+    // Campos de estatísticas - manter mesmo com valor 0 para inicialização
+    rating: updated.rating ?? 0,
+    reviewCount: updated.reviewCount ?? 0,
+    views: updated.views ?? 0,
+    sales: updated.sales ?? 0,
   };
+
+  // Remover apenas campos que são realmente opcionais e estão completamente vazios
+  const optionalFields = ['description', 'originalPrice', 'costPrice', 'subcategory', 'brand', 'weight', 'length', 'width', 'height', 'image', 'model', 'color', 'size', 'material', 'stockLocation', 'origin', 'marketplaceIntegrations', 'internalNotes'];
+  optionalFields.forEach(field => {
+    const value = adaptedData[field];
+    if (value === undefined || value === null || value === '') {
+      delete adaptedData[field];
+    }
+  });
+
+  // Manter arrays vazios se foram explicitamente definidos
+  if (updated.tags !== undefined && Array.isArray(updated.tags)) {
+    adaptedData.tags = updated.tags;
+  }
+  if (updated.images !== undefined && Array.isArray(updated.images)) {
+    adaptedData.images = updated.images;
+  }
 
   const res = await fetch(`${API_URL}/${id}`, {
     method: "PUT",

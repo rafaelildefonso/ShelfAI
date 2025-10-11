@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import CurrencyInput from 'react-currency-input-field';
+import CurrencyInput from "react-currency-input-field";
 import SideBarMenu from "../components/SideBarMenu";
 import Header from "../components/Header";
 import "./../App.css";
@@ -57,14 +57,12 @@ const ProductFormPage = () => {
     name: string;
     description: string;
     price: string;
-  originalPrice?: string;
-  costPrice?: string;
+    originalPrice?: string;
+    costPrice?: string;
     categoryId: string;
     subcategory?: string;
     brand?: string;
     sku: string;
-    stock: number;
-    minStock: number;
     weight?: number;
     length?: number;
     width?: number;
@@ -79,7 +77,7 @@ const ProductFormPage = () => {
     size?: string;
     material?: string;
     stockLocation?: string;
-    origin?: 'manual' | 'import';
+    origin?: "manual" | "import";
     internalNotes?: string;
     templateData?: Record<string, any>;
     // Campos adicionais para compatibilidade
@@ -100,8 +98,6 @@ const ProductFormPage = () => {
     subcategory: "",
     brand: "",
     sku: "",
-    stock: 0,
-    minStock: 0,
     tags: [],
     images: [],
     featured: false,
@@ -517,8 +513,8 @@ const ProductFormPage = () => {
         const response = await getCategories();
         // Transform the string array into Category objects
         const categories = response.data.map((name: string, index: number) => ({
-          id: `cat-${index}`,  // Generate an ID if not provided
-          name: name
+          id: `cat-${index}`, // Generate an ID if not provided
+          name: name,
         }));
         setCategories(categories);
       } catch (error) {
@@ -542,11 +538,12 @@ const ProductFormPage = () => {
             description: editingProduct.description || "",
             price: editingProduct.price?.toString() || "0",
             sku: editingProduct.sku || "",
-            stock: editingProduct.stock || 0,
-            minStock: editingProduct.minStock || 0,
             tags: editingProduct.tags || [],
             featured: editingProduct.featured || false,
-            active: editingProduct.active !== undefined ? editingProduct.active : true,
+            active:
+              editingProduct.active !== undefined
+                ? editingProduct.active
+                : true,
             // Inicializar campos opcionais
             originalPrice: editingProduct.originalPrice?.toString() || "0",
             costPrice: editingProduct.costPrice?.toString() || "0",
@@ -561,7 +558,7 @@ const ProductFormPage = () => {
             size: editingProduct.size,
             material: editingProduct.material,
             stockLocation: editingProduct.stockLocation,
-            origin: editingProduct.origin as 'manual' | 'import' | undefined,
+            origin: editingProduct.origin as "manual" | "import" | undefined,
             internalNotes: editingProduct.internalNotes,
             // Campos de compatibilidade
             reviewCount: editingProduct.reviewCount,
@@ -589,17 +586,19 @@ const ProductFormPage = () => {
 
   const handleTemplateSelect = (template: ProductTemplate) => {
     setSelectedTemplate(template);
-    
+
     // Encontrar a categoria correspondente
-    const selectedCategory = categories.find(cat => cat.name === template.category);
-    
+    const selectedCategory = categories.find(
+      (cat) => cat.name === template.category
+    );
+
     if (selectedCategory) {
       setProduct((prev: ProductFormData) => ({
         ...prev,
         categoryId: selectedCategory.id,
       }));
     }
-    
+
     setShowTemplateSelector(false);
     setTemplateData({});
   };
@@ -658,70 +657,69 @@ const ProductFormPage = () => {
 
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
-  
+
     if (!product.name.trim()) {
       newErrors.name = "Nome do produto é obrigatório";
     }
-  
-    // Validar preço
-    const priceValue = parseFloat(product.price.replace('.', '').replace(',', '.'));
-    if (isNaN(priceValue) || priceValue <= 0) {
-      newErrors.price = "Preço inválido";
+
+    // Validar preço - converter corretamente o formato brasileiro
+    if (!product.price || product.price.trim() === "") {
+      newErrors.price = "Preço é obrigatório";
+    } else {
+      const priceValue = parseFloat(
+        product.price.replace(/\./g, "").replace(",", ".")
+      );
+      if (isNaN(priceValue) || priceValue <= 0) {
+        newErrors.price = "Preço deve ser um valor positivo";
+      }
     }
-  
-    if (!product.categoryId) {
-      newErrors.categoryId = "Categoria é obrigatória";
-    }
-  
+
     if (!product.sku.trim()) {
       newErrors.sku = "SKU é obrigatório";
     }
-  
-    if (product.stock < 0) {
-      newErrors.stock = "Estoque não pode ser negativo";
-    }
-  
-    if (product.minStock < 0) {
-      newErrors.minStock = "Estoque mínimo não pode ser negativo";
-    }
-  
+
     // Validar campos obrigatórios do template
     if (selectedTemplate) {
       selectedTemplate.fields.forEach((field) => {
-        if (field.required && !templateData[field.id]) {
+        if (
+          field.required &&
+          (!templateData[field.id] || templateData[field.id] === "")
+        ) {
           newErrors[`template_${field.id}`] = `${field.label} é obrigatório`;
         }
       });
     }
-  
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-  
+
     if (!validateForm()) {
       return;
     }
-  
+
     setIsLoading(true);
-  
+
     // Converter valores monetários para número
-    const priceValue = parseFloat(product.price.replace('.', '').replace(',', '.'));
-    const originalPriceValue = product.originalPrice 
-      ? parseFloat(product.originalPrice.replace('.', '').replace(',', '.')) 
+    const priceValue = parseFloat(
+      product.price.replace(".", "").replace(",", ".")
+    );
+    const originalPriceValue = product.originalPrice
+      ? parseFloat(product.originalPrice.replace(".", "").replace(",", "."))
       : undefined;
-    const costPriceValue = product.costPrice 
-      ? parseFloat(product.costPrice.replace('.', '').replace(',', '.')) 
+    const costPriceValue = product.costPrice
+      ? parseFloat(product.costPrice.replace(".", "").replace(",", "."))
       : undefined;
 
     // Preparar os dados do produto para envio
     const productData = {
       ...product,
       price: priceValue,
-    originalPrice: originalPriceValue,
-    costPrice: costPriceValue,
+      originalPrice: originalPriceValue,
+      costPrice: costPriceValue,
       templateData,
       images: product.images || [],
       reviewCount: product.reviewCount || 0,
@@ -737,9 +735,9 @@ const ProductFormPage = () => {
 
     try {
       if (isEditing && id) {
-        await handleEdit(id, productData as unknown as Product);
+        await handleEdit(id, productData as Product);
       } else {
-        await handleAdd(productData as unknown as Product);
+        await handleAdd(productData as Product);
       }
       navigate("/products");
     } catch (error) {
@@ -939,16 +937,16 @@ const ProductFormPage = () => {
 
   const handleCurrencyChange = (value: string | undefined, field: string) => {
     // Remover caracteres não numéricos exceto vírgula e ponto
-    const numericValue = value ? value.replace(/[^\d,.-]/g, '') : '';
-    
-    setProduct(prev => ({
+    const numericValue = value ? value.replace(/[^\d,.-]/g, "") : "";
+
+    setProduct((prev) => ({
       ...prev,
-      [field]: numericValue
+      [field]: numericValue,
     }));
-  
+
     // Limpar erro se existir
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+      setErrors((prev) => ({ ...prev, [field]: "" }));
     }
   };
 
@@ -958,9 +956,9 @@ const ProductFormPage = () => {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setProduct((prev: ProductFormData) => ({ 
-          ...prev, 
-          image: reader.result as string 
+        setProduct((prev: ProductFormData) => ({
+          ...prev,
+          image: reader.result as string,
         }));
       };
       reader.readAsDataURL(file);
@@ -980,7 +978,9 @@ const ProductFormPage = () => {
               reader.readAsDataURL(file);
             })
         )
-      ).then((imgs) => setProduct((prev: ProductFormData) => ({ ...prev, images: imgs })));
+      ).then((imgs) =>
+        setProduct((prev: ProductFormData) => ({ ...prev, images: imgs }))
+      );
     }
   };
 
@@ -1206,7 +1206,9 @@ const ProductFormPage = () => {
                         id="price"
                         name="price"
                         value={product.price}
-                        onValueChange={(value) => handleCurrencyChange(value, "price")}
+                        onValueChange={(value) =>
+                          handleCurrencyChange(value, "price")
+                        }
                         allowDecimals={true}
                         decimalSeparator=","
                         groupSeparator="."
@@ -1231,7 +1233,9 @@ const ProductFormPage = () => {
                         id="originalPrice"
                         name="originalPrice"
                         value={product.originalPrice}
-                        onValueChange={(value) => handleCurrencyChange(value, "originalPrice")}
+                        onValueChange={(value) =>
+                          handleCurrencyChange(value, "originalPrice")
+                        }
                         allowDecimals={true}
                         decimalSeparator=","
                         groupSeparator="."
@@ -1253,7 +1257,9 @@ const ProductFormPage = () => {
                         id="costPrice"
                         name="costPrice"
                         value={product.costPrice || 0}
-                        onValueChange={(value) => handleCurrencyChange(value, "costPrice")}
+                        onValueChange={(value) =>
+                          handleCurrencyChange(value, "costPrice")
+                        }
                         allowDecimals={true}
                         decimalSeparator=","
                         groupSeparator="."
@@ -1262,40 +1268,6 @@ const ProductFormPage = () => {
                         placeholder="0,00"
                       />
                     </div>
-                  </div>
-                  {/* Estoque */}
-                  <div className="form-group">
-                    <label htmlFor="stock" className="form-label">
-                      Estoque <span className="required">*</span>
-                    </label>
-                    <input
-                      type="number"
-                      id="stock"
-                      name="stock"
-                      value={product.stock}
-                      onChange={handleInputChange}
-                      className={`form-input ${errors.stock ? "error" : ""}`}
-                      min="0"
-                    />
-                    {errors.stock && (
-                      <span className="error-text">{errors.stock}</span>
-                    )}
-                  </div>
-
-                  {/* Estoque Mínimo */}
-                  <div className="form-group">
-                    <label htmlFor="minStock" className="form-label">
-                      Estoque Mínimo
-                    </label>
-                    <input
-                      type="number"
-                      id="minStock"
-                      name="minStock"
-                      value={product.minStock}
-                      onChange={handleInputChange}
-                      className="form-input"
-                      min="0"
-                    />
                   </div>
 
                   {/* Localização do Estoque */}
@@ -1351,11 +1323,13 @@ const ProductFormPage = () => {
                       <input
                         type="number"
                         placeholder="L"
-                        value={product.length || ''}
+                        value={product.length || ""}
                         onChange={(e) =>
                           setProduct((prev) => ({
                             ...prev,
-                            length: e.target.value ? parseFloat(e.target.value) : undefined,
+                            length: e.target.value
+                              ? parseFloat(e.target.value)
+                              : undefined,
                           }))
                         }
                         className="form-input"
@@ -1366,11 +1340,13 @@ const ProductFormPage = () => {
                       <input
                         type="number"
                         placeholder="A"
-                        value={product.width || ''}
+                        value={product.width || ""}
                         onChange={(e) =>
                           setProduct((prev) => ({
                             ...prev,
-                            width: e.target.value ? parseFloat(e.target.value) : undefined,
+                            width: e.target.value
+                              ? parseFloat(e.target.value)
+                              : undefined,
                           }))
                         }
                         className="form-input"
@@ -1381,11 +1357,13 @@ const ProductFormPage = () => {
                       <input
                         type="number"
                         placeholder="P"
-                        value={product.height || ''}
+                        value={product.height || ""}
                         onChange={(e) =>
                           setProduct((prev) => ({
                             ...prev,
-                            height: e.target.value ? parseFloat(e.target.value) : undefined,
+                            height: e.target.value
+                              ? parseFloat(e.target.value)
+                              : undefined,
                           }))
                         }
                         className="form-input"
