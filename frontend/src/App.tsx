@@ -11,12 +11,14 @@ import ImportScreen from "./pages/ImportScreen";
 import SettingsScreen from "./pages/SettingsScreen";
 import DashboardScreen from "./pages/DashboardScreen";
 import { ProductProvider } from "./context/ProductContext";
+import { CategoryProvider } from "./context/CategoryContext";
 
 function App() {
   return (
     <div className="App">
-      <ProductProvider>
-        <Routes>
+      <CategoryProvider>
+        <ProductProvider>
+          <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
@@ -30,7 +32,8 @@ function App() {
           <Route path="/settings" element={<SettingsScreen />} />
           <Route path="*" element={<h1>404 - Página não encontrada</h1>} />
         </Routes>
-      </ProductProvider>
+        </ProductProvider>
+      </CategoryProvider>
     </div>
   );
 }

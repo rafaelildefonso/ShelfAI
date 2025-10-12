@@ -33,7 +33,7 @@ export const productController = {
 
   async get(req: Request, res: Response, next: NextFunction) {
     try {
-      const { id } = req.params;
+      const { id } = req.body.userId;
       const product = await prisma.product.findUnique({
         where: { id },
         include: { user: true }, // Include user but not category
@@ -88,16 +88,13 @@ export const productController = {
           where: { id: data[key] },
         });
         if (!userExists) {
-          console.warn(`${key} inválido, removendo do payload: ${data[key]}`);
-          delete data[key];
+          res.status(400).json({ error: { message: `Usuário com ID ${data[key]} não existe` } });
         }
       }
     };
 
     // 🔍 Validar IDs relacionados a usuários
     await validateUserId("userId");
-    await validateUserId("createdById");
-    await validateUserId("lastEditedById");
 
       const product = await prisma.product.create({ data });
       res.status(201).json(product);

@@ -211,7 +211,7 @@ const MainContent = () => {
     ).map(([categoryName, qtd]) => ({
       name: categoryName,
       value: Math.round((qtd / products.length) * 100),
-      color: coresCategorias[categoryName] || "#000000",
+      color: coresCategorias[categoryName] || "#ccccccff",
     }));
 
     const contarProdutosPorMes = (produtos: Product[]) => {

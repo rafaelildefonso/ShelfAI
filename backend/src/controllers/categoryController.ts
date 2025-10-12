@@ -1,9 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '../prisma/client';
 
 // Schema for category validation
 const categorySchema = z.object({
@@ -16,7 +14,18 @@ type CategoryInput = z.infer<typeof categorySchema>;
 export const categoryController = {
   async list(req: Request, res: Response, next: NextFunction) {
     try {
-      const categories = await (prisma as any).category.findMany({
+      const userId = req.user?.userId;
+      if (!userId) {
+        return res.status(401).json({
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'User not authenticated',
+          },
+        });
+      }
+
+      const categories = await prisma.category.findMany({
+        where: { userId },
         orderBy: { name: 'asc' },
         include: { 
           products: {
@@ -33,7 +42,7 @@ export const categoryController = {
   async get(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
-      const category = await (prisma as any).category.findUnique({
+      const category = await prisma.category.findUnique({
         where: { id },
         include: { 
           products: {
@@ -69,11 +78,26 @@ export const categoryController = {
 
   async create(req: Request, res: Response, next: NextFunction) {
     try {
-      const data: CategoryInput = categorySchema.parse(req.body);
+      const data = categorySchema.parse(req.body);
       
-      // Check if category with same name already exists
-      const existingCategory = await (prisma as any).category.findUnique({
-        where: { name: data.name },
+      const userId = req.user?.userId;
+      if (!userId) {
+        return res.status(401).json({
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'User not authenticated',
+          },
+        });
+      }
+
+      // Check if category with same name exists for this user
+      const existingCategory = await prisma.category.findUnique({
+        where: { 
+          name_userId: {
+            name: data.name,
+            userId: userId
+          }
+        },
       });
       
       if (existingCategory) {
@@ -85,8 +109,11 @@ export const categoryController = {
         });
       }
       
-      const category = await (prisma as any).category.create({ 
-        data,
+      const category = await prisma.category.create({ 
+        data: {
+          ...data,
+          userId
+        },
         include: { products: false },
       });
       
@@ -111,7 +138,7 @@ export const categoryController = {
       const data: Partial<CategoryInput> = categorySchema.partial().parse(req.body);
       
       // Check if category exists
-      const existingCategory = await (prisma as any).category.findUnique({
+      const existingCategory = await prisma.category.findUnique({
         where: { id },
       });
       
@@ -126,7 +153,7 @@ export const categoryController = {
       
       // If name is being updated, check for duplicates
       if (data.name && data.name !== existingCategory.name) {
-        const nameExists = await (prisma as any).category.findUnique({
+        const nameExists = await prisma.category.findUnique({
           where: { name: data.name },
         });
         
@@ -140,7 +167,7 @@ export const categoryController = {
         }
       }
       
-      const category = await (prisma as any).category.update({ 
+      const category = await prisma.category.update({ 
         where: { id }, 
         data,
         include: { products: false },
@@ -166,7 +193,7 @@ export const categoryController = {
       const { id } = req.params;
       
       // Check if category exists and has products
-      const category = await (prisma as any).category.findUnique({
+      const category = await prisma.category.findUnique({
         where: { id },
         include: { _count: { select: { products: true } } },
       });
@@ -190,7 +217,7 @@ export const categoryController = {
         });
       }
       
-      await (prisma as any).category.delete({ where: { id } });
+      await prisma.category.delete({ where: { id } });
       
       res.status(204).send();
     } catch (err) {

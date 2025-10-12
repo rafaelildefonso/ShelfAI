@@ -1,8 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { stringify } from 'csv-stringify';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '../prisma/client';
 
 
 type ExportFormat = 'csv' | 'excel' | 'shopify' | 'mercadolivre' | 'shopee' | 'amazon' | 'aliexpress';

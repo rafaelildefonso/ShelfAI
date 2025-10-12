@@ -1,5 +1,12 @@
 const API_URL = "/api/v1/categories";
 
+// Função para obter userId do usuário logado
+const getCurrentUser = (): any => {
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  console.log(user)
+  return user.user || {};
+};
+
 const getAuthToken = (): string | null => {
   return localStorage.getItem('token');
 };

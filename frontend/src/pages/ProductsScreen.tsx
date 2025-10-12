@@ -36,15 +36,6 @@ const ProductCard = ({
     return Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
   }, [product.originalPrice, product.price]);
 
-  const stockStatus = useMemo(() => {
-    const stock = product.stock ?? 0;
-    const minStock = product.minStock ?? 0;
-
-    if (stock <= 0) return "out";
-    if (stock <= minStock) return "low";
-    return "good";
-  }, [product.stock, product.minStock]);
-
   const formatDate = (date: Date | string) => {
     if (!date) return "";
 

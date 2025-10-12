@@ -4,7 +4,9 @@ import CurrencyInput from "react-currency-input-field";
 import SideBarMenu from "../components/SideBarMenu";
 import Header from "../components/Header";
 import "./../App.css";
-import { getProductById, getCategories } from "../services/productService";
+import { getProductById } from "../services/productService";
+import type { Category } from "../services/categoryService";
+import { useCategories } from "../context/CategoryContext";
 import { useProducts } from "../context/ProductContext";
 import type { Product } from "../types/productType";
 
@@ -105,13 +107,28 @@ const ProductFormPage = () => {
     templateData: {},
   });
 
-  interface Category {
-    id: string;
-    name: string;
-    description?: string;
-  }
+  const { categories, addCategory } = useCategories();
+  const [newCategoryName, setNewCategoryName] = useState("");
 
-  const [categories, setCategories] = useState<Category[]>([]);
+  const handleAddCategory = async () => {
+    if (!newCategoryName.trim()) return;
+
+    try {
+      const newCategory = await addCategory({ name: newCategoryName });
+      
+      // Limpar o campo
+      setNewCategoryName("");
+
+      // Selecionar a nova categoria
+      setProduct((prev) => ({
+        ...prev,
+        categoryId: newCategory.id,
+      }));
+
+    } catch (error) {
+      console.error("Erro ao criar categoria:", error);
+    }
+  };
 
   const [templateData, setTemplateData] = useState<{ [key: string]: any }>({});
 
@@ -507,22 +524,7 @@ const ProductFormPage = () => {
   ];
 
   useEffect(() => {
-    // Carregar categorias
-    const loadCategories = async () => {
-      try {
-        const response = await getCategories();
-        // Transform the string array into Category objects
-        const categories = response.data.map((name: string, index: number) => ({
-          id: `cat-${index}`, // Generate an ID if not provided
-          name: name,
-        }));
-        setCategories(categories);
-      } catch (error) {
-        console.error("Erro ao carregar categorias:", error);
-      }
-    };
-
-    loadCategories();
+    // As categorias já são carregadas pelo CategoryContext
     // Carregar produto se estiver editando
     if (isEditing && id) {
       const loadProduct = async () => {
@@ -589,7 +591,7 @@ const ProductFormPage = () => {
 
     // Encontrar a categoria correspondente
     const selectedCategory = categories.find(
-      (cat) => cat.name === template.category
+      (cat: Category) => cat.name === template.category
     );
 
     if (selectedCategory) {
@@ -1161,6 +1163,65 @@ const ProductFormPage = () => {
                       className="form-input"
                       placeholder="Ex: Camisetas, Tênis, Smartphones"
                     />
+                  </div>
+                </div>
+              </div>
+
+              {/* Categoria */}
+              <div className="form-section">
+                <div className="section-header">
+                  <h2>
+                    <i className="fa-solid fa-tags"></i>
+                    Categoria
+                  </h2>
+                </div>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="categoryId" className="form-label">
+                      Categoria do Produto <span className="required">*</span>
+                    </label>
+                    <select
+                      id="categoryId"
+                      name="categoryId"
+                      value={product.categoryId}
+                      onChange={handleInputChange}
+                      className={`form-input ${errors.categoryId ? "error" : ""}`}
+                      required
+                    >
+                      <option value="">Selecione uma categoria</option>
+                      {categories.map((category: Category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                    {errors.categoryId && (
+                      <span className="error-text">{errors.categoryId}</span>
+                    )}
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="newCategory" className="form-label">
+                      Nova Categoria
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        id="newCategory"
+                        placeholder="Digite o nome da nova categoria"
+                        className="form-input"
+                        value={newCategoryName}
+                        onChange={(e) => setNewCategoryName(e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={handleAddCategory}
+                        disabled={!newCategoryName.trim()}
+                      >
+                        Adicionar
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
