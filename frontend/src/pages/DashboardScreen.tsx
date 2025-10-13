@@ -92,10 +92,10 @@ const MainContent = () => {
     completeProducts: 0,
     incompleteProducts: 0,
     totalCategories: 0,
-    recentImports: 45,
-    recentExports: 12,
+    recentImports: 0, // Será carregado do backend
+    recentExports: 0, // Será carregado do backend
     lowStockProducts: 0,
-    pendingReviews: 23,
+    pendingReviews: 0,
   });
 
   useEffect(() => {
@@ -108,21 +108,31 @@ const MainContent = () => {
       .then(([productsData, categoriesData]) => {
         setProducts(productsData);
         setCategories(categoriesData);
+
+        // Calcular estatísticas reais
+        const totalProducts = productsData.length;
+        const completeProducts = productsData.filter(
+          (p: any) => p.status === "complete"
+        ).length;
+        const incompleteProducts = productsData.filter(
+          (p: any) => p.status === "incomplete"
+        ).length;
+        const totalCategories = categoriesData.length;
+
+        // Calcular produtos com estoque baixo (se houver campo de estoque)
+        const lowStockProducts = productsData.filter(
+          (p: any) => p.stock !== undefined && p.minStock !== undefined && p.stock <= p.minStock
+        ).length;
+
         setDashboardData({
-          totalProducts: productsData.length,
-          completeProducts: productsData.filter(
-            (p: any) => p.status === "complete"
-          ).length,
-          incompleteProducts: productsData.filter(
-            (p: any) => p.status === "incomplete"
-          ).length,
-          totalCategories: categoriesData.length,
-          recentImports: 45,
-          recentExports: 12,
-          lowStockProducts: productsData.filter(
-            (p: any) => p.stock <= p.minStock
-          ).length,
-          pendingReviews: 23,
+          totalProducts,
+          completeProducts,
+          incompleteProducts,
+          totalCategories,
+          recentImports: 0, // TODO: Implementar endpoint para estatísticas de importações
+          recentExports: 0, // TODO: Implementar endpoint para estatísticas de exportações
+          lowStockProducts,
+          pendingReviews: 0, // TODO: Implementar sistema de avaliações
         });
       })
       .catch(() => setError("Erro ao carregar dados do dashboard"))

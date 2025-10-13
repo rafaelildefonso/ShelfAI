@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { getCategories, getProducts } from '../services/productService';
+import { useAuth } from '../context/AuthContext';
+import { notificationService } from '../services/notificationService';
 
 interface Notification {
   id: string;
@@ -13,39 +15,56 @@ interface Notification {
 
 export default function Header() {
   const location = useLocation();
+  const { user, logout } = useAuth();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState({ products: 0, categories: 0, users: 0 });
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: '1',
-      title: 'Importação Concluída',
-      message: '50 produtos foram importados com sucesso',
-      type: 'success',
-      time: '2 min atrás',
-      read: false
-    },
-    {
-      id: '2',
-      title: 'Produto Incompleto',
-      message: 'Produto "Camiseta Azul" está sem descrição',
-      type: 'warning',
-      time: '1 hora atrás',
-      read: false
-    },
-    {
-      id: '3',
-      title: 'Exportação para Shopify',
-      message: 'Exportação para Shopify foi concluída',
-      type: 'info',
-      time: '3 horas atrás',
-      read: true
-    }
-  ]);
-  
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+
+  // Carregar notificações reais do backend
+  useEffect(() => {
+    const loadNotifications = async () => {
+      try {
+        const notificationsData = await notificationService.getNotifications();
+        setNotifications(notificationsData);
+      } catch (error) {
+        console.error('Erro ao carregar notificações:', error);
+        // Manter notificações padrão em caso de erro
+        setNotifications([
+          {
+            id: '1',
+            title: 'Importação Concluída',
+            message: '50 produtos foram importados com sucesso',
+            type: 'success',
+            time: '2 min atrás',
+            read: false
+          },
+          {
+            id: '2',
+            title: 'Produto Incompleto',
+            message: 'Produto "Camiseta Azul" está sem descrição',
+            type: 'warning',
+            time: '1 hora atrás',
+            read: false
+          },
+          {
+            id: '3',
+            title: 'Exportação para Shopify',
+            message: 'Exportação para Shopify foi concluída',
+            type: 'info',
+            time: '3 horas atrás',
+            read: true
+          }
+        ]);
+      }
+    };
+
+    loadNotifications();
+  }, []);
+
 
   const userMenuRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
@@ -95,18 +114,28 @@ export default function Header() {
     setShowSearchResults(false);
   };
 
-  const markNotificationAsRead = (id: string) => {
-    setNotifications(prev => 
-      prev.map(notif => 
-        notif.id === id ? { ...notif, read: true } : notif
-      )
-    );
+  const markNotificationAsRead = async (id: string) => {
+    try {
+      await notificationService.markAsRead(id);
+      setNotifications(prev =>
+        prev.map(notif =>
+          notif.id === id ? { ...notif, read: true } : notif
+        )
+      );
+    } catch (error) {
+      console.error('Erro ao marcar notificação como lida:', error);
+    }
   };
 
-  const markAllNotificationsAsRead = () => {
-    setNotifications(prev => 
-      prev.map(notif => ({ ...notif, read: true }))
-    );
+  const markAllNotificationsAsRead = async () => {
+    try {
+      await notificationService.markAllAsRead();
+      setNotifications(prev =>
+        prev.map(notif => ({ ...notif, read: true }))
+      );
+    } catch (error) {
+      console.error('Erro ao marcar todas as notificações como lidas:', error);
+    }
   };
 
   const getBreadcrumb = () => {
@@ -150,6 +179,7 @@ export default function Header() {
 
   return (
     <header className="app-header fixed top-0 left-[280px] right-0 h-[70px] bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-8 z-[999] shadow">
+      
       <div className="header-left">
         <div className="breadcrumb">
           {breadcrumb.parent && (
@@ -289,20 +319,19 @@ export default function Header() {
           </button>
         </div>
         
-        <div className="user-profile" ref={userMenuRef}>
+        <div className="user-profile" ref={userMenuRef} onClick={toggleUserMenu}>
           <div className="user-avatar-container">
             <img
-              src="https://static.vecteezy.com/ti/fotos-gratis/p1/26409361-jaqueta-homem-bege-a-moda-estilo-retrato-pessoa-africano-modelo-americano-preto-moda-foto.jpg"
+              src={user?.avatar || "https://static.vecteezy.com/ti/fotos-gratis/p1/26409361-jaqueta-homem-bege-a-moda-estilo-retrato-pessoa-africano-modelo-americano-preto-moda-foto.jpg"}
               alt="User Avatar"
               className="user-avatar"
             />
             <div className="user-status-indicator"></div>
           </div>
-          <div className="user-info">
-            <span className="user-name">John Doe</span>
-            <span className="user-role">Administrador</span>
+          <div className="user-info" >
+            <span className="user-name">{user?.name || 'Usuário'}</span>
           </div>
-          <button className="user-menu-btn" onClick={toggleUserMenu}>
+          <button className="user-menu-btn">
             <i className={`fa-solid fa-chevron-down ${showUserMenu ? 'rotated' : ''}`}></i>
           </button>
           
@@ -311,13 +340,13 @@ export default function Header() {
               <div className="user-menu-header">
                 <div className="user-menu-avatar">
                   <img
-                    src="https://static.vecteezy.com/ti/fotos-gratis/p1/26409361-jaqueta-homem-bege-a-moda-estilo-retrato-pessoa-africano-modelo-americano-preto-moda-foto.jpg"
+                    src={user?.avatar || "https://static.vecteezy.com/ti/fotos-gratis/p1/26409361-jaqueta-homem-bege-a-moda-estilo-retrato-pessoa-africano-modelo-americano-preto-moda-foto.jpg"}
                     alt="User Avatar"
                   />
                 </div>
                 <div className="user-menu-info">
-                  <div className="user-menu-name">John Doe</div>
-                  <div className="user-menu-email">john.doe@empresa.com</div>
+                  <div className="user-menu-name">{user?.name || 'Usuário'}</div>
+                  <div className="user-menu-email">{user?.email || 'usuario@exemplo.com'}</div>
                 </div>
               </div>
               <div className="user-menu-divider"></div>
@@ -349,7 +378,7 @@ export default function Header() {
                   <i className="fa-solid fa-comments"></i>
                   <span>Suporte</span>
                 </button>
-                <button className="user-menu-item logout">
+                <button className="user-menu-item logout" onClick={logout}>
                   <i className="fa-solid fa-sign-out-alt"></i>
                   <span>Sair</span>
                 </button>

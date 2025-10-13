@@ -149,6 +149,20 @@ export const authService = {
     return await res.json();
   },
 
+  // Obter perfil do usuário autenticado
+  async getProfile(): Promise<User> {
+    const res = await fetch(`${API_URL}/me`, {
+      headers: { ...AUTH_HEADER() },
+    });
+
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.message || 'Erro ao obter perfil');
+    }
+
+    return await res.json();
+  },
+
   // Atualizar senha
   async updatePassword(passwordData: { currentPassword: string; newPassword: string }): Promise<void> {
     const res = await fetch(`${API_URL}/update-password`, {
@@ -168,7 +182,7 @@ export const authService = {
 
   // Atualizar perfil
   async updateProfile(profileData: Partial<User>): Promise<User> {
-    const res = await fetch(`${API_URL}/profile`, {
+    const res = await fetch(`${API_URL}/update-profile`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -180,20 +194,6 @@ export const authService = {
     if (!res.ok) {
       const error = await res.json();
       throw new Error(error.message || 'Erro ao atualizar perfil');
-    }
-
-    return await res.json();
-  },
-
-  // Obter perfil do usuário
-  async getProfile(): Promise<User> {
-    const res = await fetch(`${API_URL}/profile`, {
-      headers: { ...AUTH_HEADER() },
-    });
-
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.message || 'Erro ao obter perfil');
     }
 
     return await res.json();

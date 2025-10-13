@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { authService, validateEmail } from '../services/authService';
+import { useAuth } from '../context/AuthContext';
 import './../App.css';
 
 interface LoginFormData {
@@ -9,6 +10,9 @@ interface LoginFormData {
 }
 
 const LoginPage = () => {
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [formData, setFormData] = useState<LoginFormData>({
     email: '',
     password: ''
@@ -18,7 +22,15 @@ const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{[key: string]: string}>({});
 
-  const navigate = useNavigate();
+  // Pegar o caminho de destino do estado de navegação (quando redirecionado do ProtectedRoute)
+  const from = location.state?.from?.pathname || '/dashboard';
+
+  useEffect(() => {
+    // Se o usuário já estiver autenticado, redirecionar para onde ele estava tentando ir
+    if (localStorage.getItem('token')) {
+      navigate(from, { replace: true });
+    }
+  }, [navigate, from]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -63,23 +75,18 @@ const LoginPage = () => {
     setIsLoading(true);
 
     try {
-      const loginData = {
+      await login({
         email: formData.email,
         password: formData.password,
-      };
-
-      const response = await authService.login(loginData);
-
-      // Store user session and token
-      localStorage.setItem('user', JSON.stringify(response.user));
-      localStorage.setItem('token', response.token);
+      });
 
       // Store remember me preference
       if (rememberMe) {
         localStorage.setItem('rememberMe', 'true');
       }
 
-      navigate('/dashboard');
+      // Redirecionar para onde o usuário estava tentando ir
+      navigate(from, { replace: true });
     } catch (error: any) {
       setErrors({ general: error.message || 'Erro ao fazer login. Tente novamente.' });
     } finally {

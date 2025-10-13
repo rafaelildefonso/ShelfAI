@@ -6,9 +6,11 @@ import {
   validatePassword,
   type RegisterData,
 } from "../services/authService";
+import { useAuth } from "../context/AuthContext";
 import "./../App.css";
 
 const RegisterPage = () => {
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -129,11 +131,12 @@ const RegisterPage = () => {
 
       const response = await authService.register(registerData);
 
-      // Store user session
-      // Se o backend retornar { user, token }
-      if (response.token) {
-        localStorage.setItem("token", response.token);
-        localStorage.setItem("user", JSON.stringify(response.user));
+      // Se o backend retornar { user, token }, fazer login automaticamente
+      if (response.token && response.user) {
+        await login({
+          email: formData.email,
+          password: formData.password,
+        });
       }
 
       // Redirect to dashboard

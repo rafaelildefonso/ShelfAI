@@ -1,10 +1,12 @@
 import { Link } from 'react-router-dom';
+import { useMenu } from '../context/MenuContext';
 
 interface SideBarMenuProps {
   pageName?: string;
 }
 
 export default function SideBarMenu({ pageName }: SideBarMenuProps) {
+  const { menuAberto, toggleMenu } = useMenu();
   const menuItems = [
     {
       path: '/dashboard',
@@ -37,8 +39,13 @@ export default function SideBarMenu({ pageName }: SideBarMenuProps) {
   ];
 
   return (
-    <div className="sidebar">
+    <div className={`sidebar ${menuAberto ? 'open-menu' : 'closed-menu'}`}>
       <div className="sidebar-header">
+        <div className="sidebar-logo-menu-btn" onClick={toggleMenu}>
+           <div className="logo-icon">
+            <i className="fa-solid fa-warehouse"></i>
+          </div>
+        </div>
         <div className="sidebar-logo" onClick={()=> window.location.href = '/dashboard'}>
           <div className="logo-icon">
             <i className="fa-solid fa-warehouse"></i>
@@ -48,6 +55,11 @@ export default function SideBarMenu({ pageName }: SideBarMenuProps) {
             <span className="logo-subtitle">Gestão Inteligente</span>
           </div>
         </div>
+        {menuAberto && (
+          <div className="close-menu-btn" onClick={toggleMenu}>
+            <i className="fa-solid fa-angle-left"></i>
+          </div>
+        )}
       </div>
 
       <nav className="sidebar-nav">

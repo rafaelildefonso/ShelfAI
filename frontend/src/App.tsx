@@ -10,30 +10,103 @@ import ExportScreen from "./pages/ExportScreen";
 import ImportScreen from "./pages/ImportScreen";
 import SettingsScreen from "./pages/SettingsScreen";
 import DashboardScreen from "./pages/DashboardScreen";
+import UnauthorizedPage from "./pages/UnauthorizedPage";
 import { ProductProvider } from "./context/ProductContext";
 import { CategoryProvider } from "./context/CategoryContext";
+import { AuthProvider } from "./context/AuthContext";
+import { ProtectedRoute } from "./components/ProtectedRoute";
+import { MenuProvider } from "./context/MenuContext";
 
 function App() {
   return (
     <div className="App">
-      <CategoryProvider>
-        <ProductProvider>
-          <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/dashboard" element={<DashboardScreen />} />
-          <Route path="/products" element={<ProductsScreen />} />
-          <Route path="/products/new" element={<ProductFormPage />} />
-          <Route path="/products/edit/:id" element={<ProductFormPage />} />
-          <Route path="/products/:id" element={<ProductDetailScreen />} />
-          <Route path="/export" element={<ExportScreen />} />
-          <Route path="/import" element={<ImportScreen />} />
-          <Route path="/settings" element={<SettingsScreen />} />
-          <Route path="*" element={<h1>404 - Página não encontrada</h1>} />
-        </Routes>
-        </ProductProvider>
-      </CategoryProvider>
+      <AuthProvider>
+        <CategoryProvider>
+          <ProductProvider>
+            <MenuProvider>
+              <Routes>
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+
+                {/* Rotas protegidas */}
+                <Route
+                  path="/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <DashboardScreen />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/products"
+                  element={
+                    <ProtectedRoute>
+                      <ProductsScreen />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/products/new"
+                  element={
+                    <ProtectedRoute>
+                      <ProductFormPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/products/edit/:id"
+                  element={
+                    <ProtectedRoute>
+                      <ProductFormPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/products/:id"
+                  element={
+                    <ProtectedRoute>
+                      <ProductDetailScreen />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/export"
+                  element={
+                    <ProtectedRoute>
+                      <ExportScreen />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/import"
+                  element={
+                    <ProtectedRoute>
+                      <ImportScreen />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/settings"
+                  element={
+                    <ProtectedRoute requiredRoles={["ADMIN", "USER"]}>
+                      <SettingsScreen />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Página de acesso negado */}
+                <Route path="/unauthorized" element={<UnauthorizedPage />} />
+
+                <Route
+                  path="*"
+                  element={<h1>404 - Página não encontrada</h1>}
+                />
+              </Routes>
+            </MenuProvider>
+          </ProductProvider>
+        </CategoryProvider>
+      </AuthProvider>
     </div>
   );
 }

@@ -1,9 +1,10 @@
 import SideBarMenu from "../components/SideBarMenu";
 import Header from "../components/Header";
-
+import { useAuth } from "../context/AuthContext";
 import { useState } from "react";
 
 const MainContent = () => {
+  const { token } = useAuth();
   const [status, setStatus] = useState<
     "idle" | "downloading" | "success" | "error"
   >("idle");
@@ -11,14 +12,20 @@ const MainContent = () => {
   const [currentExport, setCurrentExport] = useState<string | null>(null);
 
   const handleExport = async (format: string) => {
+    if (!token) {
+      setStatus("error");
+      setMessage("Usuário não autenticado");
+      return;
+    }
+
     setStatus("downloading");
     setCurrentExport(format);
     setMessage("");
     try {
       // Para CSV e Excel, endpoint é igual, só muda o nome do arquivo
-      const res = await fetch("/api/v1/export", {
+      const res = await fetch("/api/v1/import-export/export", {
         method: "GET",
-        headers: { Authorization: "Bearer demo-token" },
+        headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw await res.json();
       const blob = await res.blob();
