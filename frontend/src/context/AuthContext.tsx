@@ -24,6 +24,9 @@ interface AuthContextType {
   updateProfile: (data: Partial<User>) => Promise<void>;
   updatePassword: (data: { currentPassword: string; newPassword: string }) => Promise<void>;
 
+  // Função para tentar recarregar perfil manualmente
+  retryLoadProfile: () => Promise<void>;
+
   // Funções utilitárias
   clearError: () => void;
   hasRole: (role: string) => boolean;
@@ -57,32 +60,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const navigate = useNavigate();
 
   /**
-   * Carrega o perfil do usuário autenticado
+   * Carrega o perfil do usuário autenticado com mecanismo de retry
    */
-  const loadUserProfile = async () => {
+  const loadUserProfile = async (isRetry = false) => {
     try {
       setError(null);
       const userData = await authService.getProfile();
 
       // Converter datas para objetos Date
-      const formattedUser: User = {
-        ...userData,
-        lastLogin: userData.lastLogin ? new Date(userData.lastLogin) : null,
-        createdAt: new Date(userData.createdAt),
-        updatedAt: new Date(userData.updatedAt),
-      };
+      const formattedUser: User = userData;
 
       setUser(formattedUser);
       // Atualizar localStorage com dados mais recentes
       localStorage.setItem('user', JSON.stringify(formattedUser));
+      // Reset retry count on success
+      setRetryCount(0);
     } catch (error) {
       console.error('Erro ao carregar perfil do usuário:', error);
-      setError('Erro ao carregar dados do usuário');
-      // Se não conseguir carregar o perfil, fazer logout
-      logout();
+
+      // Se não for uma tentativa de retry, tentar novamente até 3 vezes
+      if (!isRetry && retryCount < 3) {
+        console.log(`Tentativa ${retryCount + 1} de carregar perfil falhou, tentando novamente...`);
+        setRetryCount(prev => prev + 1);
+
+        // Aguardar um tempo exponencial antes de tentar novamente
+        const delay = Math.min(1000 * Math.pow(2, retryCount), 5000);
+        setTimeout(() => {
+          loadUserProfile(true);
+        }, delay);
+        return;
+      }
+
+      // Se todas as tentativas falharam, definir erro mas não fazer logout automático
+      setError('Erro ao carregar dados do usuário. Algumas funcionalidades podem não estar disponíveis.');
+      console.warn('Falha ao carregar perfil do usuário após múltiplas tentativas. Mantendo sessão local.');
+      // Não chamar logout() automaticamente - deixar o usuário decidir se quer tentar novamente
     }
   };
 
@@ -106,12 +122,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setToken(response.token);
 
       // Preparar dados do usuário
-      const formattedUser: User = {
-        ...response.user,
-        lastLogin: response.user.lastLogin ? new Date(response.user.lastLogin) : null,
-        createdAt: new Date(response.user.createdAt),
-        updatedAt: new Date(response.user.updatedAt),
-      };
+      const formattedUser: User = response.user;
 
       // Salvar dados do usuário
       localStorage.setItem('user', JSON.stringify(formattedUser));
@@ -192,24 +203,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   /**
+   * Tenta recarregar o perfil do usuário manualmente
+   */
+  const retryLoadProfile = async () => {
+    if (!token) {
+      setError('Usuário não autenticado');
+      return;
+    }
+
+    setRetryCount(0); // Reset retry count for manual retry
+    await loadUserProfile();
+  };
+
+  /**
    * Recarrega os dados do usuário
    */
   const refreshUser = async () => {
-    try {
-      setError(null);
-
-      if (!token) {
-        throw new Error('Usuário não autenticado');
-      }
-
-      await loadUserProfile();
-
-    } catch (error: any) {
-      console.error('Erro ao recarregar dados do usuário:', error);
-      const errorMessage = error.message || 'Erro ao recarregar dados';
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    }
+    await retryLoadProfile();
   };
 
   /**
@@ -246,22 +256,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Verificar se o usuário salvo é válido
           const userData = JSON.parse(savedUser);
           if (userData && userData.id) {
-            setUser({
-              ...userData,
-              lastLogin: userData.lastLogin ? new Date(userData.lastLogin) : null,
-              createdAt: new Date(userData.createdAt),
-              updatedAt: new Date(userData.updatedAt),
-            });
+            setUser(userData);
 
-            // Verificar se o token ainda é válido fazendo uma chamada à API
-            await loadUserProfile();
+            // Tentar carregar perfil da API, mas não fazer logout se falhar
+            try {
+              await loadUserProfile();
+            } catch (profileError) {
+              console.warn('Perfil não pôde ser carregado, mas mantendo sessão local:', profileError);
+              // Não fazer logout - deixar o usuário usar a aplicação com dados locais
+            }
           } else {
             // Dados inválidos, fazer logout
+            console.warn('Dados de usuário inválidos encontrados no localStorage');
             logout();
           }
+        } else {
+          // Nenhum dado salvo encontrado
+          setLoading(false);
         }
       } catch (error) {
         console.error('Erro ao inicializar autenticação:', error);
+        // Em caso de erro crítico, ainda fazer logout para segurança
         logout();
       } finally {
         setLoading(false);
@@ -276,7 +291,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const currentIsAuthenticated = !!user && !!token;
 
     // Se o usuário ficou deslogado e não estamos carregando, redirecionar para login
-    if (!loading && !currentIsAuthenticated && window.location.pathname !== '/login' && window.location.pathname !== '/register' && window.location.pathname !== '/') {
+    if (!loading && !currentIsAuthenticated && !['/login','/register','/'].includes(window.location.pathname)) {
       console.log('Usuário deslogado detectado, redirecionando para login...');
       navigate('/login');
     }
@@ -300,6 +315,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Funções de gerenciamento
     updateProfile,
     updatePassword,
+
+    // Função para tentar recarregar perfil
+    retryLoadProfile,
 
     // Utilitários
     clearError,

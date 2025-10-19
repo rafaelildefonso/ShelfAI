@@ -15,8 +15,8 @@ const DetailSection = ({
   title: string;
   children: React.ReactNode;
 }) => (
-  <div className="bg-(--surface-color) rounded-lg shadow p-6 mb-6">
-    <h3 className="text-xl font-bold text-(--text-color) mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
+  <div className="bg-(--surface-color) rounded-lg shadow p-4 sm:p-6 mb-6">
+    <h3 className="text-lg sm:text-xl font-bold text-(--text-color) mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
       {title}
     </h3>
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -74,7 +74,7 @@ const ProductDetailScreen = () => {
       <div className="min-h-screen">
         <Header />
         <SideBarMenu pageName="products" />
-        <div className="flex flex-col items-center justify-center h-[100%] bg-(--surface-color) ml-[280px]">
+        <div className="flex flex-col items-center justify-center h-[calc(100vh-70px)] bg-(--surface-color) ml-[280px] p-4">
           <Loading iconSize={40} textSize={35} fillSpace={true} />
         </div>
       </div>
@@ -86,9 +86,9 @@ const ProductDetailScreen = () => {
       <div className="bg-background dark:bg-gray-900 min-h-screen mt-[70px]">
         <Header />
         <SideBarMenu pageName="products" />
-        <div className="flex flex-col items-center justify-center h-[100%] bg-(--surface-color) ml-[280px]">
-          <i className="fa-solid fa-box-open text-6xl text-gray-400 mb-4"></i>
-          <h2 className="text-2xl font-bold text-(--text-color)">
+        <div className="flex flex-col items-center justify-center h-[calc(100vh-70px)] bg-(--surface-color) ml-[280px] p-4 text-center">
+          <i className="fa-solid fa-box-open text-4xl sm:text-6xl text-gray-400 mb-4"></i>
+          <h2 className="text-xl sm:text-2xl font-bold text-(--text-color)">
             Produto não encontrado
           </h2>
           <p className="text-(--text-color) mb-6">
@@ -141,34 +141,38 @@ const ProductDetailScreen = () => {
   const currentMainImage = mainImage || images[0];
 
   return (
-    <div className="bg-background dark:bg-gray-900 min-h-screen mt-[70px]">
+    <div className="bg-background dark:bg-gray-900 min-h-screen">
       <Header />
       <SideBarMenu pageName="products" />
-      <main className="ml-[280px] p-8">
+      <main className="app-main p-4 sm:p-6 lg:p-8">
         {/* Cabeçalho da Página */}
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+          <Link to="/products" className="back-btn">
+            <i className="fa-solid fa-arrow-left"></i>
+            Voltar
+          </Link>
           <div>
-            <h1 className="text-3xl font-bold text-(--text-color)">
+            <h1 className="text-2xl sm:text-3xl font-bold text-(--text-color)">
               {product.name}
             </h1>
             <p className="text-(--text-color)">Detalhes do produto</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
             <button
               onClick={handleEdit}
-              className="bg-accent text-white px-4 py-2 rounded-md hover:bg-accent-hover transition-colors flex items-center gap-2 cursor-pointer"
+              className="bg-(--accent-color) text-white px-4 py-2 rounded-md hover:bg-accent-hover transition-colors flex items-center gap-2 cursor-pointer w-full sm:w-auto"
             >
               <i className="fa-solid fa-edit"></i>Editar
             </button>
             <button
               onClick={handleDuplicate}
-              className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 transition-colors flex items-center gap-2 cursor-pointer"
+              className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 transition-colors flex items-center gap-2 cursor-pointer w-full sm:w-auto"
             >
               <i className="fa-solid fa-copy"></i>Duplicar
             </button>
             <button
               onClick={handleDelete}
-              className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-colors flex items-center gap-2 cursor-pointer"
+              className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-colors flex items-center gap-2 cursor-pointer w-full sm:w-auto"
             >
               <i className="fa-solid fa-trash"></i>Excluir
             </button>
@@ -176,7 +180,7 @@ const ProductDetailScreen = () => {
         </div>
 
         {/* Grid Principal */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
           {/* Coluna da Esquerda (Imagens e Ações) */}
           <div className="lg:col-span-1">
             <div className="bg-(--surface-color) rounded-lg shadow p-4">
@@ -187,7 +191,7 @@ const ProductDetailScreen = () => {
                   className="w-full h-auto object-cover rounded-md"
                 />
               </div>
-              <div className="image-gallery grid grid-cols-5 gap-2">
+              <div className="image-gallery grid grid-cols-4 sm:grid-cols-5 gap-2 overflow-x-auto">
                 {images.map((img, index) => (
                   <img
                     key={index}
@@ -224,9 +228,13 @@ const ProductDetailScreen = () => {
                   </span>
                 }
               />
-              <DetailItem 
-                label="Categoria" 
-                value={typeof product.category === 'string' ? product.category : product.category?.name || '-'} 
+              <DetailItem
+                label="Categoria"
+                value={
+                  typeof product.category === "string"
+                    ? product.category
+                    : product.category?.name || "-"
+                }
               />
               <DetailItem label="Subcategoria" value={product.subcategory} />
               <DetailItem label="Marca" value={product.brand} />
@@ -293,7 +301,10 @@ const ProductDetailScreen = () => {
                 value={new Date(product.updatedAt).toLocaleDateString("pt-BR")}
               />
               <DetailItem label="Origem do Cadastro" value={product.origin} />
-              <DetailItem label="Cadastrado por" value={product.createdBy?.name || "-"} />
+              <DetailItem
+                label="Cadastrado por"
+                value={product.createdBy?.name || "-"}
+              />
               <DetailItem
                 label="Última Edição por"
                 value={product.lastEditedBy?.name || "-"}

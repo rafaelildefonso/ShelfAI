@@ -42,33 +42,54 @@ export const categoryController = {
   async get(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
-      const category = await prisma.category.findUnique({
-        where: { id },
-        include: { 
-          products: {
-            select: { id: true, name: true, price: true }
-          } 
-        },
-      });
-      
-      if (!category) {
-        return res.status(404).json({ 
-          error: { 
-            code: 'NOT_FOUND',
-            message: 'Category not found' 
-          } 
+      const userId = req.user?.userId;
+
+      if (!userId) {
+        return res.status(401).json({
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'User not authenticated',
+          },
         });
       }
-      
+
+      const category = await prisma.category.findUnique({
+        where: { id },
+        include: {
+          products: {
+            select: { id: true, name: true, price: true }
+          }
+        },
+      });
+
+      if (!category) {
+        return res.status(404).json({
+          error: {
+            code: 'NOT_FOUND',
+            message: 'Category not found'
+          }
+        });
+      }
+
+      // 🔒 VERIFICAÇÃO DE SEGURANÇA: Usuário só pode ver categorias que ele mesmo criou
+      if (category.userId !== userId) {
+        return res.status(403).json({
+          error: {
+            code: 'FORBIDDEN',
+            message: 'Acesso negado. Você só pode ver suas próprias categorias.',
+          },
+        });
+      }
+
       res.json(category);
     } catch (err) {
       if (err instanceof Prisma.PrismaClientKnownRequestError) {
         if (err.code === 'P2023') {
-          return res.status(400).json({ 
-            error: { 
+          return res.status(400).json({
+            error: {
               code: 'INVALID_ID',
-              message: 'Invalid category ID format' 
-            } 
+              message: 'Invalid category ID format'
+            }
           });
         }
       }
@@ -136,12 +157,22 @@ export const categoryController = {
     try {
       const { id } = req.params;
       const data: Partial<CategoryInput> = categorySchema.partial().parse(req.body);
-      
-      // Check if category exists
+      const userId = req.user?.userId;
+
+      if (!userId) {
+        return res.status(401).json({
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'User not authenticated',
+          },
+        });
+      }
+
+      // Check if category exists and belongs to user
       const existingCategory = await prisma.category.findUnique({
         where: { id },
       });
-      
+
       if (!existingCategory) {
         return res.status(404).json({
           error: {
@@ -150,29 +181,42 @@ export const categoryController = {
           },
         });
       }
-      
-      // If name is being updated, check for duplicates
-      if (data.name && data.name !== existingCategory.name) {
-        const nameExists = await prisma.category.findUnique({
-          where: { name: data.name },
+
+      // 🔒 VERIFICAÇÃO DE SEGURANÇA: Usuário só pode editar categorias que ele mesmo criou
+      if (existingCategory.userId !== userId) {
+        return res.status(403).json({
+          error: {
+            code: 'FORBIDDEN',
+            message: 'Acesso negado. Você só pode editar suas próprias categorias.',
+          },
         });
-        
+      }
+
+      // If name is being updated, check for duplicates within user's categories
+      if (data.name && data.name !== existingCategory.name) {
+        const nameExists = await prisma.category.findFirst({
+          where: {
+            name: data.name,
+            userId: userId
+          },
+        });
+
         if (nameExists) {
           return res.status(409).json({
             error: {
               code: 'DUPLICATE_NAME',
-              message: 'A category with this name already exists',
+              message: 'Você já possui uma categoria com este nome',
             },
           });
         }
       }
-      
-      const category = await prisma.category.update({ 
-        where: { id }, 
+
+      const category = await prisma.category.update({
+        where: { id },
         data,
         include: { products: false },
       });
-      
+
       res.json(category);
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -191,13 +235,23 @@ export const categoryController = {
   async remove(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
-      
-      // Check if category exists and has products
+      const userId = req.user?.userId;
+
+      if (!userId) {
+        return res.status(401).json({
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'User not authenticated',
+          },
+        });
+      }
+
+      // Check if category exists and belongs to user
       const category = await prisma.category.findUnique({
         where: { id },
         include: { _count: { select: { products: true } } },
       });
-      
+
       if (!category) {
         return res.status(404).json({
           error: {
@@ -206,7 +260,17 @@ export const categoryController = {
           },
         });
       }
-      
+
+      // VERIFICAÇÃO DE SEGURANÇA: Usuário só pode excluir categorias que ele mesmo criou
+      if (category.userId !== userId) {
+        return res.status(403).json({
+          error: {
+            code: 'FORBIDDEN',
+            message: 'Acesso negado. Você só pode excluir suas próprias categorias.',
+          },
+        });
+      }
+
       if (category._count.products > 0) {
         return res.status(400).json({
           error: {
@@ -216,9 +280,9 @@ export const categoryController = {
           },
         });
       }
-      
+
       await prisma.category.delete({ where: { id } });
-      
+
       res.status(204).send();
     } catch (err) {
       if (err instanceof Prisma.PrismaClientKnownRequestError) {

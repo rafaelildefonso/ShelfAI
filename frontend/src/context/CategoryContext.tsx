@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { categoryService } from "../services/categoryService";
+import { useAuth } from "./AuthContext";
 import type { Category, CategoryInput } from "../services/categoryService";
 
 interface CategoryContextType {
@@ -18,6 +19,7 @@ export function CategoryProvider({ children }: { children: React.ReactNode }) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { isAuthenticated } = useAuth();
 
   async function reload() {
     setLoading(true);
@@ -33,8 +35,12 @@ export function CategoryProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
-    reload();
-  }, []);
+    if (isAuthenticated) {
+      reload();
+    } else {
+      setLoading(false);
+    }
+  }, [isAuthenticated]);
 
   async function addCategory(categoryData: CategoryInput) {
     setError(null);

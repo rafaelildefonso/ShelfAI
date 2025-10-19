@@ -1,14 +1,15 @@
-import { useState, useRef, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
-import { getCategories, getProducts } from '../services/productService';
-import { useAuth } from '../context/AuthContext';
-import { notificationService } from '../services/notificationService';
+import { useState, useRef, useEffect } from "react";
+import { useLocation } from "react-router-dom";
+import { getCategories, getProducts } from "../services/productService";
+import { useAuth } from "../context/AuthContext";
+import { notificationService } from "../services/notificationService";
+import { useMenu } from "../context/MenuContext";
 
 interface Notification {
   id: string;
   title: string;
   message: string;
-  type: 'info' | 'success' | 'warning' | 'error';
+  type: "info" | "success" | "warning" | "error";
   time: string;
   read: boolean;
 }
@@ -16,9 +17,13 @@ interface Notification {
 export default function Header() {
   const location = useLocation();
   const { user, logout } = useAuth();
+  const { toggleMenu } = useMenu();
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState({ products: 0, categories: 0, users: 0 });
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState({
+    products: 0,
+    categories: 0,
+  });
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
@@ -31,33 +36,33 @@ export default function Header() {
         const notificationsData = await notificationService.getNotifications();
         setNotifications(notificationsData);
       } catch (error) {
-        console.error('Erro ao carregar notificações:', error);
+        console.error("Erro ao carregar notificações:", error);
         // Manter notificações padrão em caso de erro
         setNotifications([
           {
-            id: '1',
-            title: 'Importação Concluída',
-            message: '50 produtos foram importados com sucesso',
-            type: 'success',
-            time: '2 min atrás',
-            read: false
+            id: "1",
+            title: "Importação Concluída",
+            message: "50 produtos foram importados com sucesso",
+            type: "success",
+            time: "2 min atrás",
+            read: false,
           },
           {
-            id: '2',
-            title: 'Produto Incompleto',
+            id: "2",
+            title: "Produto Incompleto",
             message: 'Produto "Camiseta Azul" está sem descrição',
-            type: 'warning',
-            time: '1 hora atrás',
-            read: false
+            type: "warning",
+            time: "1 hora atrás",
+            read: false,
           },
           {
-            id: '3',
-            title: 'Exportação para Shopify',
-            message: 'Exportação para Shopify foi concluída',
-            type: 'info',
-            time: '3 horas atrás',
-            read: true
-          }
+            id: "3",
+            title: "Exportação para Shopify",
+            message: "Exportação para Shopify foi concluída",
+            type: "info",
+            time: "3 horas atrás",
+            read: true,
+          },
         ]);
       }
     };
@@ -65,14 +70,13 @@ export default function Header() {
     loadNotifications();
   }, []);
 
-
   const userMenuRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
 
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
-    document.documentElement.classList.toggle('dark');
+    document.documentElement.classList.toggle("dark");
   };
 
   const toggleUserMenu = () => {
@@ -91,18 +95,21 @@ export default function Header() {
       const query = e.target.value.toLocaleLowerCase();
       try {
         const { data: productsData } = await getProducts();
-        const productsResults = productsData.filter((p) => p.name.toLocaleLowerCase().includes(query)).length;
+        const productsResults = productsData.filter((p) =>
+          p.name.toLocaleLowerCase().includes(query)
+        ).length;
         const { data: categoriesData } = await getCategories();
-        const categoriesResults = categoriesData.filter((c) => c.toLocaleLowerCase().includes(query)).length;
+        const categoriesResults = categoriesData.filter((c) =>
+          c.toLocaleLowerCase().includes(query)
+        ).length;
 
         setSearchResults({
           products: productsResults,
           categories: categoriesResults,
-          users: 0, // Pesquisa de usuários não implementada
         });
         setShowSearchResults(e.target.value.length > 0);
       } catch (err) {
-        setSearchResults({ products: 0, categories: 0, users: 0 });
+        setSearchResults({ products: 0, categories: 0 });
         setShowSearchResults(false);
       }
     };
@@ -110,77 +117,90 @@ export default function Header() {
   };
 
   const clearSearch = () => {
-    setSearchQuery('');
+    setSearchQuery("");
     setShowSearchResults(false);
   };
 
   const markNotificationAsRead = async (id: string) => {
     try {
       await notificationService.markAsRead(id);
-      setNotifications(prev =>
-        prev.map(notif =>
+      setNotifications((prev) =>
+        prev.map((notif) =>
           notif.id === id ? { ...notif, read: true } : notif
         )
       );
     } catch (error) {
-      console.error('Erro ao marcar notificação como lida:', error);
+      console.error("Erro ao marcar notificação como lida:", error);
     }
   };
 
   const markAllNotificationsAsRead = async () => {
     try {
       await notificationService.markAllAsRead();
-      setNotifications(prev =>
-        prev.map(notif => ({ ...notif, read: true }))
+      setNotifications((prev) =>
+        prev.map((notif) => ({ ...notif, read: true }))
       );
     } catch (error) {
-      console.error('Erro ao marcar todas as notificações como lidas:', error);
+      console.error("Erro ao marcar todas as notificações como lidas:", error);
     }
   };
 
   const getBreadcrumb = () => {
     const path = location.pathname;
     switch (path) {
-      case '/dashboard':
-        return { current: 'Dashboard', parent: null };
-      case '/products':
-        return { current: 'Produtos', parent: 'Dashboard' };
-      case '/import':
-        return { current: 'Importar', parent: 'Dashboard' };
-      case '/export':
-        return { current: 'Exportar', parent: 'Dashboard' };
-      case '/settings':
-        return { current: 'Configurações', parent: 'Dashboard' };
+      case "/dashboard":
+        return { current: "Dashboard", parent: null };
+      case "/products":
+        return { current: "Produtos", parent: "Dashboard" };
+      case "/import":
+        return { current: "Importar", parent: "Dashboard" };
+      case "/export":
+        return { current: "Exportar", parent: "Dashboard" };
+      case "/settings":
+        return { current: "Configurações", parent: "Dashboard" };
       default:
-        return { current: 'Dashboard', parent: null };
+        return { current: "Dashboard", parent: null };
     }
   };
 
   const breadcrumb = getBreadcrumb();
-  const unreadNotifications = notifications.filter(n => !n.read).length;
+  const unreadNotifications = notifications.filter((n) => !n.read).length;
 
   // Fechar dropdowns ao clicar fora
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+      if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(event.target as Node)
+      ) {
         setShowUserMenu(false);
       }
-      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
+      if (
+        notificationsRef.current &&
+        !notificationsRef.current.contains(event.target as Node)
+      ) {
         setShowNotifications(false);
       }
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(event.target as Node)
+      ) {
         setShowSearchResults(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   return (
     <header className="app-header fixed top-0 left-[280px] right-0 h-[70px] bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-8 z-[999] shadow">
-      
       <div className="header-left">
+        <div className="toggle-menu">
+          <button className="menu-btn" onClick={toggleMenu}>
+            <i className="fa-solid fa-bars"></i>
+          </button>
+        </div>
         <div className="breadcrumb">
           {breadcrumb.parent && (
             <>
@@ -191,20 +211,20 @@ export default function Header() {
           <span className="breadcrumb-item current">{breadcrumb.current}</span>
         </div>
       </div>
-      
+
       <div className="header-center">
         <div className="search-container" ref={searchRef}>
           <i className="fa-solid fa-search search-icon"></i>
-          <input 
-            type="text" 
-            placeholder="Buscar produtos, categorias..." 
+          <input
+            type="text"
+            placeholder="Buscar produtos, categorias..."
             className="search-input"
             value={searchQuery}
             onChange={handleSearchChange}
             onFocus={() => setShowSearchResults(searchQuery.length > 0)}
           />
           {searchQuery && (
-            <button 
+            <button
               className="search-clear"
               onClick={clearSearch}
               title="Limpar busca"
@@ -212,7 +232,7 @@ export default function Header() {
               <i className="fa-solid fa-times"></i>
             </button>
           )}
-          
+
           {showSearchResults && (
             <div className="search-results">
               <div className="search-results-header">
@@ -226,21 +246,18 @@ export default function Header() {
                   <i className="fa-solid fa-box"></i>
                   <div>
                     <span className="result-title">Produtos</span>
-                    <span className="result-count">{searchResults.products} encontrados</span>
+                    <span className="result-count">
+                      {searchResults.products} encontrados
+                    </span>
                   </div>
                 </div>
                 <div className="search-result-item">
                   <i className="fa-solid fa-tags"></i>
                   <div>
                     <span className="result-title">Categorias</span>
-                    <span className="result-count">{searchResults.categories} encontradas</span>
-                  </div>
-                </div>
-                <div className="search-result-item">
-                  <i className="fa-solid fa-user"></i>
-                  <div>
-                    <span className="result-title">Usuários</span>
-                    <span className="result-count">1 encontrado</span>
+                    <span className="result-count">
+                      {searchResults.categories} encontradas
+                    </span>
                   </div>
                 </div>
               </div>
@@ -248,35 +265,29 @@ export default function Header() {
           )}
         </div>
       </div>
-      
+
       <div className="header-right">
         <div className="header-actions">
-          <button 
-            className="action-btn theme-toggle"
-            onClick={toggleDarkMode}
-            title={isDarkMode ? 'Modo claro' : 'Modo escuro'}
-          >
-            <i className={`fa-solid ${isDarkMode ? 'fa-sun' : 'fa-moon'}`}></i>
-          </button>
-          
           <div className="notifications-container" ref={notificationsRef}>
-            <button 
-              className="action-btn notifications-btn" 
+            <button
+              className="action-btn notifications-btn"
               title="Notificações"
               onClick={toggleNotifications}
             >
               <i className="fa-solid fa-bell"></i>
               {unreadNotifications > 0 && (
-                <span className="notification-badge">{unreadNotifications}</span>
+                <span className="notification-badge">
+                  {unreadNotifications}
+                </span>
               )}
             </button>
-            
+
             {showNotifications && (
               <div className="notifications-dropdown">
                 <div className="notifications-header">
                   <h3>Notificações</h3>
                   {unreadNotifications > 0 && (
-                    <button 
+                    <button
                       className="mark-all-read"
                       onClick={markAllNotificationsAsRead}
                     >
@@ -286,67 +297,96 @@ export default function Header() {
                 </div>
                 <div className="notifications-list">
                   {notifications.map((notification) => (
-                    <div 
+                    <div
                       key={notification.id}
-                      className={`notification-item ${!notification.read ? 'unread' : ''}`}
+                      className={`notification-item ${
+                        !notification.read ? "unread" : ""
+                      }`}
                       onClick={() => markNotificationAsRead(notification.id)}
                     >
                       <div className={`notification-icon ${notification.type}`}>
-                        <i className={`fa-solid ${
-                          notification.type === 'success' ? 'fa-check' :
-                          notification.type === 'warning' ? 'fa-exclamation' :
-                          notification.type === 'error' ? 'fa-times' :
-                          'fa-info'
-                        }`}></i>
+                        <i
+                          className={`fa-solid ${
+                            notification.type === "success"
+                              ? "fa-check"
+                              : notification.type === "warning"
+                              ? "fa-exclamation"
+                              : notification.type === "error"
+                              ? "fa-times"
+                              : "fa-info"
+                          }`}
+                        ></i>
                       </div>
                       <div className="notification-content">
-                        <div className="notification-title">{notification.title}</div>
-                        <div className="notification-message">{notification.message}</div>
-                        <div className="notification-time">{notification.time}</div>
+                        <div className="notification-title">
+                          {notification.title}
+                        </div>
+                        <div className="notification-message">
+                          {notification.message}
+                        </div>
+                        <div className="notification-time">
+                          {notification.time}
+                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
                 <div className="notifications-footer">
-                  <button className="view-all-btn">Ver todas as notificações</button>
+                  <button className="view-all-btn">
+                    Ver todas as notificações
+                  </button>
                 </div>
               </div>
             )}
           </div>
-          
-          <button className="action-btn help-btn" title="Ajuda">
-            <i className="fa-solid fa-question-circle"></i>
-          </button>
         </div>
-        
-        <div className="user-profile" ref={userMenuRef} onClick={toggleUserMenu}>
+
+        <div
+          className="user-profile"
+          ref={userMenuRef}
+          onClick={toggleUserMenu}
+        >
           <div className="user-avatar-container">
             <img
-              src={user?.avatar || "https://static.vecteezy.com/ti/fotos-gratis/p1/26409361-jaqueta-homem-bege-a-moda-estilo-retrato-pessoa-africano-modelo-americano-preto-moda-foto.jpg"}
+              src={
+                user?.avatar ||
+                "https://static.vecteezy.com/ti/fotos-gratis/p1/26409361-jaqueta-homem-bege-a-moda-estilo-retrato-pessoa-africano-modelo-americano-preto-moda-foto.jpg"
+              }
               alt="User Avatar"
               className="user-avatar"
             />
             <div className="user-status-indicator"></div>
           </div>
-          <div className="user-info" >
-            <span className="user-name">{user?.name || 'Usuário'}</span>
+          <div className="user-info">
+            <span className="user-name">{user?.name || "Usuário"}</span>
           </div>
           <button className="user-menu-btn">
-            <i className={`fa-solid fa-chevron-down ${showUserMenu ? 'rotated' : ''}`}></i>
+            <i
+              className={`fa-solid fa-chevron-down ${
+                showUserMenu ? "rotated" : ""
+              }`}
+            ></i>
           </button>
-          
+
           {showUserMenu && (
             <div className="user-menu-dropdown">
               <div className="user-menu-header">
                 <div className="user-menu-avatar">
                   <img
-                    src={user?.avatar || "https://static.vecteezy.com/ti/fotos-gratis/p1/26409361-jaqueta-homem-bege-a-moda-estilo-retrato-pessoa-africano-modelo-americano-preto-moda-foto.jpg"}
+                    src={
+                      user?.avatar ||
+                      "https://static.vecteezy.com/ti/fotos-gratis/p1/26409361-jaqueta-homem-bege-a-moda-estilo-retrato-pessoa-africano-modelo-americano-preto-moda-foto.jpg"
+                    }
                     alt="User Avatar"
                   />
                 </div>
                 <div className="user-menu-info">
-                  <div className="user-menu-name">{user?.name || 'Usuário'}</div>
-                  <div className="user-menu-email">{user?.email || 'usuario@exemplo.com'}</div>
+                  <div className="user-menu-name">
+                    {user?.name || "Usuário"}
+                  </div>
+                  <div className="user-menu-email">
+                    {user?.email || "usuario@exemplo.com"}
+                  </div>
                 </div>
               </div>
               <div className="user-menu-divider"></div>
@@ -356,16 +396,12 @@ export default function Header() {
                   <span>Meu Perfil</span>
                 </button>
                 <button className="user-menu-item">
-                  <i className="fa-solid fa-gear"></i>
-                  <span>Configurações</span>
-                </button>
-                <button className="user-menu-item">
-                  <i className="fa-solid fa-bell"></i>
-                  <span>Notificações</span>
-                </button>
-                <button className="user-menu-item">
                   <i className="fa-solid fa-chart-line"></i>
                   <span>Relatórios</span>
+                </button>
+                <button className="user-menu-item">
+                  <i className="fa-solid fa-gear"></i>
+                  <span>Configurações</span>
                 </button>
               </div>
               <div className="user-menu-divider"></div>
@@ -373,6 +409,12 @@ export default function Header() {
                 <button className="user-menu-item">
                   <i className="fa-solid fa-question-circle"></i>
                   <span>Ajuda</span>
+                </button>
+                <button className="user-menu-item" onClick={toggleDarkMode}>
+                  <i
+                    className={`fa-solid ${isDarkMode ? "fa-sun" : "fa-moon"}`}
+                  ></i>
+                  <span>{isDarkMode ? "Modo claro" : "Modo escuro"}</span>
                 </button>
                 <button className="user-menu-item">
                   <i className="fa-solid fa-comments"></i>

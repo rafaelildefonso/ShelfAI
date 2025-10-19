@@ -89,14 +89,14 @@ export default function SideBarMenu({ pageName }: SideBarMenuProps) {
 
       <div className="sidebar-footer">
         <div className="footer-section">
-          <button className={`footer-btn ${pageName === 'settings' ? 'active' : ''}`} title="Configurações" onClick={() => window.location.href = '/settings'}>
+          <Link to="/settings" className={`footer-btn ${pageName === 'settings' ? 'active' : ''}`} title="Configurações">
             <i className="fa-solid fa-gear"></i>
             <span>Configurações</span>
-          </button>
-          <button className="footer-btn" title="Ajuda e Suporte">
+          </Link>
+          <Link to="/help" className="footer-btn" title="Ajuda e Suporte">
             <i className="fa-solid fa-question-circle"></i>
             <span>Ajuda</span>
-          </button>
+          </Link>
         </div>
         
         <div className="footer-info">

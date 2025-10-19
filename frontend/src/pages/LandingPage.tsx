@@ -1,112 +1,122 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import './../App.css';
+import { Link } from "react-router-dom";
+import "./../App.css";
 
 const LandingPage = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-
   const features = [
     {
-      icon: 'fa-solid fa-upload',
-      title: 'Importação Inteligente',
-      description: 'Importe planilhas CSV/Excel e outros sistemas (JSON/XML) com validação automática de dados.'
+      icon: "fa-solid fa-upload",
+      title: "Importação Inteligente",
+      description:
+        "Importe planilhas CSV/Excel e outros sistemas (JSON/XML) com validação automática de dados.",
     },
     {
-      icon: 'fa-solid fa-magic-wand-sparkles',
-      title: 'Geração Automática',
-      description: 'Gere informações dos produtos automaticamente com base em imagens usando IA.'
+      icon: "fa-solid fa-magic-wand-sparkles",
+      title: "Geração Automática",
+      description:
+        "Gere informações dos produtos automaticamente com base em imagens usando IA.",
     },
     {
-      icon: 'fa-solid fa-share-nodes',
-      title: 'Exportação Multi-Marketplace',
-      description: 'Exporte seus produtos para múltiplos marketplaces com um clique.'
+      icon: "fa-solid fa-share-nodes",
+      title: "Exportação Multi-Marketplace",
+      description:
+        "Exporte seus produtos para múltiplos marketplaces com um clique.",
     },
     {
-      icon: 'fa-solid fa-chart-line',
-      title: 'Dashboard Inteligente',
-      description: 'Acompanhe métricas, produtos prontos/incompletos e últimas importações.'
+      icon: "fa-solid fa-chart-line",
+      title: "Dashboard Inteligente",
+      description:
+        "Acompanhe métricas, produtos prontos/incompletos e últimas importações.",
     },
     {
-      icon: 'fa-solid fa-images',
-      title: 'Gestão de Imagens',
-      description: 'Upload e compressão automática de imagens para otimizar performance.'
+      icon: "fa-solid fa-images",
+      title: "Gestão de Imagens",
+      description:
+        "Upload e compressão automática de imagens para otimizar performance.",
     },
     {
-      icon: 'fa-solid fa-check',
-      title: 'Validação de Campos',
-      description: 'Validação automática de campos obrigatórios para garantir qualidade.'
-    }
+      icon: "fa-solid fa-check",
+      title: "Validação de Campos",
+      description:
+        "Validação automática de campos obrigatórios para garantir qualidade.",
+    },
   ];
 
   const howItWorks = [
     {
-      step: '01',
-      title: 'Importe seus dados',
-      description: 'Faça upload da sua planilha ou conecte com outros sistemas para importar seus produtos.'
+      step: "01",
+      title: "Importe seus dados",
+      description:
+        "Faça upload da sua planilha ou conecte com outros sistemas para importar seus produtos.",
     },
     {
-      step: '02',
-      title: 'Padronize automaticamente',
-      description: 'Nossa IA organiza e padroniza as informações dos seus produtos automaticamente.'
+      step: "02",
+      title: "Padronize automaticamente",
+      description:
+        "Nossa IA organiza e padroniza as informações dos seus produtos automaticamente.",
     },
     {
-      step: '03',
-      title: 'Revise e ajuste',
-      description: 'Revise as informações geradas e faça ajustes necessários no dashboard intuitivo.'
+      step: "03",
+      title: "Revise e ajuste",
+      description:
+        "Revise as informações geradas e faça ajustes necessários no dashboard intuitivo.",
     },
     {
-      step: '04',
-      title: 'Exporte para marketplaces',
-      description: 'Exporte seus produtos padronizados para múltiplos marketplaces com um clique.'
-    }
+      step: "04",
+      title: "Exporte para marketplaces",
+      description:
+        "Exporte seus produtos padronizados para múltiplos marketplaces com um clique.",
+    },
   ];
 
   const benefits = [
     {
-      icon: 'fa-solid fa-clock',
-      title: 'Economize Tempo',
-      description: 'Reduza em até 80% o tempo de cadastro de produtos'
+      icon: "fa-solid fa-clock",
+      title: "Economize Tempo",
+      description: "Reduza em até 80% o tempo de cadastro de produtos",
     },
     {
-      icon: 'fa-solid fa-chart-line',
-      title: 'Aumente Vendas',
-      description: 'Produtos bem cadastrados vendem mais em marketplaces'
+      icon: "fa-solid fa-chart-line",
+      title: "Aumente Vendas",
+      description: "Produtos bem cadastrados vendem mais em marketplaces",
     },
     {
-      icon: 'fa-solid fa-bug',
-      title: 'Menos Erros',
-      description: 'Validação automática reduz erros de cadastro'
+      icon: "fa-solid fa-bug",
+      title: "Menos Erros",
+      description: "Validação automática reduz erros de cadastro",
     },
     {
-      icon: 'fa-solid fa-mobile-screen',
-      title: 'Multi-Marketplace',
-      description: 'Cadastre uma vez, venda em vários lugares'
-    }
+      icon: "fa-solid fa-mobile-screen",
+      title: "Multi-Marketplace",
+      description: "Cadastre uma vez, venda em vários lugares",
+    },
   ];
 
   const testimonials = [
     {
-      name: 'Maria Silva',
-      company: 'Moda & Estilo',
-      text: 'O ShelfAI revolucionou nossa gestão de produtos. Economizamos horas de trabalho e aumentamos nossas vendas em 40%.',
-      avatar: 'https://blog.unyleya.edu.br/wp-content/uploads/2017/12/saiba-como-a-educacao-ajuda-voce-a-ser-uma-pessoa-melhor.jpeg'
+      name: "Maria Silva",
+      company: "Moda & Estilo",
+      text: "O ShelfAI revolucionou nossa gestão de produtos. Economizamos horas de trabalho e aumentamos nossas vendas em 40%.",
+      avatar:
+        "https://blog.unyleya.edu.br/wp-content/uploads/2017/12/saiba-como-a-educacao-ajuda-voce-a-ser-uma-pessoa-melhor.jpeg",
     },
     {
-      name: 'João Santos',
-      company: 'TechStore',
-      text: 'A integração com múltiplos marketplaces é fantástica. Agora conseguimos vender em 5 plataformas diferentes.',
-      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face'
+      name: "João Santos",
+      company: "TechStore",
+      text: "A integração com múltiplos marketplaces é fantástica. Agora conseguimos vender em 5 plataformas diferentes.",
+      avatar:
+        "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face",
     },
     {
-      name: 'Ana Costa',
-      company: 'Casa & Decoração',
-      text: 'A geração automática de informações economiza muito tempo. Produtos que levavam 30 minutos agora levam 5.',
-      avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face'
-    }
+      name: "Ana Costa",
+      company: "Casa & Decoração",
+      text: "A geração automática de informações economiza muito tempo. Produtos que levavam 30 minutos agora levam 5.",
+      avatar:
+        "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face",
+    },
   ];
 
   return (
-    <div className='landing-container'>
+    <div className="landing-container">
       {/* Header */}
       <header className="landing-header">
         <div className="container">
@@ -117,25 +127,30 @@ const LandingPage = () => {
               </div>
               <span className="logo-text">ShelfAI</span>
             </div>
-            
-            <nav className={`nav ${isMenuOpen ? 'nav-open' : ''}`}>
-              <a href="#features" className="nav-link">Funcionalidades</a>
-              <a href="#how-it-works" className="nav-link">Como Funciona</a>
-              <a href="#benefits" className="nav-link">Benefícios</a>
-              <a href="#testimonials" className="nav-link">Depoimentos</a>
+
+            <nav className="nav">
+              <a href="#features" className="nav-link w-max">
+                Funcionalidades
+              </a>
+              <a href="#how-it-works" className="nav-link w-max">
+                Como Funciona
+              </a>
+              <a href="#benefits" className="nav-link w-max">
+                Benefícios
+              </a>
+              <a href="#testimonials" className="nav-link w-max">
+                Depoimentos
+              </a>
             </nav>
-            
+
             <div className="header-actions">
-              <Link to="/login" className="btn btn-outline">Entrar</Link>
-              <Link to="/register" className="btn btn-primary">Começar Grátis</Link>
+              <Link to="/login" className="btn btn-outline">
+                Entrar
+              </Link>
+              <Link to="/register" className="btn btn-primary w-max">
+                Começar Grátis
+              </Link>
             </div>
-            
-            <button 
-              className="mobile-menu-btn"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-            >
-              <i className={`fa-solid ${isMenuOpen ? 'fa-times' : 'fa-bars'}`}></i>
-            </button>
           </div>
         </div>
       </header>
@@ -146,14 +161,15 @@ const LandingPage = () => {
           <div className="hero-content">
             <div className="hero-text">
               <h1 className="hero-title">
-                Organize seus produtos para 
-                <span className="highlight"> e-commerce</span> 
+                Organize seus produtos para
+                <span className="highlight"> e-commerce </span>
                 com inteligência artificial
               </h1>
               <p className="hero-description">
-                ShelfAI é a plataforma que ajuda pequenas e médias lojas a organizar produtos 
-                para cadastro em e-commerces. Importe planilhas, padronize produtos, gere 
-                informações automáticas e exporte para múltiplos marketplaces.
+                ShelfAI é a plataforma que ajuda pequenas e médias lojas a
+                organizar produtos para cadastro em e-commerces. Importe
+                planilhas, padronize produtos, gere informações automáticas e
+                exporte para múltiplos marketplaces.
               </p>
               <div className="hero-actions">
                 <Link to="/register" className="btn btn-primary btn-large">
@@ -227,9 +243,9 @@ const LandingPage = () => {
                     <div className="preview-chart">
                       <div className="chart-bars">
                         {[60, 80, 45, 90, 70, 85, 95].map((height, index) => (
-                          <div 
-                            key={index} 
-                            className="chart-bar" 
+                          <div
+                            key={index}
+                            className="chart-bar"
                             style={{ height: `${height}%` }}
                           ></div>
                         ))}
@@ -249,7 +265,8 @@ const LandingPage = () => {
           <div className="section-header">
             <h2 className="section-title">Funcionalidades Poderosas</h2>
             <p className="section-description">
-              Tudo que você precisa para gerenciar seus produtos de forma inteligente
+              Tudo que você precisa para gerenciar seus produtos de forma
+              inteligente
             </p>
           </div>
           <div className="features-grid">
@@ -301,8 +318,9 @@ const LandingPage = () => {
             <div className="benefits-text">
               <h2 className="section-title">Por que escolher o ShelfAI?</h2>
               <p className="section-description">
-                Nossa plataforma foi desenvolvida especificamente para pequenas e médias lojas 
-                que precisam agilizar o cadastro de produtos online.
+                Nossa plataforma foi desenvolvida especificamente para pequenas
+                e médias lojas que precisam agilizar o cadastro de produtos
+                online.
               </p>
               <div className="benefits-list">
                 {benefits.map((benefit, index) => (
@@ -312,7 +330,9 @@ const LandingPage = () => {
                     </div>
                     <div className="benefit-content">
                       <h4 className="benefit-title">{benefit.title}</h4>
-                      <p className="benefit-description">{benefit.description}</p>
+                      <p className="benefit-description">
+                        {benefit.description}
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -333,11 +353,15 @@ const LandingPage = () => {
                   <div className="visual-stats">
                     <div className="visual-stat">
                       <span className="visual-stat-number">+80%</span>
-                      <span className="visual-stat-label">Economia de Tempo</span>
+                      <span className="visual-stat-label">
+                        Economia de Tempo
+                      </span>
                     </div>
                     <div className="visual-stat">
                       <span className="visual-stat-number">+40%</span>
-                      <span className="visual-stat-label">Aumento de Vendas</span>
+                      <span className="visual-stat-label">
+                        Aumento de Vendas
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -363,14 +387,16 @@ const LandingPage = () => {
                   <p className="testimonial-text">"{testimonial.text}"</p>
                 </div>
                 <div className="testimonial-author">
-                  <img 
-                    src={testimonial.avatar} 
+                  <img
+                    src={testimonial.avatar}
                     alt={testimonial.name}
                     className="testimonial-avatar"
                   />
                   <div className="testimonial-info">
                     <span className="testimonial-name">{testimonial.name}</span>
-                    <span className="testimonial-company">{testimonial.company}</span>
+                    <span className="testimonial-company">
+                      {testimonial.company}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -385,7 +411,8 @@ const LandingPage = () => {
           <div className="cta-content">
             <h2 className="cta-title">Pronto para transformar sua loja?</h2>
             <p className="cta-description">
-              Comece gratuitamente hoje e veja como é fácil organizar seus produtos
+              Comece gratuitamente hoje e veja como é fácil organizar seus
+              produtos
             </p>
             <div className="cta-actions">
               <Link to="/register" className="btn btn-primary btn-large">
@@ -432,33 +459,48 @@ const LandingPage = () => {
             <div className="footer-section">
               <h4 className="footer-title">Produto</h4>
               <ul className="footer-links">
-                <li><a href="#features">Funcionalidades</a></li>
-                <li><a href="#how-it-works">Como Funciona</a></li>
-                <li><a href="#benefits">Benefícios</a></li>
-                <li><a href="#">Preços</a></li>
+                <li>
+                  <a href="#features">Funcionalidades</a>
+                </li>
+                <li>
+                  <a href="#how-it-works">Como Funciona</a>
+                </li>
+                <li>
+                  <a href="#benefits">Benefícios</a>
+                </li>
+                <li>
+                  <a href="#">Preços</a>
+                </li>
               </ul>
             </div>
             <div className="footer-section">
               <h4 className="footer-title">Suporte</h4>
               <ul className="footer-links">
-                <li><a href="#">Central de Ajuda</a></li>
-                <li><a href="#">Documentação</a></li>
-                <li><a href="#">Contato</a></li>
-                <li><a href="#">Status</a></li>
+                <li>
+                  <a href="#">Central de Ajuda</a>
+                </li>
+                <li>
+                  <a href="#">Documentação</a>
+                </li>
+                <li>
+                  <a href="#">Contato</a>
+                </li>
               </ul>
             </div>
             <div className="footer-section">
               <h4 className="footer-title">Empresa</h4>
               <ul className="footer-links">
-                <li><a href="#">Sobre</a></li>
-                <li><a href="#">Blog</a></li>
-                <li><a href="#">Carreiras</a></li>
-                <li><a href="#">Privacidade</a></li>
+                <li>
+                  <a href="#">Sobre</a>
+                </li>
+                <li>
+                  <a href="#">Privacidade</a>
+                </li>
               </ul>
             </div>
           </div>
           <div className="footer-bottom">
-            <p>&copy; 2024 ShelfAI. Todos os direitos reservados.</p>
+            <p>&copy; 2025 ShelfAI. Todos os direitos reservados.</p>
           </div>
         </div>
       </footer>

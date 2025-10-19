@@ -149,7 +149,7 @@ export const generateToken = (user: User): string => {
 };
 
 export const verifyToken = (token: string): JwtPayload => {
-  return jwt.verify(token, config.JWT_SECRET) as unknown as JwtPayload;
+  return jwt.verify(token, config.JWT_SECRET) as JwtPayload;
 };
 
 export const hashPassword = async (password: string): Promise<string> => {

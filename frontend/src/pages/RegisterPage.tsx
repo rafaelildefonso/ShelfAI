@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   authService,
   validateEmail,
@@ -11,6 +11,8 @@ import "./../App.css";
 
 const RegisterPage = () => {
   const { login } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -24,8 +26,66 @@ const RegisterPage = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  // Estado para controlar se mostrar link de login quando email já existe
+  const [showLoginLink, setShowLoginLink] = useState(false);
 
-  const navigate = useNavigate();
+  // Função auxiliar para categorizar erros
+  const getErrorMessage = (error: any) => {
+    if (!error) return "Erro desconhecido";
+
+    // Erro de rede/conexão
+    if (!navigator.onLine) {
+      return "Sem conexão com a internet. Verifique sua conexão e tente novamente.";
+    }
+
+    // Erro de timeout
+    if (error.code === "ECONNABORTED" || error.message?.includes("timeout")) {
+      return "Tempo limite excedido. Tente novamente.";
+    }
+
+    // Erros específicos do servidor
+    if (error.response) {
+      const status = error.response.status;
+      const data = error.response.data;
+
+      switch (status) {
+        case 400:
+          return (
+            data.message ||
+            "Dados de cadastro inválidos. Verifique as informações fornecidas."
+          );
+        case 401:
+          return "Não autorizado. Tente novamente.";
+        case 403:
+          return "Acesso negado. Entre em contato com o suporte.";
+        case 404:
+          return "Serviço temporariamente indisponível. Tente novamente em alguns minutos.";
+        case 409:
+          return "Este email já está cadastrado. Tente fazer login ou use outro email.";
+        case 429:
+          return "Muitas tentativas de cadastro. Aguarde alguns minutos antes de tentar novamente.";
+        case 500:
+        case 502:
+        case 503:
+        case 504:
+          return "Servidor temporariamente indisponível. Tente novamente em alguns minutos.";
+        default:
+          return data.message || "Erro interno do servidor. Tente novamente.";
+      }
+    }
+
+    // Erro genérico
+    return error.message || "Erro ao criar conta. Tente novamente.";
+  };
+
+  const from = location.state?.from?.pathname || "/dashboard";
+
+  useEffect(() => {
+    // Se o usuário já estiver autenticado, redirecionar para onde ele estava tentando ir
+    if (localStorage.getItem("token")) {
+      navigate(from, { replace: true });
+    }
+  }, [navigate, from]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -142,8 +202,15 @@ const RegisterPage = () => {
       // Redirect to dashboard
       navigate("/dashboard");
     } catch (error: any) {
+      const errorMsg = getErrorMessage(error);
+
+      // Se for erro 409 (email já cadastrado), mostrar link para login
+      if (error.response?.status === 409) {
+        setShowLoginLink(true);
+      }
+
       setErrors({
-        general: error.message || "Erro ao criar conta. Tente novamente.",
+        general: errorMsg,
       });
     } finally {
       setIsLoading(false);
@@ -153,6 +220,9 @@ const RegisterPage = () => {
   const handleSocialRegister = (provider: string) => {
     console.log(`Register with ${provider}`);
     // In real app, this would integrate with OAuth providers
+    setErrors({
+      general: `Cadastro com ${provider} ainda não implementado. Use o formulário de cadastro.`,
+    });
   };
 
   return (
@@ -179,6 +249,20 @@ const RegisterPage = () => {
                 <div className="error-message">
                   <i className="fa-solid fa-exclamation-triangle"></i>
                   {errors.general}
+                  {showLoginLink && (
+                    <div style={{ marginTop: "10px" }}>
+                      <Link
+                        to="/login"
+                        className="auth-link"
+                        style={{
+                          color: "#007bff",
+                          textDecoration: "underline",
+                        }}
+                      >
+                        Já tem uma conta? Faça login aqui
+                      </Link>
+                    </div>
+                  )}
                 </div>
               )}
 

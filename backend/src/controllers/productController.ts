@@ -8,6 +8,15 @@ export const productController = {
     try {
       const { page = 1, pageSize = 20, search, categoryId, status } = req.query;
       const where: any = {};
+
+      // 🔒 FILTRO DE SEGURANÇA: Usuários só podem ver seus próprios produtos
+      if (req.user?.userId) {
+        where.userId = req.user.userId;
+      } else {
+        // Se não há usuário autenticado, retorna lista vazia
+        return res.json({ data: [], total: 0 });
+      }
+
       if (search) {
         where.name = { contains: search };
       }
@@ -17,6 +26,7 @@ export const productController = {
       if (status) {
         where.status = status;
       }
+
       const products = await prisma.product.findMany({
         where,
         skip: (Number(page) - 1) * Number(pageSize),
@@ -33,12 +43,19 @@ export const productController = {
 
   async get(req: Request, res: Response, next: NextFunction) {
     try {
-      const { id } = req.body.userId;
+      const { id } = req.params; // Obter o ID do produto dos parâmetros da URL
       const product = await prisma.product.findUnique({
         where: { id },
         include: { user: true }, // Include user but not category
       });
+
       if (!product) return res.status(404).json({ error: { message: 'Produto não encontrado' } });
+
+      // 🔒 VERIFICAÇÃO DE SEGURANÇA: Usuário só pode ver produtos que ele mesmo criou
+      if (req.user?.userId && product.userId !== req.user.userId) {
+        return res.status(403).json({ error: { message: 'Acesso negado. Você só pode ver seus próprios produtos.' } });
+      }
+
       res.json(product);
     } catch (err) {
       next(err);
@@ -108,6 +125,20 @@ export const productController = {
       const { id } = req.params;
       const data = req.body;
 
+      // 🔒 Primeiro, verificar se o produto existe e pertence ao usuário
+      const existingProduct = await prisma.product.findUnique({
+        where: { id },
+      });
+
+      if (!existingProduct) {
+        return res.status(404).json({ error: { message: 'Produto não encontrado' } });
+      }
+
+      // 🔒 VERIFICAÇÃO DE SEGURANÇA: Usuário só pode editar produtos que ele mesmo criou
+      if (req.user?.userId && existingProduct.userId !== req.user.userId) {
+        return res.status(403).json({ error: { message: 'Acesso negado. Você só pode editar seus próprios produtos.' } });
+      }
+
       // Usar userId do token JWT se disponível, caso contrário deixar sem userId
       if (req.user?.userId) {
         data.userId = req.user.userId;
@@ -143,6 +174,21 @@ export const productController = {
   async remove(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
+
+      // 🔒 Primeiro, verificar se o produto existe e pertence ao usuário
+      const existingProduct = await prisma.product.findUnique({
+        where: { id },
+      });
+
+      if (!existingProduct) {
+        return res.status(404).json({ error: { message: 'Produto não encontrado' } });
+      }
+
+      // 🔒 VERIFICAÇÃO DE SEGURANÇA: Usuário só pode excluir produtos que ele mesmo criou
+      if (req.user?.userId && existingProduct.userId !== req.user.userId) {
+        return res.status(403).json({ error: { message: 'Acesso negado. Você só pode excluir seus próprios produtos.' } });
+      }
+
       await prisma.product.delete({ where: { id } });
       res.json({ ok: true });
     } catch (err) {

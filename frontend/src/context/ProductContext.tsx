@@ -5,6 +5,7 @@ import {
   updateProduct,
   deleteProduct,
 } from "../services/productService";
+import { useAuth } from "./AuthContext";
 import type { Product } from "../types/productType";
 
 interface ProductContextType {
@@ -23,6 +24,7 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { isAuthenticated } = useAuth();
 
   async function reload() {
     setLoading(true);
@@ -38,8 +40,12 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
-    reload();
-  }, []);
+    if (isAuthenticated) {
+      reload();
+    } else {
+      setLoading(false);
+    }
+  }, [isAuthenticated]);
 
   async function addProduct(product: Partial<Product>) {
     setError(null);

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import "./../App.css";
 import SideBarMenu from "../components/SideBarMenu";
 import Header from "../components/Header";
@@ -54,15 +54,6 @@ interface RecentActivity {
   status: "success" | "warning" | "error" | "info";
 }
 
-interface QuickStats {
-  todayImports: number;
-  weekImports: number;
-  monthImports: number;
-  todayExports: number;
-  weekExports: number;
-  monthExports: number;
-}
-
 type CategoriaDistribuicao = {
   name: string;
   value: number;
@@ -79,11 +70,11 @@ const coresCategorias: Record<string, string> = {
   Casa: "#3B82F6",
 };
 
-import { useEffect } from "react";
 import type { Product } from "../types/productType";
+import { Link } from "react-router-dom";
+
 const MainContent = () => {
   const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [chartPeriod, setChartPeriod] = useState<ChartPeriod>("12M");
@@ -107,7 +98,6 @@ const MainContent = () => {
     ])
       .then(([productsData, categoriesData]) => {
         setProducts(productsData);
-        setCategories(categoriesData);
 
         // Calcular estatísticas reais
         const totalProducts = productsData.length;
@@ -121,7 +111,10 @@ const MainContent = () => {
 
         // Calcular produtos com estoque baixo (se houver campo de estoque)
         const lowStockProducts = productsData.filter(
-          (p: any) => p.stock !== undefined && p.minStock !== undefined && p.stock <= p.minStock
+          (p: any) =>
+            p.stock !== undefined &&
+            p.minStock !== undefined &&
+            p.stock <= p.minStock
         ).length;
 
         setDashboardData({
@@ -138,16 +131,6 @@ const MainContent = () => {
       .catch(() => setError("Erro ao carregar dados do dashboard"))
       .finally(() => setLoading(false));
   }, []);
-
-  // 3. Todos os outros hooks devem vir depois dos efeitos
-  const [quickStats] = useState<QuickStats>({
-    todayImports: 12,
-    weekImports: 67,
-    monthImports: 234,
-    todayExports: 8,
-    weekExports: 45,
-    monthExports: 156,
-  });
 
   const [recentActivities] = useState<RecentActivity[]>([
     {
@@ -192,6 +175,47 @@ const MainContent = () => {
     },
   ]);
 
+  // Refs para as instâncias dos gráficos
+  const barChartRef = useRef<any>(null);
+  const pieChartRef = useRef<any>(null);
+
+  // Listener para resize da janela com debounce
+  useEffect(() => {
+    let resizeTimeout: number;
+
+    const handleResize = () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        if (barChartRef.current) {
+          barChartRef.current.resize();
+        }
+        if (pieChartRef.current) {
+          pieChartRef.current.resize();
+        }
+      }, 100); // Debounce de 100ms para suavizar
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      clearTimeout(resizeTimeout);
+    };
+  }, []);
+
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    checkScreenSize();
+    window.addEventListener("resize", checkScreenSize);
+
+    return () => window.removeEventListener("resize", checkScreenSize);
+  }, []);
+
   const [chartData, setChartData] = useState<{
     productsByMonth: number[];
     categoriesDistribution: CategoriaDistribuicao[];
@@ -212,7 +236,10 @@ const MainContent = () => {
   useEffect(() => {
     const countCategories: Record<string, number> = {};
     products.forEach((p) => {
-      const categoryName = typeof p.category === 'string' ? p.category : p.category?.name || 'Sem Categoria';
+      const categoryName =
+        typeof p.category === "string"
+          ? p.category
+          : p.category?.name || "Sem Categoria";
       countCategories[categoryName] = (countCategories[categoryName] || 0) + 1;
     });
 
@@ -263,7 +290,7 @@ const MainContent = () => {
       (dashboardData.incompleteProducts / dashboardData.totalProducts) * 100
     ) || 0;
 
-  // Lógica para o Gráfico de Barras
+  // Lógica para o Gráfico de Barras - limitar em mobile
   const visibleMonths = periodInMonths[chartPeriod];
   const monthLabelsFull = [
     "Jan",
@@ -292,6 +319,7 @@ const MainContent = () => {
     return result;
   };
 
+  const maxMonths = isMobile ? 3 : visibleMonths; // Em mobile, mostrar no máximo 3 meses
   const visibleData = getLastMonths(
     chartData.productsByMonth,
     visibleMonths,
@@ -302,13 +330,23 @@ const MainContent = () => {
     visibleMonths,
     currentMonth
   );
+  const visibleDataMobile = getLastMonths(
+    chartData.productsByMonth,
+    maxMonths,
+    currentMonth
+  );
+  const monthLabelsMobile = getLastMonths(
+    monthLabelsFull,
+    maxMonths,
+    currentMonth
+  );
 
   const barChartData = {
-    labels: monthLabels,
+    labels: isMobile ? monthLabelsMobile : monthLabels,
     datasets: [
       {
         label: "Produtos Cadastrados",
-        data: visibleData,
+        data: isMobile ? visibleDataMobile : visibleData,
         backgroundColor: "#8B5CF6",
         borderRadius: 4,
       },
@@ -318,17 +356,51 @@ const MainContent = () => {
   const barChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
+    fullSize: true,
+    animation: {
+      duration: 200,
+      easing: "easeOutQuart" as const,
+    },
+    layout: {
+      padding: {
+        top: 20,
+        right: 20,
+        bottom: 20,
+        left: 20,
+      },
+    },
     plugins: {
       legend: {
         display: false,
       },
     },
     scales: {
-      x: { grid: { display: false } },
+      x: {
+        grid: { display: false },
+        ticks: {
+          font: {
+            size: 11,
+          },
+          maxRotation: 45,
+          minRotation: 0,
+          autoSkip: true,
+          maxTicksLimit: 8,
+        },
+      },
       y: {
         beginAtZero: true,
         grid: { display: false },
+        ticks: {
+          font: {
+            size: 11,
+          },
+          precision: 0,
+        },
       },
+    },
+    onResize: function () {
+      // Callback personalizado para resize - garante redimensionamento
+      console.log("Bar chart resized");
     },
   };
 
@@ -348,6 +420,19 @@ const MainContent = () => {
   const pieChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
+    fullSize: true,
+    animation: {
+      duration: 200,
+      easing: "easeOutQuart" as const,
+    },
+    layout: {
+      padding: {
+        top: 20,
+        right: 20,
+        bottom: 20,
+        left: 20,
+      },
+    },
     plugins: {
       legend: {
         display: false,
@@ -359,6 +444,10 @@ const MainContent = () => {
           },
         },
       },
+    },
+    onResize: function () {
+      // Callback personalizado para resize - garante redimensionamento
+      console.log("Pie chart resized");
     },
   };
 
@@ -389,20 +478,14 @@ const MainContent = () => {
             </div>
           </div>
           <div className="dashboard-actions-header">
-            <button
-              className="quick-action-btn primary"
-              onClick={() => (window.location.href = "/products")}
-            >
+            <Link to="/products" className="quick-action-btn primary">
               <i className="fa-solid fa-plus"></i>
               Adicionar Produto
-            </button>
-            <button
-              className="quick-action-btn secondary"
-              onClick={() => (window.location.href = "/import")}
-            >
+            </Link>
+            <Link to="/import" className="quick-action-btn secondary">
               <i className="fa-solid fa-file-import"></i>
               Importar
-            </button>
+            </Link>
           </div>
         </div>
 
@@ -521,23 +604,29 @@ const MainContent = () => {
           <div className="chart-container">
             <div className="chart-header">
               <h3>Crescimento de Produtos</h3>
-              <div className="chart-period">
-                {(["12M", "6M", "3M"] as ChartPeriod[]).map((period) => (
-                  <button
-                    key={period}
-                    className={`period-btn ${
-                      chartPeriod === period ? "active" : ""
-                    }`}
-                    onClick={() => setChartPeriod(period)}
-                  >
-                    {period}
-                  </button>
-                ))}
-              </div>
+              {!isMobile && (
+                <div className="chart-period">
+                  {(["12M", "6M", "3M"] as ChartPeriod[]).map((period) => (
+                    <button
+                      key={period}
+                      className={`period-btn ${
+                        chartPeriod === period ? "active" : ""
+                      }`}
+                      onClick={() => setChartPeriod(period)}
+                    >
+                      {period}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="chart-content">
               <div className="line-chart">
-                <Bar options={barChartOptions} data={barChartData} />
+                <Bar
+                  ref={barChartRef}
+                  options={barChartOptions}
+                  data={barChartData}
+                />
               </div>
               <div className="chart-legend">
                 <div className="legend-item">
@@ -557,7 +646,11 @@ const MainContent = () => {
             </div>
             <div className="chart-content">
               <div className="pie-chart">
-                <Pie data={pieChartData} options={pieChartOptions} />
+                <Pie
+                  ref={pieChartRef}
+                  data={pieChartData}
+                  options={pieChartOptions}
+                />
               </div>
               <div className="chart-legend">
                 {chartData.categoriesDistribution.map((category, index) => (

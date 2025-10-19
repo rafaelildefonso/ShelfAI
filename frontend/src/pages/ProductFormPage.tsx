@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import CurrencyInput from "react-currency-input-field";
 import SideBarMenu from "../components/SideBarMenu";
 import Header from "../components/Header";
@@ -115,7 +115,7 @@ const ProductFormPage = () => {
 
     try {
       const newCategory = await addCategory({ name: newCategoryName });
-      
+
       // Limpar o campo
       setNewCategoryName("");
 
@@ -124,7 +124,6 @@ const ProductFormPage = () => {
         ...prev,
         categoryId: newCategory.id,
       }));
-
     } catch (error) {
       console.error("Erro ao criar categoria:", error);
     }
@@ -879,13 +878,10 @@ const ProductFormPage = () => {
         <main className="app-main">
           <div className="product-form-container">
             <div className="form-header">
-              <button
-                className="back-btn"
-                onClick={() => navigate("/products")}
-              >
+              <Link to="/products" className="back-btn">
                 <i className="fa-solid fa-arrow-left"></i>
                 Voltar
-              </button>
+              </Link>
               <h1>Escolha um Template de Produto</h1>
               <p>
                 Selecione o template que melhor se adequa ao seu produto para
@@ -1185,7 +1181,9 @@ const ProductFormPage = () => {
                       name="categoryId"
                       value={product.categoryId}
                       onChange={handleInputChange}
-                      className={`form-input ${errors.categoryId ? "error" : ""}`}
+                      className={`form-input ${
+                        errors.categoryId ? "error" : ""
+                      }`}
                       required
                     >
                       <option value="">Selecione uma categoria</option>
@@ -1234,10 +1232,6 @@ const ProductFormPage = () => {
                       <i className={selectedTemplate.icon}></i>
                       Informações Específicas - {selectedTemplate.name}
                     </h2>
-                    <p>
-                      Campos específicos para produtos de{" "}
-                      {selectedTemplate.name.toLowerCase()}
-                    </p>
                   </div>
                   <div className="template-fields">
                     {selectedTemplate.fields.map((field) =>

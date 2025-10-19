@@ -6,7 +6,7 @@ import { useProducts } from "../context/ProductContext";
 import type { Product } from "../types/productType";
 
 type ProductCardProps = {
-  product: Omit<Product, 'stock' | 'minStock'> & {
+  product: Omit<Product, "stock" | "minStock"> & {
     stock?: number;
     minStock?: number;
   };
@@ -23,17 +23,22 @@ const ProductCard = ({
 }: ProductCardProps) => {
   const navigate = useNavigate();
 
-  const handleCardClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!navigate) return;
-    if ((e.target as HTMLElement).closest('button, a, input')) {
-      return;
-    }
-    navigate(`/products/${product.id}`);
-  }, [navigate, product.id]);
+  const handleCardClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!navigate) return;
+      if ((e.target as HTMLElement).closest("button, a, input")) {
+        return;
+      }
+      navigate(`/products/${product.id}`);
+    },
+    [navigate, product.id]
+  );
 
   const discountPercentage = useMemo(() => {
     if (!product.originalPrice || !product.price) return 0;
-    return Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
+    return Math.round(
+      ((product.originalPrice - product.price) / product.originalPrice) * 100
+    );
   }, [product.originalPrice, product.price]);
 
   const formatDate = (date: Date | string) => {
@@ -57,9 +62,9 @@ const ProductCard = ({
   return (
     <div
       onClick={handleCardClick}
-      className={`product-card cursor-pointer ${product.featured ? "featured" : ""} ${
-        !product.active ? "inactive" : ""
-      }`}
+      className={`product-card cursor-pointer ${
+        product.featured ? "featured" : ""
+      } ${!product.active ? "inactive" : ""}`}
     >
       <div className="product-image">
         {product.image ? (
@@ -92,7 +97,9 @@ const ProductCard = ({
           <div className="product-sku">SKU: {product.sku}</div>
         </div>
 
-        <p className="product-description">{product.description || 'Sem descrição'}</p>
+        <p className="product-description">
+          {product.description || "Sem descrição"}
+        </p>
 
         {product.brand && (
           <div className="product-brand">
@@ -102,7 +109,9 @@ const ProductCard = ({
         )}
 
         <div className="product-categories">
-          <span className="product-category">{product.category?.name || 'Sem categoria'}</span>
+          <span className="product-category">
+            {product.category?.name || "Sem categoria"}
+          </span>
           {product.subcategory && (
             <span className="product-subcategory">• {product.subcategory}</span>
           )}
@@ -110,7 +119,9 @@ const ProductCard = ({
 
         <div className="product-pricing">
           <div className="price-container">
-            <span className="product-price">R$ {product.price?.toFixed(2) || '0,00'}</span>
+            <span className="product-price">
+              R$ {product.price?.toFixed(2) || "0,00"}
+            </span>
             {product.originalPrice && (
               <span className="product-original-price">
                 R$ {product.originalPrice.toFixed(2)}
@@ -203,42 +214,58 @@ const MainContent = () => {
   const navigate = useNavigate();
   const { products, addProduct, removeProduct } = useProducts();
 
-  const [filter, setFilter] = useState<"all" | Product['status']>('all');
+  const [filter, setFilter] = useState<"all" | Product["status"]>("all");
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
       const matchesFilter = filter === "all" || product.status === filter;
       const matchesSearch = searchTerm
-        ? (product.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-           product.description?.toLowerCase().includes(searchTerm.toLowerCase()))
+        ? product.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          product.description?.toLowerCase().includes(searchTerm.toLowerCase())
         : true;
       return matchesFilter && matchesSearch;
     });
   }, [products, filter, searchTerm]);
 
-  const handleEditProduct = useCallback((product: Product) => {
-    if (navigate) {
-      navigate(`/products/edit/${product.id}`);
-    }
-  }, [navigate]);
+  const handleEditProduct = useCallback(
+    (product: Product) => {
+      if (navigate) {
+        navigate(`/products/edit/${product.id}`);
+      }
+    },
+    [navigate]
+  );
 
-  const handleDeleteProduct = useCallback((id: string) => {
-    if (window.confirm("Tem certeza que deseja excluir este produto?")) {
-      removeProduct(id);
-    }
-  }, [removeProduct]);
+  const handleDeleteProduct = useCallback(
+    (id: string) => {
+      if (window.confirm("Tem certeza que deseja excluir este produto?")) {
+        removeProduct(id);
+      }
+    },
+    [removeProduct]
+  );
 
-  const handleDuplicateProduct = useCallback((product: Product) => {
-    const duplicatedProduct = { ...product, id: undefined, name: `${product.name} (Cópia)` };
-    addProduct(duplicatedProduct);
-  }, [addProduct]);
+  const handleDuplicateProduct = useCallback(
+    (product: Product) => {
+      const duplicatedProduct = {
+        ...product,
+        id: undefined,
+        name: `${product.name} (Cópia)`,
+      };
+      addProduct(duplicatedProduct);
+    },
+    [addProduct]
+  );
 
-  const stats = useMemo(() => ({
-    total: products.length,
-    complete: products.filter((p) => p.status === "complete").length,
-    incomplete: products.filter((p) => p.status === "incomplete").length,
-  }), [products]);
+  const stats = useMemo(
+    () => ({
+      total: products.length,
+      complete: products.filter((p) => p.status === "complete").length,
+      incomplete: products.filter((p) => p.status === "incomplete").length,
+    }),
+    [products]
+  );
 
   return (
     <div className="products-container">

@@ -1,6 +1,6 @@
-import { Link, useNavigate } from 'react-router-dom';
-import Header from '../components/Header';
-import SideBarMenu from '../components/SideBarMenu';
+import { Link, useNavigate } from "react-router-dom";
+import Header from "../components/Header";
+import SideBarMenu from "../components/SideBarMenu";
 
 const UnauthorizedPage = () => {
   const navigate = useNavigate();
@@ -20,14 +20,14 @@ const UnauthorizedPage = () => {
             <h1 className="unauthorized-title">Acesso Negado</h1>
 
             <p className="unauthorized-message">
-              Você não tem permissão para acessar esta página.
-              Entre em contato com o administrador se acredita que isso seja um erro.
+              Você não tem permissão para acessar esta página. Entre em contato
+              com o administrador se acredita que isso seja um erro.
             </p>
 
             <div className="unauthorized-actions">
               <button
                 className="btn btn-primary"
-                onClick={() => navigate('/dashboard')}
+                onClick={() => navigate("/dashboard")}
               >
                 <i className="fa-solid fa-arrow-left"></i>
                 Voltar ao Dashboard

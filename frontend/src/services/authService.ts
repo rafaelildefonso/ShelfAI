@@ -31,23 +31,7 @@ export interface LoginData {
 // Interface para resposta de login
 export interface LoginResponse {
   message: string;
-  user: {
-    id: string;
-    name: string;
-    email: string;
-    role: string;
-    phone?: string;
-    company?: string;
-    department?: string;
-    position?: string;
-    location?: string;
-    avatar?: string;
-    isActive: boolean;
-    loginCount: number;
-    lastLogin?: string;
-    createdAt: string;
-    updatedAt: string;
-  };
+  user: User;
   token: string;
 }
 
@@ -101,8 +85,8 @@ export const validatePassword = (password: string): { isValid: boolean; errors: 
     errors.push('A senha deve conter pelo menos um número');
   }
 
-  if (!/(?=.*[@$!%*?&])/.test(password)) {
-    errors.push('A senha deve conter pelo menos um caractere especial (@$!%*?&)');
+  if (!/(?=.*[@$!%*?&#])/.test(password)) {
+    errors.push('A senha deve conter pelo menos um caractere especial (@$!%*?&#)');
   }
 
   return {
