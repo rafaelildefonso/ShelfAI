@@ -140,11 +140,23 @@ export const authService = {
     });
 
     if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.message || 'Erro ao obter perfil');
+      let errorMessage = 'Erro ao obter perfil';
+      try {
+        const error = await res.json();
+        errorMessage = error.message || errorMessage;
+      } catch (parseError) {
+        // Se não conseguir fazer parse do erro, usar mensagem padrão
+        console.warn('Não foi possível fazer parse do erro de autenticação:', parseError);
+      }
+      throw new Error(errorMessage);
     }
 
-    return await res.json();
+    try {
+      return await res.json();
+    } catch (jsonError) {
+      console.error('Erro ao fazer parse da resposta do perfil:', jsonError);
+      throw new Error('Erro interno: resposta inválida do servidor');
+    }
   },
 
   // Atualizar senha
@@ -185,8 +197,8 @@ export const authService = {
 
   // Logout (opcional - geralmente feito no frontend)
   logout(): void {
-    localStorage.removeItem('user');
     localStorage.removeItem('token');
     localStorage.removeItem('rememberMe');
+    // Removido armazenamento de dados do usuário no localStorage
   },
 };

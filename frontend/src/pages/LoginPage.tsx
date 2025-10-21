@@ -77,11 +77,6 @@ const LoginPage = () => {
     return error.message || "Erro ao fazer login. Tente novamente.";
   };
 
-  // Função para limpar erros
-  const clearErrors = () => {
-    setErrors({});
-  };
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({

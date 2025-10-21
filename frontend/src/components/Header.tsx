@@ -276,9 +276,8 @@ export default function Header() {
             >
               <i className="fa-solid fa-bell"></i>
               {unreadNotifications > 0 && (
-                <span className="notification-badge">
-                  {unreadNotifications}
-                </span>
+                <div className="notification-badge">
+                </div>
               )}
             </button>
 

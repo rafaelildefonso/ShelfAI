@@ -75,8 +75,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const formattedUser: User = userData;
 
       setUser(formattedUser);
-      // Atualizar localStorage com dados mais recentes
-      localStorage.setItem('user', JSON.stringify(formattedUser));
+      // Atualizar localStorage com dados mais recentes - REMOVIDO: armazenar apenas token JWT
       // Reset retry count on success
       setRetryCount(0);
     } catch (error) {
@@ -96,7 +95,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // Se todas as tentativas falharam, definir erro mas não fazer logout automático
-      setError('Erro ao carregar dados do usuário. Algumas funcionalidades podem não estar disponíveis.');
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido ao carregar dados do usuário';
+      setError(`Erro ao carregar dados do usuário: ${errorMessage}. Algumas funcionalidades podem não estar disponíveis.`);
       console.warn('Falha ao carregar perfil do usuário após múltiplas tentativas. Mantendo sessão local.');
       // Não chamar logout() automaticamente - deixar o usuário decidir se quer tentar novamente
     }
@@ -124,8 +124,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Preparar dados do usuário
       const formattedUser: User = response.user;
 
-      // Salvar dados do usuário
-      localStorage.setItem('user', JSON.stringify(formattedUser));
+      // Salvar dados do usuário - dados não são mais armazenados no localStorage
       setUser(formattedUser);
 
     } catch (error: any) {
@@ -142,10 +141,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
    * Função de logout
    */
   const logout = () => {
-    // Limpar dados do localStorage
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('rememberMe');
+      // Limpar dados do localStorage - removido armazenamento de usuário
+      localStorage.removeItem('token');
+      localStorage.removeItem('rememberMe');
+      // Não remover dados do usuário pois não são mais armazenados
     
 
     // Limpar estado
@@ -169,9 +168,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const updatedUser = await authService.updateProfile(data);
 
-      // Atualizar estado e localStorage
+      // Atualizar estado - dados do usuário não são mais armazenados no localStorage
       setUser(updatedUser);
-      localStorage.setItem('user', JSON.stringify(updatedUser));
 
     } catch (error: any) {
       console.error('Erro ao atualizar perfil:', error);
@@ -248,27 +246,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const initializeAuth = async () => {
       try {
         const savedToken = localStorage.getItem('token');
-        const savedUser = localStorage.getItem('user');
 
-        if (savedToken && savedUser) {
+        if (savedToken) {
           setToken(savedToken);
 
-          // Verificar se o usuário salvo é válido
-          const userData = JSON.parse(savedUser);
-          if (userData && userData.id) {
-            setUser(userData);
-
-            // Tentar carregar perfil da API, mas não fazer logout se falhar
-            try {
-              await loadUserProfile();
-            } catch (profileError) {
-              console.warn('Perfil não pôde ser carregado, mas mantendo sessão local:', profileError);
-              // Não fazer logout - deixar o usuário usar a aplicação com dados locais
-            }
-          } else {
-            // Dados inválidos, fazer logout
-            console.warn('Dados de usuário inválidos encontrados no localStorage');
-            logout();
+          // Tentar carregar perfil da API
+          try {
+            await loadUserProfile();
+          } catch (profileError) {
+            console.warn('Perfil não pôde ser carregado, mas mantendo sessão com token válido:', profileError);
+            // Não fazer logout - deixar o usuário usar a aplicação sem dados locais
+            setLoading(false);
           }
         } else {
           // Nenhum dado salvo encontrado

@@ -69,7 +69,7 @@ const SettingsScreen = () => {
 
   // Carregar configurações do usuário quando o componente montar
   useEffect(() => {
-    if (user?.settings) {
+    if (user?.settings && Object.keys(user.settings).length > 0) {
       setSettings((prev) => ({
         ...prev,
         ...user.settings,
