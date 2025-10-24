@@ -68,6 +68,7 @@
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
     "@types/uuid": "^10.0.0",
+    "@types/xlsx": "^0.0.35",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
@@ -80,6 +81,7 @@
     "multer": "^2.0.2",
     "uuid": "^13.0.0",
     "winston": "^3.18.3",
+    "xlsx": "^0.18.5",
     "zod": "^4.1.11"
   }
 }

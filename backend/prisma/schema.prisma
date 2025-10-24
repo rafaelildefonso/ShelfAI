@@ -37,6 +37,7 @@ model User {
   // Relacionamentos
   products    Product[]
   categories  Category[]
+  importTemplates ImportTemplate[]
   createdProducts Product[] @relation("CreatedByUser")
   updatedProducts Product[] @relation("UpdatedByUser")
 
@@ -109,4 +110,22 @@ model Product {
   @@index([userId])
   @@index([createdById])
   @@index([lastEditedById])
+}
+
+model ImportTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  fileType    String   // 'csv' | 'xlsx'
+  delimiter   String?  // Para CSV: ',' | ';' | '\t'
+  mapping     Json     // Mapeamento de colunas: { "productField": "csvColumnName" }
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([name, userId])
+  @@index([userId])
+  @@index([isDefault])
 }
