@@ -1,5 +1,69 @@
-node_modules
-# Keep environment variables out of version control
-.env
+# ========================
+# Node / NPM
+# ========================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
 
+# ========================
+# Environment
+# ========================
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# ========================
+# Build output (TypeScript, bundlers)
+# ========================
+dist/
+build/
+out/
+coverage/
+.cache/
+.tmp/
+*.tsbuildinfo
+
+# ========================
+# OS files
+# ========================
+.DS_Store
+Thumbs.db
+
+# ========================
+# Prisma
+# ========================
+# Migrations podem ser pesadas, mas mantenha se quiser versionar
+# Se quiser esconder, descomente a linha abaixo:
+# prisma/migrations/
+prisma/dev.db
+prisma/*.db-journal
 /generated/prisma
+
+# ========================
+# Logs
+# ========================
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# ========================
+# Editor / IDE
+# ========================
+.vscode/
+.idea/
+*.swp
+
+# ========================
+# Temporary files
+# ========================
+*.tmp
+*.temp
+*.bak
+*.old
