@@ -1,14 +1,14 @@
-import express, { type Request, type Response, type NextFunction } from 'express';
+import express from 'express';
 import morgan from 'morgan';
 import cors from 'cors';
 import swaggerUi from 'swagger-ui-express';
-import { swaggerSpec } from './config/swagger';
-import { errorHandler } from './middlewares/errorHandler';
-import fileRoutes from './routes/fileRoutes';
-import productRoutes from './routes/productRoutes';
-import userRoutes from './routes/userRoutes';
-import categoryRoutes from './routes/categoryRoutes';
-import { config } from './config/env';
+import { swaggerSpec } from './config/swagger.js';
+import { errorHandler } from './middlewares/errorHandler.js';
+import fileRoutes from './routes/fileRoutes.js';
+import productRoutes from './routes/productRoutes.js';
+import userRoutes from './routes/userRoutes.js';
+import categoryRoutes from './routes/categoryRoutes.js';
+import { config } from './config/env.js';
 
 declare global {
   namespace NodeJS {
