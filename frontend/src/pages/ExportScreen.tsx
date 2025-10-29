@@ -2,6 +2,7 @@ import SideBarMenu from "../components/SideBarMenu";
 import Header from "../components/Header";
 import { useAuth } from "../context/AuthContext";
 import { useState } from "react";
+import { buildApiPath } from "../config/api";
 
 const MainContent = () => {
   const { token } = useAuth();
@@ -23,7 +24,8 @@ const MainContent = () => {
     setMessage("");
     try {
       // Para CSV e Excel, endpoint é igual, só muda o nome do arquivo
-      const res = await fetch("/api/v1/import-export/export", {
+      const endpoint = buildApiPath('/api/v1/import-export/export');
+      const res = await fetch(endpoint, {
         method: "GET",
         headers: { Authorization: `Bearer ${token}` },
       });

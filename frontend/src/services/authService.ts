@@ -1,4 +1,6 @@
-const API_URL = "/api/v1/auth";
+import { buildApiPath } from "../config/api";
+
+const API_URL = buildApiPath('/api/v1/auth');
 
 // Função para obter token do localStorage
 const getAuthToken = (): string | null => {

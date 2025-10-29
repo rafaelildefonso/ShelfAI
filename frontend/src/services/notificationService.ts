@@ -1,5 +1,6 @@
 // Serviço para notificações
-const API_URL = "/api/v1";
+import { buildApiPath } from "../config/api";
+const API_URL = buildApiPath('/api/v1');
 
 export interface Notification {
   id: string;

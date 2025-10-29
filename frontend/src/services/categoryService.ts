@@ -1,4 +1,6 @@
-const API_URL = "/api/v1/categories";
+import { buildApiPath } from "../config/api";
+
+const API_URL = buildApiPath('/api/v1/categories');
 
 // Função para obter userId do usuário logado
 const getCurrentUser = (): any => {

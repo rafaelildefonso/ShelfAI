@@ -1,5 +1,6 @@
 import type { Product } from "../types/productType";
 import { categoryService } from "./categoryService";
+import { buildApiPath } from "../config/api";
 // Função para obter userId do usuário logado
 const getCurrentUser = (): any => {
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -7,7 +8,7 @@ const getCurrentUser = (): any => {
   return user.user || {};
 };
 
-const API_URL = "/api/v1/products";
+const API_URL = buildApiPath('/api/v1/products');
 
 // Função para obter token do localStorage
 const getAuthToken = (): string | null => {

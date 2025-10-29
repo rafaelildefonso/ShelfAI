@@ -1,12 +1,12 @@
 import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { buildApiPath } from "../config/api";
 
 export const uploadImage = async (file: File): Promise<string> => {
   const formData = new FormData();
   formData.append('image', file);
 
-  const response = await axios.post(`${API_URL}/api/files/upload/product`, formData, {
+  const endpoint = buildApiPath('/api/files/upload/product');
+  const response = await axios.post(endpoint, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
       'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -17,7 +17,8 @@ export const uploadImage = async (file: File): Promise<string> => {
 };
 
 export const deleteImage = async (imageUrl: string): Promise<void> => {
-  await axios.delete(`${API_URL}/api/files/delete/product`, {
+  const endpoint = buildApiPath('/api/files/delete/product');
+  await axios.delete(endpoint, {
     headers: {
       'Authorization': `Bearer ${localStorage.getItem('token')}`,
       'Content-Type': 'application/json'

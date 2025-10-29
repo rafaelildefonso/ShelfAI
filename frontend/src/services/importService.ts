@@ -1,4 +1,6 @@
-const API_URL = "/api/v1/import-export/import";
+import { buildApiPath } from "../config/api";
+
+const API_URL = buildApiPath('/api/v1/import-export/import');
 
 // Função para obter token do localStorage
 const getAuthToken = (): string | null => {
@@ -81,9 +83,9 @@ export const importService = {
     const formData = new FormData();
     formData.append('file', file);
 
-    const url = new URL(`${API_URL}/preview`, window.location.origin);
-    if (templateId) url.searchParams.append('templateId', templateId);
-    if (delimiter && delimiter !== ',') url.searchParams.append('delimiter', delimiter);
+  const url = new URL(`${API_URL}/preview`, window.location.origin);
+  if (templateId) url.searchParams.append('templateId', templateId);
+  if (delimiter && delimiter !== ',') url.searchParams.append('delimiter', delimiter);
 
     const res = await fetch(url.toString(), {
       method: 'POST',
@@ -103,8 +105,8 @@ export const importService = {
   async previewTest(file: File, templateId?: string, delimiter: string = ','): Promise<ImportPreview> {
     const formData = new FormData();
     formData.append('file', file);
-
-    const url = new URL(`/api/v1/import-export/import/preview-test`, window.location.origin);
+  const endpoint = buildApiPath('/api/v1/import-export/import/preview-test');
+    const url = new URL(endpoint, window.location.origin);
     if (templateId) url.searchParams.append('templateId', templateId);
     if (delimiter && delimiter !== ',') url.searchParams.append('delimiter', delimiter);
 
@@ -139,8 +141,8 @@ export const importService = {
   async testSimple(file: File): Promise<ImportPreview> {
     const formData = new FormData();
     formData.append('file', file);
-
-    const url = new URL(`/api/v1/import-export/import/preview-test`, window.location.origin);
+  const endpoint = buildApiPath('/api/v1/import-export/import/preview-test');
+    const url = new URL(endpoint, window.location.origin);
     console.log('🔍 [DEBUG] Simple TEST URL:', url.toString());
 
     const res = await fetch(url.toString(), {
@@ -170,10 +172,10 @@ export const importService = {
 
   // Teste básico da API
   async testAPI(): Promise<any> {
-    const url = new URL(`/api/v1/import-export/import/test`, window.location.origin);
-    console.log('🔍 [DEBUG] API TEST URL:', url.toString());
+  const endpoint = buildApiPath('/api/v1/import-export/import/test');
+    console.log('🔍 [DEBUG] API TEST URL:', endpoint);
 
-    const res = await fetch(url.toString(), {
+    const res = await fetch(endpoint, {
       method: 'GET',
     });
 
@@ -200,8 +202,8 @@ export const importService = {
   async testUpload(file: File): Promise<ImportPreview> {
     const formData = new FormData();
     formData.append('file', file);
-
-    const url = new URL(`/api/v1/import-export/import/test-upload`, window.location.origin);
+  const endpoint = buildApiPath('/api/v1/import-export/import/test-upload');
+    const url = new URL(endpoint, window.location.origin);
     console.log('🔍 [DEBUG] UPLOAD TEST URL:', url.toString());
 
     const res = await fetch(url.toString(), {
@@ -232,8 +234,8 @@ export const importService = {
   async testXlsx(file: File): Promise<ImportPreview> {
     const formData = new FormData();
     formData.append('file', file);
-
-    const url = new URL(`/api/v1/import-export/import/test-xlsx`, window.location.origin);
+  const endpoint = buildApiPath('/api/v1/import-export/import/test-xlsx');
+    const url = new URL(endpoint, window.location.origin);
     console.log('🔍 [DEBUG] XLSX TEST URL:', url.toString());
 
     const res = await fetch(url.toString(), {
@@ -264,8 +266,8 @@ export const importService = {
   async testXlsxSimple(file: File): Promise<ImportPreview> {
     const formData = new FormData();
     formData.append('file', file);
-
-    const url = new URL(`/api/v1/import-export/import/test-xlsx-simple`, window.location.origin);
+  const endpoint = buildApiPath('/api/v1/import-export/import/test-xlsx-simple');
+    const url = new URL(endpoint, window.location.origin);
     console.log('🔍 [DEBUG] XLSX SIMPLE TEST URL:', url.toString());
 
     const res = await fetch(url.toString(), {
