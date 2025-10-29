@@ -23,8 +23,27 @@ declare global {
 const app = express();
 
 // Configuração do CORS
+const normalizeOrigin = (url: string) => {
+  // Remove a barra no final da URL, se existir
+  return url.endsWith('/') ? url.slice(0, -1) : url;
+};
+
 const corsOptions: cors.CorsOptions = {
-  origin: config.FRONTEND_URL,
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    if (!origin || !config.FRONTEND_URL) {
+      callback(null, true);
+      return;
+    }
+
+    const normalizedOrigin = normalizeOrigin(origin);
+    const normalizedAllowedOrigin = normalizeOrigin(config.FRONTEND_URL);
+
+    if (normalizedOrigin === normalizedAllowedOrigin) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
