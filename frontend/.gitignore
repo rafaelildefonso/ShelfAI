@@ -24,3 +24,18 @@ dist-ssr
 *.sw?
 .vercel
 .env
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage/
+
+# TypeScript
+*.tsbuildinfo
+
+# Cache
+.cache/
+.parcel-cache/
+*.eslintcache
