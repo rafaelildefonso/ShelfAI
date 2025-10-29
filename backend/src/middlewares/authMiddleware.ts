@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { verifyToken } from '../services/authService';
-import { AppError } from '../utils/appError';
+import { verifyToken } from '../services/authService.js';
+import { AppError } from '../utils/appError.js';
 
 declare global {
   namespace Express {

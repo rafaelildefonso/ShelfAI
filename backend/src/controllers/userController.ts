@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
 
-import prisma from '../prisma/client';
+import prisma from '../prisma/client.js';
 
 
 export const userController = {

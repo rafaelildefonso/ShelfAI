@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { processAndSaveImage, deleteImage } from '../services/fileUploadService';
+import { processAndSaveImage, deleteImage } from '../services/fileUploadService.js';
 
 export const uploadProductImage = async (req: Request, res: Response) => {
   try {

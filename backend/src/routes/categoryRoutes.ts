@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { categoryController } from '../controllers/categoryController';
-import { authenticate } from '../middlewares/authMiddleware';
-import { validate } from '../middlewares/validate';
+import { categoryController } from '../controllers/categoryController.js';
+import { authenticate } from '../middlewares/authMiddleware.js';
+import { validate } from '../middlewares/validate.js';
 import { z } from 'zod';
 
 const router = Router();

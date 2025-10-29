@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import prisma from '../prisma/client';
+import prisma from '../prisma/client.js';
 
 export async function seedTestData(req: Request, res: Response, next: NextFunction) {
   try {

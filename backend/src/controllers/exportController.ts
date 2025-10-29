@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { stringify } from 'csv-stringify';
-import prisma from '../prisma/client';
+import prisma from '../prisma/client.js';
 
 
 type ExportFormat = 'csv' | 'excel' | 'shopify' | 'mercadolivre' | 'shopee' | 'amazon' | 'aliexpress';

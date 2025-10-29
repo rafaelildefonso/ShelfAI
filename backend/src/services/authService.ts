@@ -1,6 +1,6 @@
 import jwt, { SignOptions } from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
-import { config } from '../config/env';
+import { config } from '../config/env.js';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
