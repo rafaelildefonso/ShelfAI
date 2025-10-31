@@ -56,8 +56,9 @@ const validatePassword = (password: string): { isValid: boolean; errors: string[
     errors.push('A senha deve conter pelo menos um número');
   }
 
-  if (!/(?=.*[@$!%*?&])/.test(password)) {
-    errors.push('A senha deve conter pelo menos um caractere especial (@$!%*?&)');
+  // Inclui todos os caracteres especiais comuns
+  if (!/(?=.*[!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~])/.test(password)) {
+    errors.push('A senha deve conter pelo menos um caractere especial (ex: !"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~)');
   }
 
   return {
