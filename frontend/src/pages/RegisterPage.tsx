@@ -104,7 +104,7 @@ const RegisterPage = () => {
       lowercase: /[a-z]/.test(value),
       uppercase: /[A-Z]/.test(value),
       number: /\d/.test(value),
-      specialChar: /[@$!%*?&]/.test(value),
+      specialChar: /[!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~]/.test(value),
     });
 
     // Clear error when user types
