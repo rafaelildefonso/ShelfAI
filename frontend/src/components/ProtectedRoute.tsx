@@ -30,10 +30,21 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // Mostrar loading enquanto verifica autenticação
   if (loading) {
     return (
-      <div className="loading-container">
-        <div className="loading-spinner">
-          <i className="fa-solid fa-spinner fa-spin"></i>
-          <span>Verificando autenticação...</span>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+        <div className="text-center max-w-md w-full">
+          <div className="flex justify-center mb-4">
+            <div className="relative">
+              <div className="w-16 h-16 border-4 border-t-purple-500 border-r-purple-500 border-b-transparent border-l-transparent rounded-full animate-spin"></div>
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                <i className="fa-solid fa-shield-halved text-2xl text-purple-600 dark:text-purple-400"></i>
+              </div>
+            </div>
+          </div>
+          <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-2">Verificando acesso</h2>
+          <p className="text-gray-600 dark:text-gray-300 mb-6">Estamos verificando suas credenciais de acesso...</p>
+          <div className="w-full bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
+            <div className="bg-purple-600 h-1.5 rounded-full animate-pulse w-3/4"></div>
+          </div>
         </div>
       </div>
     );

@@ -16,14 +16,17 @@ import { CategoryProvider } from "./context/CategoryContext";
 import { AuthProvider } from "./context/AuthContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { MenuProvider } from "./context/MenuContext";
+import NotFoundPage from "./pages/NotFoundPage";
+import { MobileMenuOverlay } from "./components/SideBarMenu";
 
 function App() {
   return (
     <div className="App">
-      <AuthProvider>
+<AuthProvider>
         <CategoryProvider>
           <ProductProvider>
             <MenuProvider>
+              <MobileMenuOverlay />
               <Routes>
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/login" element={<LoginPage />} />
@@ -100,7 +103,11 @@ function App() {
 
                 <Route
                   path="*"
-                  element={<h1>404 - Página não encontrada</h1>}
+                  element={
+                    <ProtectedRoute>
+                      <NotFoundPage />
+                    </ProtectedRoute>
+                  }
                 />
               </Routes>
             </MenuProvider>

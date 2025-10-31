@@ -35,6 +35,7 @@ export interface LoginResponse {
   message: string;
   user: User;
   token: string;
+  refreshToken?: string;
 }
 
 // Interface para usuário
@@ -57,7 +58,6 @@ export interface User {
   updatedAt: Date;
   preferences?: any;
   settings?: any;
-  avatar?: string | null;
   products?: any[];
   _count?: any;
 }
@@ -97,7 +97,7 @@ export const validatePassword = (password: string): { isValid: boolean; errors: 
   };
 };
 
-// Serviço de autenticação
+// Nunca salve dados sensíveis do usuário no localStorage! Apenas dados básicos de identificação (nome, email, role).
 export const authService = {
   // Registrar usuário
   async register(userData: RegisterData): Promise<any> {
@@ -197,9 +197,28 @@ export const authService = {
     return await res.json();
   },
 
+  // Renovar token de acesso
+  async refreshToken(refreshToken: string): Promise<{ token: string; refreshToken: string }> {
+    const res = await fetch(`${API_URL}/refresh-token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ refreshToken }),
+    });
+
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.message || 'Erro ao renovar token');
+    }
+
+    return await res.json();
+  },
+
   // Logout (opcional - geralmente feito no frontend)
   logout(): void {
     localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('rememberMe');
     // Removido armazenamento de dados do usuário no localStorage
   },

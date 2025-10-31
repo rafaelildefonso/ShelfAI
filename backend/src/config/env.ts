@@ -6,8 +6,13 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters long'),
   JWT_EXPIRES_IN: z.string().default('1d'),
+  JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
   FRONTEND_URL: z.string().default('http://localhost:3000'),
-  API_URL: z.string().default('http://localhost:3000/api')
+  API_URL: z.string().default('http://localhost:3000/api'),
+  // Supabase (opcional - apenas se quiser usar recursos adicionais)
+  SUPABASE_URL: z.string().optional(),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+  SUPABASE_ANON_KEY: z.string().optional()
 });
 
 const env = envSchema.safeParse(process.env);

@@ -1,12 +1,46 @@
 import { Link } from 'react-router-dom';
 import { useMenu } from '../context/MenuContext';
+import { useEffect, useRef } from 'react';
 
 interface SideBarMenuProps {
   pageName?: string;
 }
 
 export default function SideBarMenu({ pageName }: SideBarMenuProps) {
-  const { menuAberto, toggleMenu } = useMenu();
+  const { menuAberto, toggleMenu, closeMenu, openMenu } = useMenu();
+  const sidebarRef = useRef<HTMLDivElement>(null);
+  const isMinimized = window.innerWidth < 1024;
+
+  // Close menu when clicking outside on mobile
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isMinimized && menuAberto && sidebarRef.current && !sidebarRef.current.contains(event.target as Node)) {
+        toggleMenu();
+      }
+    };
+
+    // Add event listener when component mounts and menu is open on mobile
+    if (isMinimized && menuAberto) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    // Clean up event listener
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [menuAberto, isMinimized, toggleMenu]);
+
+  // Close menu when window is resized to desktop
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024 && menuAberto) {
+        toggleMenu();
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [menuAberto, toggleMenu]);
   const menuItems = [
     {
       path: '/dashboard',
@@ -38,15 +72,34 @@ export default function SideBarMenu({ pageName }: SideBarMenuProps) {
     }
   ];
 
+  // Handle click on the collapsed sidebar
+  const handleSidebarClick = () => {
+    // Only toggle if:
+    // 1. We're on mobile/tablet (screen width < 1024px)
+    // 2. The menu is currently closed
+    // 3. The click is directly on the sidebar container
+    if (!menuAberto) {
+      openMenu();
+    }
+  };
+
   return (
-    <div className={`sidebar ${menuAberto ? 'open-menu' : 'closed-menu'}`}>
+    <div 
+      ref={sidebarRef} 
+      className={`sidebar ${menuAberto ? 'open-menu' : 'closed-menu'}`}
+      onClick={handleSidebarClick}
+      style={{ cursor: isMinimized && !menuAberto ? 'pointer' : 'default' }}
+    >
       <div className="sidebar-header">
-        <div className="sidebar-logo-menu-btn" onClick={toggleMenu}>
-           <div className="logo-icon">
+        <div className="sidebar-logo-menu-min">
+          <div className="logo-icon">
             <i className="fa-solid fa-warehouse"></i>
           </div>
         </div>
-        <div className="sidebar-logo" onClick={()=> window.location.href = '/dashboard'}>
+        <div className="sidebar-logo" onClick={(e) => {
+          e.stopPropagation();
+          window.location.href = '/dashboard';
+        }}>
           <div className="logo-icon">
             <i className="fa-solid fa-warehouse"></i>
           </div>
@@ -56,7 +109,7 @@ export default function SideBarMenu({ pageName }: SideBarMenuProps) {
           </div>
         </div>
         {menuAberto && (
-          <div className="close-menu-btn" onClick={toggleMenu}>
+          <div className="close-menu-btn" onClick={closeMenu}>
             <i className="fa-solid fa-angle-left"></i>
           </div>
         )}
@@ -70,6 +123,12 @@ export default function SideBarMenu({ pageName }: SideBarMenuProps) {
               <li key={item.name}>
                 <Link 
                   to={item.path} 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (isMinimized) {
+                      closeMenu();
+                    }
+                  }}
                   className={`nav-link ${pageName === item.name ? 'active' : ''}`}
                   title={item.description}
                 >
@@ -87,13 +146,29 @@ export default function SideBarMenu({ pageName }: SideBarMenuProps) {
         </div>
       </nav>
 
-      <div className="sidebar-footer">
+      <div className="sidebar-footer" onClick={(e) => e.stopPropagation()}>
         <div className="footer-section">
-          <Link to="/settings" className={`footer-btn ${pageName === 'settings' ? 'active' : ''}`} title="Configurações">
+          <Link 
+            to="/settings" 
+            onClick={(e) => {
+              e.stopPropagation();
+              if (isMinimized) closeMenu();
+            }} 
+            className={`footer-btn ${pageName === 'settings' ? 'active' : ''}`} 
+            title="Configurações"
+          >
             <i className="fa-solid fa-gear"></i>
             <span>Configurações</span>
           </Link>
-          <Link to="/help" className="footer-btn" title="Ajuda e Suporte">
+          <Link 
+            to="/help" 
+            onClick={(e) => {
+              e.stopPropagation();
+              if (isMinimized) closeMenu();
+            }} 
+            className="footer-btn" 
+            title="Ajuda e Suporte"
+          >
             <i className="fa-solid fa-question-circle"></i>
             <span>Ajuda</span>
           </Link>
@@ -112,3 +187,20 @@ export default function SideBarMenu({ pageName }: SideBarMenuProps) {
     </div>
   );
 }
+
+// Add click-outside handler for mobile menu overlay
+const MobileMenuOverlay = () => {
+  const { menuAberto, toggleMenu } = useMenu();
+  const isMobile = window.innerWidth < 1024;
+
+  if (!isMobile || !menuAberto) return null;
+
+  return (
+    <div 
+      className="fixed inset-0 bg-black opacity-0 z-50 md:hidden"
+      onClick={toggleMenu}
+    />
+  );
+};
+
+export { MobileMenuOverlay };

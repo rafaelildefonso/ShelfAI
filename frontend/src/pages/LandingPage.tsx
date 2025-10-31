@@ -95,24 +95,18 @@ const LandingPage = () => {
     {
       name: "Maria Silva",
       company: "Moda & Estilo",
-      text: "O ShelfAI revolucionou nossa gestão de produtos. Economizamos horas de trabalho e aumentamos nossas vendas em 40%.",
-      avatar:
-        "https://blog.unyleya.edu.br/wp-content/uploads/2017/12/saiba-como-a-educacao-ajuda-voce-a-ser-uma-pessoa-melhor.jpeg",
+      text: "O ShelfAI revolucionou nossa gestão de produtos. Economizamos horas de trabalho e aumentamos nossas vendas em 40%."
     },
     {
       name: "João Santos",
       company: "TechStore",
-      text: "A integração com múltiplos marketplaces é fantástica. Agora conseguimos vender em 5 plataformas diferentes.",
-      avatar:
-        "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face",
+      text: "A integração com múltiplos marketplaces é fantástica. Agora conseguimos vender em 5 plataformas diferentes."
     },
     {
       name: "Ana Costa",
       company: "Casa & Decoração",
-      text: "A geração automática de informações economiza muito tempo. Produtos que levavam 30 minutos agora levam 5.",
-      avatar:
-        "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face",
-    },
+      text: "A geração automática de informações economiza muito tempo. Produtos que levavam 30 minutos agora levam 5."
+    }
   ];
 
   return (
@@ -387,11 +381,9 @@ const LandingPage = () => {
                   <p className="testimonial-text">"{testimonial.text}"</p>
                 </div>
                 <div className="testimonial-author">
-                  <img
-                    src={testimonial.avatar}
-                    alt={testimonial.name}
-                    className="testimonial-avatar"
-                  />
+                  <div className="testimonial-initial">
+                    {testimonial.name.charAt(0)}
+                  </div>
                   <div className="testimonial-info">
                     <span className="testimonial-name">{testimonial.name}</span>
                     <span className="testimonial-company">

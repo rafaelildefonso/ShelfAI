@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { authService, type User, type LoginData, type LoginResponse } from '../services/authService';
+import { authService, type User, type LoginData } from '../services/authService';
 import { useNavigate } from 'react-router-dom';
 
 /**
@@ -56,7 +56,14 @@ export const useAuth = () => {
  */
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Estados principais
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    try {
+      const storedUser = localStorage.getItem('user');
+      return storedUser ? JSON.parse(storedUser) : null;
+    } catch {
+      return null;
+    }
+  });
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -66,18 +73,82 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   /**
    * Carrega o perfil do usuário autenticado com mecanismo de retry
    */
+  interface ApiUserResponse {
+    user?: User;
+    id?: string;
+    name?: string;
+    email?: string;
+    role?: string;
+    phone?: string;
+    isActive?: boolean;
+    loginCount?: number;
+    createdAt?: string | Date;
+    updatedAt?: string | Date;
+    [key: string]: any; // Para quaisquer outros campos adicionais
+  }
+
   const loadUserProfile = async (isRetry = false) => {
     try {
       setError(null);
-      const userData = await authService.getProfile();
-
-      // Converter datas para objetos Date
-      const formattedUser: User = userData;
-
-      setUser(formattedUser);
-      // Atualizar localStorage com dados mais recentes - REMOVIDO: armazenar apenas token JWT
-      // Reset retry count on success
-      setRetryCount(0);
+      const currentUser = user;
+      
+      try {
+        const response = await authService.getProfile() as ApiUserResponse | User;
+        
+        // Verifica se a resposta tem os dados do usuário
+        // A API pode retornar { user: { ... } } ou diretamente o objeto do usuário
+        const userData = 'user' in response ? response.user : response;
+        
+        // Verifica se os dados do usuário são válidos
+        if (!userData || typeof userData !== 'object' || !('id' in userData) || !userData.id) {
+          console.warn('Formato de dados de usuário inválido da API:', response);
+          // Se tivermos um usuário atual, mantemos ele
+          if (currentUser) {
+            console.log('Mantendo usuário atual devido a dados inválidos da API');
+            return; // Não atualiza, mas mantém o usuário atual
+          }
+          // Se não tivermos usuário atual, lança erro para ser tratado abaixo
+          throw new Error('Dados de usuário inválidos retornados da API');
+        }
+        
+        // Se chegou aqui, os dados são válidos
+        // Cria um novo objeto com os campos padrão
+        const formattedUser: User = {
+          // Primeiro, pega todos os campos atuais do usuário (se existirem)
+          ...(currentUser || {}),
+          // Depois sobrescreve com os novos dados da API
+          ...userData,
+          // Garante que os campos obrigatórios tenham valores padrão
+          id: userData.id,
+          name: userData.name || currentUser?.name || '',
+          email: userData.email || currentUser?.email || '',
+          role: userData.role || currentUser?.role || 'USER',
+          // Garante que campos booleanos tenham valor padrão
+          isActive: userData.isActive ?? currentUser?.isActive ?? true,
+          loginCount: userData.loginCount ?? currentUser?.loginCount ?? 0,
+          // Converte strings de data para objetos Date, se necessário
+          createdAt: userData.createdAt 
+            ? new Date(userData.createdAt) 
+            : (currentUser?.createdAt || new Date()),
+          updatedAt: userData.updatedAt 
+            ? new Date(userData.updatedAt) 
+            : (currentUser?.updatedAt || new Date())
+        };
+        
+        // Atualiza o estado e o localStorage
+        setUser(formattedUser);
+        localStorage.setItem('user', JSON.stringify(formattedUser));
+        setRetryCount(0);
+      } catch (apiError) {
+        console.error('Erro na API ao carregar perfil:', apiError);
+        // Em caso de erro na API, manter os dados locais se disponíveis
+        if (currentUser) {
+          console.log('Mantendo dados locais do usuário devido a erro na API');
+          setUser(currentUser);
+          throw apiError; // Ainda lança o erro para tratamento posterior
+        }
+        throw apiError;
+      }
     } catch (error) {
       console.error('Erro ao carregar perfil do usuário:', error);
 
@@ -110,21 +181,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(true);
       setError(null);
 
-      const response: LoginResponse = await authService.login(credentials);
+      // Fazer login
+      const response = await authService.login(credentials);
 
-      // Validar resposta
-      if (!response.token || !response.user) {
-        throw new Error('Resposta de login inválida');
-      }
-
-      // Salvar token no localStorage
+      // Salvar tokens no localStorage
       localStorage.setItem('token', response.token);
+      if (response.refreshToken) {
+        localStorage.setItem('refreshToken', response.refreshToken);
+      }
       setToken(response.token);
 
-      // Preparar dados do usuário
-      const formattedUser: User = response.user;
+      // Formatar usuário
+      const formattedUser: User = {
+        id: response.user.id,
+        name: response.user.name,
+        email: response.user.email,
+        role: response.user.role,
+        phone: response.user.phone,
+        company: response.user.company,
+        department: response.user.department,
+        position: response.user.position,
+        location: response.user.location,
+        isActive: response.user.isActive ?? true,
+        loginCount: response.user.loginCount ?? 1,
+        createdAt: response.user.createdAt || new Date(),
+        updatedAt: response.user.updatedAt || new Date(),
+      };
 
-      // Salvar dados do usuário - dados não são mais armazenados no localStorage
+      // Salvar dados do usuário no localStorage
+      localStorage.setItem('user', JSON.stringify(formattedUser));
       setUser(formattedUser);
 
     } catch (error: any) {
@@ -141,16 +226,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
    * Função de logout
    */
   const logout = () => {
-      // Limpar dados do localStorage - removido armazenamento de usuário
-      localStorage.removeItem('token');
-      localStorage.removeItem('rememberMe');
-      // Não remover dados do usuário pois não são mais armazenados
-    
+    // Limpar dados do localStorage
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('rememberMe');
+    localStorage.removeItem('user');
 
     // Limpar estado
     setToken(null);
     setUser(null);
     setError(null);
+    
     navigate('/login');
   };
 
@@ -170,6 +256,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Atualizar estado - dados do usuário não são mais armazenados no localStorage
       setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
 
     } catch (error: any) {
       console.error('Erro ao atualizar perfil:', error);
@@ -248,40 +335,67 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const savedToken = localStorage.getItem('token');
 
         if (savedToken) {
+          // Primeiro, reidrata o token
           setToken(savedToken);
+          
+          // Tenta reidratar o usuário do localStorage primeiro para mostrar algo imediatamente
+          try {
+            const storedUser = localStorage.getItem('user');
+            if (storedUser) {
+              const parsedUser = JSON.parse(storedUser);
+              // Só atualiza se o usuário ainda não estiver definido
+              if (!user) {
+                setUser(parsedUser);
+              }
+            }
+          } catch (e) {
+            console.warn('Erro ao analisar usuário do localStorage:', e);
+          }
 
-          // Tentar carregar perfil da API
+          // Depois tenta carregar o perfil da API em segundo plano
           try {
             await loadUserProfile();
           } catch (profileError) {
-            console.warn('Perfil não pôde ser carregado, mas mantendo sessão com token válido:', profileError);
-            // Não fazer logout - deixar o usuário usar a aplicação sem dados locais
-            setLoading(false);
+            console.warn('Perfil não pôde ser carregado, mas mantendo sessão com token válido e dados locais:', profileError);
+            // Não faz nada, mantém o usuário com os dados locais
           }
         } else {
-          // Nenhum dado salvo encontrado
-          setLoading(false);
+          // Nenhum token encontrado, garante que o usuário está deslogado
+          setUser(null);
+          setToken(null);
         }
       } catch (error) {
         console.error('Erro ao inicializar autenticação:', error);
-        // Em caso de erro crítico, ainda fazer logout para segurança
-        logout();
+        // Em caso de erro crítico, limpa tudo para garantir consistência
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setUser(null);
+        setToken(null);
       } finally {
         setLoading(false);
       }
     };
 
     initializeAuth();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Efeito para monitorar mudanças de autenticação
   useEffect(() => {
     const currentIsAuthenticated = !!user && !!token;
+    const isPublicRoute = ['/login', '/register', '/', '/forgot-password', '/reset-password'].includes(window.location.pathname);
 
-    // Se o usuário ficou deslogado e não estamos carregando, redirecionar para login
-    if (!loading && !currentIsAuthenticated && !['/login','/register','/'].includes(window.location.pathname)) {
-      console.log('Usuário deslogado detectado, redirecionando para login...');
+    // Se o usuário está carregando, não faz nada
+    if (loading) return;
+
+    // Se não está autenticado e não está em uma rota pública, redireciona para login
+    if (!currentIsAuthenticated && !isPublicRoute) {
+      console.log('Usuário não autenticado, redirecionando para login...');
       navigate('/login');
+    }
+    // Se está autenticado e está em uma rota de login/registro, redireciona para dashboard
+    else if (currentIsAuthenticated && isPublicRoute && window.location.pathname !== '/') {
+      console.log('Usuário autenticado em rota pública, redirecionando para dashboard...');
+      navigate('/dashboard');
     }
   }, [user, token, loading, navigate]);
 

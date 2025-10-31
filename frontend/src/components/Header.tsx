@@ -345,16 +345,8 @@ export default function Header() {
           ref={userMenuRef}
           onClick={toggleUserMenu}
         >
-          <div className="user-avatar-container">
-            <img
-              src={
-                user?.avatar ||
-                "https://static.vecteezy.com/ti/fotos-gratis/p1/26409361-jaqueta-homem-bege-a-moda-estilo-retrato-pessoa-africano-modelo-americano-preto-moda-foto.jpg"
-              }
-              alt="User Avatar"
-              className="user-avatar"
-            />
-            <div className="user-status-indicator"></div>
+          <div className="user-initial">
+            {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
           </div>
           <div className="user-info">
             <span className="user-name">{user?.name || "Usuário"}</span>
@@ -370,14 +362,8 @@ export default function Header() {
           {showUserMenu && (
             <div className="user-menu-dropdown">
               <div className="user-menu-header">
-                <div className="user-menu-avatar">
-                  <img
-                    src={
-                      user?.avatar ||
-                      "https://static.vecteezy.com/ti/fotos-gratis/p1/26409361-jaqueta-homem-bege-a-moda-estilo-retrato-pessoa-africano-modelo-americano-preto-moda-foto.jpg"
-                    }
-                    alt="User Avatar"
-                  />
+                <div className="user-menu-initial">
+                  {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
                 </div>
                 <div className="user-menu-info">
                   <div className="user-menu-name">

@@ -3,6 +3,8 @@ import React, { createContext, useContext, useState } from "react";
 interface MenuContextType {
   menuAberto: boolean;
   toggleMenu: () => void;
+  openMenu: () => void;
+  closeMenu: () => void;
 }
 
 interface MenuProviderProps {
@@ -28,8 +30,16 @@ export const MenuProvider: React.FC<MenuProviderProps> = ({ children }) => {
     setMenuAberto((prev) => !prev);
   };
 
+  const openMenu = () => {
+    setMenuAberto(true);
+  };
+
+  const closeMenu = () => {
+    setMenuAberto(false);
+  };
+
   return (
-    <MenuContext.Provider value={{ menuAberto, toggleMenu }}>
+    <MenuContext.Provider value={{ menuAberto, toggleMenu, openMenu, closeMenu }}>
       {children}
     </MenuContext.Provider>
   );

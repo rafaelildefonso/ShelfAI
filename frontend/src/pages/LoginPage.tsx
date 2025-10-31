@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { authService, validateEmail } from "../services/authService";
+import { validateEmail } from "../services/authService";
 import { useAuth } from "../context/AuthContext";
 import "./../App.css";
 

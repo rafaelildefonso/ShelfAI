@@ -148,6 +148,28 @@ export const generateToken = (user: User): string => {
   );
 };
 
+export const generateRefreshToken = (user: User): string => {
+  const payload = {
+    userId: user.id,
+    type: 'refresh'
+  } as const;
+
+  const expiresIn = config.JWT_REFRESH_EXPIRES_IN || '7d';
+
+  return jwt.sign(
+    payload as object,
+    config.JWT_SECRET,
+    { expiresIn } as SignOptions
+  );
+};
+
+export const generateTokenPair = (user: User): { accessToken: string; refreshToken: string } => {
+  return {
+    accessToken: generateToken(user),
+    refreshToken: generateRefreshToken(user)
+  };
+};
+
 export const verifyToken = (token: string): JwtPayload => {
   return jwt.verify(token, config.JWT_SECRET) as JwtPayload;
 };
@@ -205,7 +227,7 @@ export const registerUser = async (userData: RegisterData): Promise<User> => {
   return user;
 };
 
-export const authenticateUser = async (loginData: LoginData): Promise<{ user: User; token: string }> => {
+export const authenticateUser = async (loginData: LoginData): Promise<{ user: User }> => {
   // Validar dados de entrada
   if (!loginData.email || !loginData.password) {
     throw new Error('Email e senha são obrigatórios');
@@ -232,7 +254,7 @@ export const authenticateUser = async (loginData: LoginData): Promise<{ user: Us
   }
 
   // Atualizar contador de login e última data de login
-  await prisma.user.update({
+  const updatedUser = await prisma.user.update({
     where: { id: user.id },
     data: {
       loginCount: { increment: 1 },
@@ -240,10 +262,7 @@ export const authenticateUser = async (loginData: LoginData): Promise<{ user: Us
     }
   });
 
-  // Gerar token
-  const token = generateToken(user);
-
-  return { user, token };
+  return { user: updatedUser };
 };
 
 export const updatePassword = async (userId: string, passwordData: UpdatePasswordData): Promise<void> => {
@@ -404,4 +423,30 @@ export const activateUser = async (userId: string): Promise<User> => {
   });
 
   return user;
+};
+
+export const refreshAccessToken = async (refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> => {
+  try {
+    // Verifica o refresh token
+    const decoded = jwt.verify(refreshToken, config.JWT_SECRET) as any;
+    
+    // Verifica se é um refresh token
+    if (decoded.type !== 'refresh') {
+      throw new Error('Token inválido');
+    }
+
+    // Busca o usuário
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId }
+    });
+
+    if (!user || !user.isActive) {
+      throw new Error('Usuário não encontrado ou inativo');
+    }
+
+    // Gera novos tokens
+    return generateTokenPair(user);
+  } catch (error) {
+    throw new Error('Refresh token inválido ou expirado');
+  }
 };

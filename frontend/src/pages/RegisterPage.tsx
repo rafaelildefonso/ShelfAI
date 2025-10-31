@@ -3,10 +3,11 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   authService,
   validateEmail,
-  validatePassword,
   type RegisterData,
 } from "../services/authService";
 import { useAuth } from "../context/AuthContext";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCheckCircle, faCircle } from "@fortawesome/free-regular-svg-icons";
 import "./../App.css";
 
 const RegisterPage = () => {
@@ -26,8 +27,14 @@ const RegisterPage = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
-  // Estado para controlar se mostrar link de login quando email já existe
   const [showLoginLink, setShowLoginLink] = useState(false);
+  const [passwordChecks, setPasswordChecks] = useState({
+    length: false,
+    lowercase: false,
+    uppercase: false,
+    number: false,
+    specialChar: false,
+  });
 
   // Função auxiliar para categorizar erros
   const getErrorMessage = (error: any) => {
@@ -87,8 +94,48 @@ const RegisterPage = () => {
     }
   }, [navigate, from]);
 
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = e.target;
+    setFormData(prev => ({ ...prev, password: value }));
+
+    // Update password validation checks
+    setPasswordChecks({
+      length: value.length >= 8,
+      lowercase: /[a-z]/.test(value),
+      uppercase: /[A-Z]/.test(value),
+      number: /\d/.test(value),
+      specialChar: /[@$!%*?&]/.test(value),
+    });
+
+    // Clear error when user types
+    if (errors.password) {
+      setErrors(prev => ({ ...prev, password: '' }));
+    }
+  };
+
+  const handleConfirmPasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = e.target;
+    setFormData(prev => ({ ...prev, confirmPassword: value }));
+
+    // Clear error when passwords match
+    if (formData.password === value && errors.confirmPassword) {
+      setErrors(prev => ({ ...prev, confirmPassword: '' }));
+    }
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
+    
+    if (name === 'password') {
+      handlePasswordChange(e);
+      return;
+    }
+    
+    if (name === 'confirmPassword') {
+      handleConfirmPasswordChange(e);
+      return;
+    }
+    
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
@@ -120,20 +167,17 @@ const RegisterPage = () => {
 
     if (!formData.password) {
       newErrors.password = "Senha é obrigatória";
-    } else {
-      const passwordValidation = validatePassword(formData.password);
-      if (!passwordValidation.isValid) {
-        newErrors.password = passwordValidation.errors.join(", ");
-      }
+    } else if (!Object.values(passwordChecks).every(Boolean)) {
+      newErrors.password = "A senha não atende a todos os requisitos";
     }
 
     if (!formData.confirmPassword) {
-      newErrors.confirmPassword = "Confirmação de senha é obrigatória";
+      newErrors.confirmPassword = "Confirme sua senha";
     } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Senhas não coincidem";
+      newErrors.confirmPassword = "As senhas não coincidem";
     }
 
-    if (formData.phone && formData.phone.length < 10) {
+    if (formData.phone && formData.phone.replace(/\D/g, '').length < 10) {
       newErrors.phone = "Telefone deve ter pelo menos 10 dígitos";
     }
 
@@ -143,6 +187,68 @@ const RegisterPage = () => {
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const renderPasswordValidation = () => {
+    if (!formData.password) return null;
+    
+    return (
+      <div className="password-validation mt-2 p-3 bg-opacity-10 bg-gray-100 dark:bg-gray-800 rounded-lg">
+        <p className="text-sm font-medium mb-2">Sua senha deve conter:</p>
+        <ul className="space-y-1">
+          <li className={`flex items-center text-sm ${passwordChecks.length ? 'text-green-500' : 'text-gray-500'}`}>
+            <FontAwesomeIcon 
+              icon={passwordChecks.length ? faCheckCircle : faCircle} 
+              className="mr-2 text-xs" 
+            />
+            Pelo menos 8 caracteres
+          </li>
+          <li className={`flex items-center text-sm ${passwordChecks.lowercase ? 'text-green-500' : 'text-gray-500'}`}>
+            <FontAwesomeIcon 
+              icon={passwordChecks.lowercase ? faCheckCircle : faCircle} 
+              className="mr-2 text-xs" 
+            />
+            Pelo menos uma letra minúscula
+          </li>
+          <li className={`flex items-center text-sm ${passwordChecks.uppercase ? 'text-green-500' : 'text-gray-500'}`}>
+            <FontAwesomeIcon 
+              icon={passwordChecks.uppercase ? faCheckCircle : faCircle} 
+              className="mr-2 text-xs" 
+            />
+            Pelo menos uma letra maiúscula
+          </li>
+          <li className={`flex items-center text-sm ${passwordChecks.number ? 'text-green-500' : 'text-gray-500'}`}>
+            <FontAwesomeIcon 
+              icon={passwordChecks.number ? faCheckCircle : faCircle} 
+              className="mr-2 text-xs" 
+            />
+            Pelo menos um número
+          </li>
+          <li className={`flex items-center text-sm ${passwordChecks.specialChar ? 'text-green-500' : 'text-gray-500'}`}>
+            <FontAwesomeIcon 
+              icon={passwordChecks.specialChar ? faCheckCircle : faCircle} 
+              className="mr-2 text-xs" 
+            />
+            Pelo menos um caractere especial (@$!%*?&)
+          </li>
+        </ul>
+      </div>
+    );
+  };
+
+  const renderPasswordMatchFeedback = () => {
+    if (!formData.confirmPassword) return null;
+    
+    const passwordsMatch = formData.password === formData.confirmPassword;
+    return (
+      <div className={`mt-1 text-sm flex items-center ${passwordsMatch ? 'text-green-500' : 'text-red-500'}`}>
+        <FontAwesomeIcon 
+          icon={passwordsMatch ? faCheckCircle : faCircle} 
+          className="mr-1 text-xs" 
+        />
+        {passwordsMatch ? 'As senhas coincidem' : 'As senhas não coincidem'}
+      </div>
+    );
   };
 
   const formatPhone = (value: string) => {
@@ -359,7 +465,7 @@ const RegisterPage = () => {
                   <label htmlFor="password" className="form-label">
                     Senha
                   </label>
-                  <div className="input-container">
+                  <div className="input-container relative">
                     <i className="fa-solid fa-lock input-icon"></i>
                     <input
                       type={showPassword ? "text" : "password"}
@@ -367,15 +473,16 @@ const RegisterPage = () => {
                       name="password"
                       value={formData.password}
                       onChange={handleInputChange}
-                      className={`form-input ${errors.password ? "error" : ""}`}
+                      className={`form-input ${
+                        errors.password ? "border-red-500" : ""
+                      }`}
                       placeholder="Mínimo 8 caracteres"
                       disabled={isLoading}
                     />
                     <button
                       type="button"
-                      className="password-toggle"
                       onClick={() => setShowPassword(!showPassword)}
-                      disabled={isLoading}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
                     >
                       <i
                         className={`fa-solid ${
@@ -384,8 +491,11 @@ const RegisterPage = () => {
                       ></i>
                     </button>
                   </div>
+                  {formData.password && renderPasswordValidation()}
                   {errors.password && (
-                    <span className="error-text">{errors.password}</span>
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.password}
+                    </p>
                   )}
                 </div>
 
@@ -393,7 +503,7 @@ const RegisterPage = () => {
                   <label htmlFor="confirmPassword" className="form-label">
                     Confirmar senha
                   </label>
-                  <div className="input-container">
+                  <div className="input-container relative">
                     <i className="fa-solid fa-lock input-icon"></i>
                     <input
                       type={showConfirmPassword ? "text" : "password"}
@@ -402,18 +512,17 @@ const RegisterPage = () => {
                       value={formData.confirmPassword}
                       onChange={handleInputChange}
                       className={`form-input ${
-                        errors.confirmPassword ? "error" : ""
+                        errors.confirmPassword ? "border-red-500" : ""
                       }`}
                       placeholder="Confirme sua senha"
                       disabled={isLoading}
                     />
                     <button
                       type="button"
-                      className="password-toggle"
                       onClick={() =>
                         setShowConfirmPassword(!showConfirmPassword)
                       }
-                      disabled={isLoading}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
                     >
                       <i
                         className={`fa-solid ${
@@ -422,8 +531,11 @@ const RegisterPage = () => {
                       ></i>
                     </button>
                   </div>
+                  {renderPasswordMatchFeedback()}
                   {errors.confirmPassword && (
-                    <span className="error-text">{errors.confirmPassword}</span>
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.confirmPassword}
+                    </p>
                   )}
                 </div>
 

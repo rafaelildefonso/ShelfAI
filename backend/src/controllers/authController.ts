@@ -10,6 +10,8 @@ import {
   activateUser,
   verifyToken,
   generateToken,
+  generateTokenPair,
+  refreshAccessToken,
 } from "../services/authService.js";
 
 export const authController = {
@@ -17,7 +19,7 @@ export const authController = {
   async register(req: Request, res: Response, next: NextFunction) {
     try {
       const user = await registerUser(req.body);
-      const token = generateToken(user);
+      const { accessToken, refreshToken } = generateTokenPair(user);
 
       res.status(201).json({
         message: "Usuário registrado com sucesso",
@@ -32,7 +34,8 @@ export const authController = {
           position: user.position,
           location: user.location,
         },
-        token,
+        token: accessToken,
+        refreshToken,
       });
     } catch (error: any) {
       next(error);
@@ -42,7 +45,8 @@ export const authController = {
   // Login de usuário
   async login(req: Request, res: Response, next: NextFunction) {
     try {
-      const { user, token } = await authenticateUser(req.body);
+      const { user } = await authenticateUser(req.body);
+      const { accessToken, refreshToken } = generateTokenPair(user);
 
       res.json({
         message: "Login realizado com sucesso",
@@ -60,7 +64,8 @@ export const authController = {
           lastLogin: user.lastLogin,
           loginCount: user.loginCount,
         },
-        token,
+        token: accessToken,
+        refreshToken,
       });
     } catch (error: any) {
       next(error);
@@ -287,6 +292,29 @@ export const authController = {
           email: user.email,
           isActive: user.isActive,
         },
+      });
+    } catch (error: any) {
+      next(error);
+    }
+  },
+
+  // Refresh token
+  async refreshToken(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { refreshToken } = req.body;
+
+      if (!refreshToken) {
+        return res
+          .status(400)
+          .json({ error: { message: "Refresh token não fornecido", status: 400 } });
+      }
+
+      const tokens = await refreshAccessToken(refreshToken);
+
+      res.json({
+        message: "Token atualizado com sucesso",
+        token: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
       });
     } catch (error: any) {
       next(error);
