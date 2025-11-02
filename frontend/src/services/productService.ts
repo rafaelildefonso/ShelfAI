@@ -4,7 +4,6 @@ import { buildApiPath } from "../config/api";
 // Função para obter userId do usuário logado
 const getCurrentUser = (): any => {
   const user = JSON.parse(localStorage.getItem('user') || '{}');
-  console.log(user)
   return user.user || {};
 };
 

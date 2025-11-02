@@ -122,31 +122,12 @@ const ProductCard = ({
             <span className="product-price">
               R$ {product.price?.toFixed(2) || "0,00"}
             </span>
-            {product.originalPrice && (
+            {(product.originalPrice && product.originalPrice !== product.price) && (
               <span className="product-original-price">
                 R$ {product.originalPrice.toFixed(2)}
               </span>
             )}
           </div>
-        </div>
-
-        <div className="product-stats">
-          <div className="stat-item">
-            <i className="fa-solid fa-eye"></i>
-            <span>{product.views?.toLocaleString() || 0}</span>
-          </div>
-          <div className="stat-item">
-            <i className="fa-solid fa-shopping-cart"></i>
-            <span>{product.sales?.toLocaleString() || 0}</span>
-          </div>
-          {product.rating && (
-            <div className="stat-item">
-              <i className="fa-solid fa-star"></i>
-              <span>
-                {product.rating.toFixed(1)} ({product.reviewCount})
-              </span>
-            </div>
-          )}
         </div>
 
         {product.tags?.length > 0 && (

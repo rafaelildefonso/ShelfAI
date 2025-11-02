@@ -40,6 +40,8 @@ model User {
   importTemplates ImportTemplate[]
   createdProducts Product[] @relation("CreatedByUser")
   updatedProducts Product[] @relation("UpdatedByUser")
+  notifications Notification[]
+  activities  Activity[]
 
   @@index([email])
   @@index([phone])
@@ -128,4 +130,43 @@ model ImportTemplate {
   @@unique([name, userId])
   @@index([userId])
   @@index([isDefault])
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  message     String
+  type        String   @default("info") // "info" | "success" | "warning" | "error"
+  read        Boolean  @default(false)
+  link        String?  // Link opcional para ação relacionada
+  metadata    Json?    // Dados adicionais da notificação
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
+}
+
+model Activity {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        String   // "import" | "export" | "product" | "category" | "user" | "system"
+  action      String   // "create" | "update" | "delete" | "import" | "export"
+  title       String
+  description String
+  status      String   @default("info") // "success" | "warning" | "error" | "info"
+  entityType  String?  // Tipo da entidade afetada (Product, Category, etc)
+  entityId    String?  // ID da entidade afetada
+  metadata    Json?    // Dados adicionais da atividade
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([type])
+  @@index([action])
+  @@index([createdAt])
+  @@index([entityType, entityId])
 }

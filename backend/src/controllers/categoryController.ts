@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import prisma from '../prisma/client.js';
+import { activityService } from '../services/activityService';
 
 // Schema for category validation
 const categorySchema = z.object({
@@ -138,6 +139,14 @@ export const categoryController = {
         include: { products: false },
       });
       
+      // Registrar atividade
+      await activityService.logCategoryActivity(
+        userId,
+        'create',
+        category.id,
+        category.name
+      );
+      
       res.status(201).json(category);
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -217,6 +226,14 @@ export const categoryController = {
         include: { products: false },
       });
 
+      // Registrar atividade
+      await activityService.logCategoryActivity(
+        userId,
+        'update',
+        category.id,
+        category.name
+      );
+
       res.json(category);
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -281,7 +298,16 @@ export const categoryController = {
         });
       }
 
+      const categoryName = category.name;
       await prisma.category.delete({ where: { id } });
+
+      // Registrar atividade
+      await activityService.logCategoryActivity(
+        userId,
+        'delete',
+        id,
+        categoryName
+      );
 
       res.status(204).send();
     } catch (err) {

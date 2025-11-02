@@ -62,6 +62,8 @@ if (process.env.NODE_ENV !== 'production') {
 
 import authRoutes from './routes/authRoutes.js';
 import importExportRoutes from './routes/importExportRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
+import activityRoutes from './routes/activityRoutes.js';
 
 // Rotas
 app.use('/api/files', fileRoutes);
@@ -70,6 +72,8 @@ app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/categories', categoryRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/import-export', importExportRoutes);
+app.use('/api/v1/notifications', notificationRoutes);
+app.use('/api/v1/activities', activityRoutes);
 
 // Rota de saúde
 

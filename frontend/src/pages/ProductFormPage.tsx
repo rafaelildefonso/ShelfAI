@@ -90,12 +90,12 @@ const ProductFormPage = () => {
   }
 
   const [product, setProduct] = useState<ProductFormData>({
-    id,
+    id: id || "",
     name: "",
     description: "",
-    price: "",
-    originalPrice: "",
-    costPrice: "",
+    price: "0",
+    originalPrice: "0",
+    costPrice: "0",
     categoryId: "",
     subcategory: "",
     brand: "",
@@ -105,6 +105,24 @@ const ProductFormPage = () => {
     featured: false,
     active: true,
     templateData: {},
+    // Adicionando campos adicionais com valores padrão
+    model: "",
+    color: "",
+    size: "",
+    material: "",
+    stockLocation: "",
+    origin: undefined,
+    internalNotes: "",
+    // Campos numéricos com valor padrão 0
+    weight: 0,
+    length: 0,
+    width: 0,
+    height: 0,
+    // Campos de compatibilidade
+    reviewCount: 0,
+    views: 0,
+    sales: 0,
+    rating: 0,
   });
 
   const { categories, addCategory } = useCategories();
@@ -529,44 +547,50 @@ const ProductFormPage = () => {
       const loadProduct = async () => {
         try {
           const editingProduct = await getProductById(id);
+          
+          // Extract and format product data with proper defaults
           const productData: ProductFormData = {
-            ...editingProduct,
-            categoryId: editingProduct.category?.id || "",
-            images: editingProduct.images || [],
-            templateData: editingProduct.templateData || {},
-            // Garantir que todos os campos obrigatórios estejam presentes
+            // Basic info
+            id: id || "",
             name: editingProduct.name || "",
             description: editingProduct.description || "",
             price: editingProduct.price?.toString() || "0",
-            sku: editingProduct.sku || "",
-            tags: editingProduct.tags || [],
-            featured: editingProduct.featured || false,
-            active:
-              editingProduct.active !== undefined
-                ? editingProduct.active
-                : true,
-            // Inicializar campos opcionais
             originalPrice: editingProduct.originalPrice?.toString() || "0",
             costPrice: editingProduct.costPrice?.toString() || "0",
-            subcategory: editingProduct.subcategory,
-            brand: editingProduct.brand,
-            weight: editingProduct.weight,
-            length: editingProduct.length,
-            width: editingProduct.width,
-            height: editingProduct.height,
-            model: editingProduct.model,
-            color: editingProduct.color,
-            size: editingProduct.size,
-            material: editingProduct.material,
-            stockLocation: editingProduct.stockLocation,
+            categoryId: editingProduct.category?.id || "",
+            subcategory: editingProduct.subcategory || "",
+            brand: editingProduct.brand || "",
+            sku: editingProduct.sku || "",
+            
+            // Arrays and objects
+            tags: editingProduct.tags || [],
+            images: editingProduct.images || [],
+            templateData: editingProduct.templateData || {},
+            
+            // Product details
+            model: editingProduct.model || "",
+            color: editingProduct.color || "",
+            size: editingProduct.size || "",
+            material: editingProduct.material || "",
+            stockLocation: editingProduct.stockLocation || "",
             origin: editingProduct.origin as "manual" | "import" | undefined,
-            internalNotes: editingProduct.internalNotes,
-            // Campos de compatibilidade
-            reviewCount: editingProduct.reviewCount,
-            views: editingProduct.views,
-            sales: editingProduct.sales,
-            rating: editingProduct.rating,
+            internalNotes: editingProduct.internalNotes || "",
+            
+            // Measurements
+            weight: editingProduct.weight || 0,
+            length: editingProduct.length || 0,
+            width: editingProduct.width || 0,
+            height: editingProduct.height || 0,
+            
+            // Stats and metadata
+            featured: editingProduct.featured || false,
+            active: editingProduct.active !== undefined ? editingProduct.active : true,
+            reviewCount: editingProduct.reviewCount || 0,
+            views: editingProduct.views || 0,
+            sales: editingProduct.sales || 0,
+            rating: editingProduct.rating || 0
           };
+          
           setProduct(productData);
           setTemplateData(editingProduct.templateData || {});
 
@@ -618,14 +642,23 @@ const ProductFormPage = () => {
         [name]: checked,
       }));
     } else if (type === "number") {
+      // Ensure numeric values default to 0 if empty or invalid
+      const numValue = value === "" ? 0 : parseFloat(value) || 0;
       setProduct((prev: ProductFormData) => ({
         ...prev,
-        [name]: parseFloat(value) || 0,
+        [name]: numValue,
+      }));
+    } else if (type === "text" || type === "textarea" || type === "select-one") {
+      // Ensure text values default to empty string if null/undefined
+      setProduct((prev: ProductFormData) => ({
+        ...prev,
+        [name]: value || "",
       }));
     } else {
+      // Fallback for other input types
       setProduct((prev: ProductFormData) => ({
         ...prev,
-        [name]: value,
+        [name]: value || "",
       }));
     }
 

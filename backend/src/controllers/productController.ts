@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { activityService } from '../services/activityService';
+import { notificationService } from '../services/notificationService';
 
 const prisma = new PrismaClient();
 
@@ -114,6 +116,27 @@ export const productController = {
     await validateUserId("userId");
 
       const product = await prisma.product.create({ data });
+      
+      // Registrar atividade e notificação
+      if (req.user?.userId) {
+        await Promise.all([
+          activityService.logProductActivity(
+            req.user.userId,
+            'create',
+            product.id,
+            product.name
+          ),
+          notificationService.create({
+            userId: req.user.userId,
+            title: 'Produto Criado',
+            message: `Produto "${product.name}" foi criado com sucesso`,
+            type: 'success',
+            link: `/products/${product.id}`,
+            metadata: { productId: product.id }
+          })
+        ]);
+      }
+      
       res.status(201).json(product);
     } catch (err) {
       next(err);
@@ -139,32 +162,56 @@ export const productController = {
         return res.status(403).json({ error: { message: 'Acesso negado. Você só pode editar seus próprios produtos.' } });
       }
 
-      // Usar userId do token JWT se disponível, caso contrário deixar sem userId
+      // Extrair categoryId e limpar campos que não devem ser atualizados diretamente
+      const { categoryId, userId, ...updateData } = data;
+      
+      // Preparar os dados de atualização
+      const updatePayload: any = { ...updateData };
+
+      // Se houver um usuário autenticado, definir o lastEditedBy
       if (req.user?.userId) {
-        data.userId = req.user.userId;
+        updatePayload.lastEditedBy = {
+          connect: { id: req.user.userId }
+        };
       }
-      // Não definir userId se não há usuário autenticado
 
-      // Se foi enviado categoryName ao invés de categoryId, criar ou encontrar a categoria
-      if (data.categoryName && !data.categoryId) {
-        let category = await (prisma as any).category.findUnique({
-          where: { name: data.categoryName }
-        });
+      // Se categoryId foi fornecido, atualizar a relação de categoria
+      if (categoryId) {
+        updatePayload.category = {
+          connect: { id: categoryId }
+        };
+      } else if (categoryId === null) {
+        // Se categoryId for explicitamente null, remover a categoria
+        updatePayload.category = {
+          disconnect: true
+        };
+      }
 
-        if (!category) {
-          category = await (prisma as any).category.create({
-            data: {
-              name: data.categoryName,
-              description: `Categoria ${data.categoryName}`
-            }
-          });
+      // Remover o campo categoryName se existir (usado apenas para exibição no frontend)
+      if ('categoryName' in updatePayload) {
+        delete updatePayload.categoryName;
+      }
+
+      // Atualizar o produto
+      const product = await prisma.product.update({
+        where: { id },
+        data: updatePayload,
+        include: {
+          category: true
         }
-
-        data.categoryId = category.id;
-        delete data.categoryName; // Remover o campo que não existe no schema
+      });
+      
+      // Registrar atividade
+      if (req.user?.userId) {
+        await activityService.logProductActivity(
+          req.user.userId,
+          'update',
+          product.id,
+          product.name,
+          'Produto atualizado com sucesso'
+        );
       }
-
-      const product = await prisma.product.update({ where: { id }, data });
+      
       res.json(product);
     } catch (err) {
       next(err);
@@ -189,7 +236,19 @@ export const productController = {
         return res.status(403).json({ error: { message: 'Acesso negado. Você só pode excluir seus próprios produtos.' } });
       }
 
+      const productName = existingProduct.name;
       await prisma.product.delete({ where: { id } });
+      
+      // Registrar atividade
+      if (req.user?.userId) {
+        await activityService.logProductActivity(
+          req.user.userId,
+          'delete',
+          id,
+          productName
+        );
+      }
+      
       res.json({ ok: true });
     } catch (err) {
       next(err);

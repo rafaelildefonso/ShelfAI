@@ -33,41 +33,25 @@ export default function Header() {
   useEffect(() => {
     const loadNotifications = async () => {
       try {
-        const notificationsData = await notificationService.getNotifications();
-        setNotifications(notificationsData);
+        const response = await notificationService.getNotifications({ limit: 10 });
+        // Mapear notificações para incluir tempo formatado
+        const mappedNotifications = response.notifications.map(notif => ({
+          ...notif,
+          time: notificationService.formatRelativeTime(notif.createdAt)
+        }));
+        setNotifications(mappedNotifications);
       } catch (error) {
         console.error("Erro ao carregar notificações:", error);
-        // Manter notificações padrão em caso de erro
-        setNotifications([
-          {
-            id: "1",
-            title: "Importação Concluída",
-            message: "50 produtos foram importados com sucesso",
-            type: "success",
-            time: "2 min atrás",
-            read: false,
-          },
-          {
-            id: "2",
-            title: "Produto Incompleto",
-            message: 'Produto "Camiseta Azul" está sem descrição',
-            type: "warning",
-            time: "1 hora atrás",
-            read: false,
-          },
-          {
-            id: "3",
-            title: "Exportação para Shopify",
-            message: "Exportação para Shopify foi concluída",
-            type: "info",
-            time: "3 horas atrás",
-            read: true,
-          },
-        ]);
+        // Em caso de erro, manter array vazio
+        setNotifications([]);
       }
     };
 
     loadNotifications();
+    
+    // Recarregar notificações a cada 30 segundos
+    const interval = setInterval(loadNotifications, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -295,7 +279,8 @@ export default function Header() {
                   )}
                 </div>
                 <div className="notifications-list">
-                  {notifications.map((notification) => (
+                  {notifications.length > 0 ? (
+                  notifications.map((notification) => (
                     <div
                       key={notification.id}
                       className={`notification-item ${
@@ -328,7 +313,13 @@ export default function Header() {
                         </div>
                       </div>
                     </div>
-                  ))}
+                  ))
+                ) : (
+                  <div className="no-activities flex justify-center items-center flex-col gap-5 my-5">
+                    <i className="fa-solid fa-inbox text-(--text-secondary-color)" style={{fontSize:50}}></i>
+                    <p className="text-(--text-secondary-color)">Nenhuma atividade recente</p>
+                </div>
+                )}
                 </div>
                 <div className="notifications-footer">
                   <button className="view-all-btn">

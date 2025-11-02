@@ -3,6 +3,8 @@ import "./../App.css";
 import SideBarMenu from "../components/SideBarMenu";
 import Header from "../components/Header";
 import { getCategories, getProducts } from "../services/productService";
+import { activityService } from "../services/activityService";
+import type { Activity } from "../services/activityService";
 import { Bar, Pie } from "react-chartjs-2";
 
 import {
@@ -45,15 +47,6 @@ const periodInMonths: Record<ChartPeriod, number> = {
   "3M": 3,
 };
 
-interface RecentActivity {
-  id: string;
-  type: "import" | "export" | "product" | "category";
-  title: string;
-  description: string;
-  time: string;
-  status: "success" | "warning" | "error" | "info";
-}
-
 type CategoriaDistribuicao = {
   name: string;
   value: number;
@@ -95,8 +88,10 @@ const MainContent = () => {
     Promise.all([
       getProducts().then((res) => res.data),
       getCategories().then((res) => res.data),
+      activityService.getActivities({ limit: 10 }),
+      activityService.getStats(30),
     ])
-      .then(([productsData, categoriesData]) => {
+      .then(([productsData, categoriesData, activitiesData, statsData]) => {
         setProducts(productsData);
 
         // Calcular estatísticas reais
@@ -117,63 +112,29 @@ const MainContent = () => {
             p.stock <= p.minStock
         ).length;
 
+        // Usar estatísticas reais de atividades
+        const recentImports = statsData.byType.import || 0;
+        const recentExports = statsData.byType.export || 0;
+
         setDashboardData({
           totalProducts,
           completeProducts,
           incompleteProducts,
           totalCategories,
-          recentImports: 0, // TODO: Implementar endpoint para estatísticas de importações
-          recentExports: 0, // TODO: Implementar endpoint para estatísticas de exportações
+          recentImports,
+          recentExports,
           lowStockProducts,
           pendingReviews: 0, // TODO: Implementar sistema de avaliações
         });
+
+        // Carregar atividades recentes
+        setRecentActivities(activitiesData);
       })
       .catch(() => setError("Erro ao carregar dados do dashboard"))
       .finally(() => setLoading(false));
   }, []);
 
-  const [recentActivities] = useState<RecentActivity[]>([
-    {
-      id: "1",
-      type: "import",
-      title: "Importação Concluída",
-      description: "45 produtos importados do arquivo produtos_jan2024.csv",
-      time: "2 min atrás",
-      status: "success",
-    },
-    {
-      id: "2",
-      type: "product",
-      title: "Produto Atualizado",
-      description: "Camiseta Premium - Preço atualizado para R$ 89,90",
-      time: "15 min atrás",
-      status: "info",
-    },
-    {
-      id: "3",
-      type: "export",
-      title: "Exportação para Shopify",
-      description: "12 produtos exportados com sucesso",
-      time: "1 hora atrás",
-      status: "success",
-    },
-    {
-      id: "4",
-      type: "category",
-      title: "Nova Categoria",
-      description: 'Categoria "Acessórios" criada com 8 produtos',
-      time: "2 horas atrás",
-      status: "info",
-    },
-    {
-      id: "5",
-      type: "product",
-      title: "Estoque Baixo",
-      description: 'Produto "Tênis Esportivo" com apenas 3 unidades',
-      time: "3 horas atrás",
-      status: "warning",
-    },
-  ]);
+  const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
 
   // Refs para as instâncias dos gráficos
   const barChartRef = useRef<any>(null);
@@ -677,30 +638,43 @@ const MainContent = () => {
               <button className="view-all-btn">Ver todas</button>
             </div>
             <div className="activities-list">
-              {recentActivities.map((activity) => (
-                <div key={activity.id} className="activity-item">
-                  <div className={`activity-icon ${activity.status}`}>
-                    <i
-                      className={`fa-solid ${
-                        activity.type === "import"
-                          ? "fa-file-import"
-                          : activity.type === "export"
-                          ? "fa-file-export"
-                          : activity.type === "product"
-                          ? "fa-box"
-                          : "fa-tags"
-                      }`}
-                    ></i>
-                  </div>
-                  <div className="activity-content">
-                    <div className="activity-title">{activity.title}</div>
-                    <div className="activity-description">
-                      {activity.description}
+              {recentActivities.length > 0 ? (
+                recentActivities.map((activity) => (
+                  <div key={activity.id} className="activity-item">
+                    <div className={`activity-icon ${activity.status}`}>
+                      <i
+                        className={`fa-solid ${
+                          activity.type === "import"
+                            ? "fa-file-import"
+                            : activity.type === "export"
+                            ? "fa-file-export"
+                            : activity.type === "product"
+                            ? "fa-box"
+                            : activity.type === "category"
+                            ? "fa-tags"
+                            : activity.type === "user"
+                            ? "fa-user"
+                            : "fa-cog"
+                        }`}
+                      ></i>
                     </div>
-                    <div className="activity-time">{activity.time}</div>
+                    <div className="activity-content">
+                      <div className="activity-title">{activity.title}</div>
+                      <div className="activity-description">
+                        {activity.description}
+                      </div>
+                      <div className="activity-time">
+                        {activityService.formatRelativeTime(activity.createdAt)}
+                      </div>
+                    </div>
                   </div>
+                ))
+              ) : (
+                <div className="no-activities flex justify-center items-center flex-col gap-5">
+                  <i className="fa-solid fa-inbox text-(--text-secondary-color)" style={{fontSize:50}}></i>
+                  <p className="text-(--text-secondary-color)">Nenhuma atividade recente</p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
 
