@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { activityService } from '../services/activityService';
-import { notificationService } from '../services/notificationService';
+import { activityService } from '../services/activityService.js';
+import { notificationService } from '../services/notificationService.js';
 
 const prisma = new PrismaClient();
 
