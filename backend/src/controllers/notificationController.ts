@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { notificationService } from '../services/notificationService';
+import { notificationService } from '../services/notificationService.js';
 
 export const notificationController = {
   /**

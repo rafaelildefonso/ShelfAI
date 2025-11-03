@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { activityService } from '../services/activityService';
+import { activityService } from '../services/activityService.js';
 
 export const activityController = {
   /**
