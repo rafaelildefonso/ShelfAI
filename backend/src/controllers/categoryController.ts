@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import prisma from '../prisma/client.js';
-import { activityService } from '../services/activityService';
+import { activityService } from '../services/activityService.js';
 
 // Schema for category validation
 const categorySchema = z.object({
