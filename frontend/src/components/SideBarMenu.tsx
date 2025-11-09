@@ -93,20 +93,15 @@ export default function SideBarMenu({ pageName }: SideBarMenuProps) {
       <div className="sidebar-header">
         <div className="sidebar-logo-menu-min">
           <div className="logo-icon">
-            <i className="fa-solid fa-warehouse"></i>
+            <img src="/og-image.png" alt="" />
           </div>
         </div>
         <div className="sidebar-logo" onClick={(e) => {
           e.stopPropagation();
           window.location.href = '/dashboard';
         }}>
-          <div className="logo-icon">
-            <i className="fa-solid fa-warehouse"></i>
-          </div>
-          <div className="logo-text">
-            <h1>ShelfAI</h1>
-            <span className="logo-subtitle">Gestão Inteligente</span>
-          </div>
+          <img src="/og-image.png" alt="" />
+          <img src="/app-icon.png" alt="" />
         </div>
         {menuAberto && (
           <div className="close-menu-btn" onClick={closeMenu}>

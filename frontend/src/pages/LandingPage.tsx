@@ -116,10 +116,7 @@ const LandingPage = () => {
         <div className="container">
           <div className="header-content">
             <div className="logo">
-              <div className="logo-icon">
-                <i className="fa-solid fa-boxes-stacked"></i>
-              </div>
-              <span className="logo-text">ShelfAI</span>
+              <img src="/app-icon.png" alt="" />
             </div>
 
             <nav className="nav">
@@ -439,10 +436,7 @@ const LandingPage = () => {
           <div className="footer-content">
             <div className="footer-section">
               <div className="footer-logo">
-                <div className="logo-icon">
-                  <i className="fa-solid fa-boxes-stacked"></i>
-                </div>
-                <span className="logo-text">ShelfAI</span>
+                <img src="/app-icon-dark.png" alt="" />
               </div>
               <p className="footer-description">
                 A plataforma inteligente para gestão de produtos e e-commerce.
