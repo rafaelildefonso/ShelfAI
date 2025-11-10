@@ -54,8 +54,9 @@ model Category {
   name        String
   description String?
   products    Product[]
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String?   // Alterado para permitir nulo
+  user        User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isDefault   Boolean   @default(false)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 

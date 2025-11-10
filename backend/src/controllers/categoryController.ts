@@ -25,15 +25,33 @@ export const categoryController = {
         });
       }
 
-      const categories = await prisma.category.findMany({
-        where: { userId },
-        orderBy: { name: 'asc' },
-        include: { 
-          products: {
-            select: { id: true, name: true }
-          } 
-        },
-      });
+      // Get default categories (where userId is null) and user's custom categories
+      const [defaultCategories, userCategories] = await Promise.all([
+        prisma.category.findMany({
+          where: { isDefault: true },
+          orderBy: { name: 'asc' },
+          include: { 
+            products: { select: { id: true, name: true } } 
+          },
+        }),
+        prisma.category.findMany({
+          where: { 
+            userId,
+            isDefault: false
+          },
+          orderBy: { name: 'asc' },
+          include: { 
+            products: { select: { id: true, name: true } } 
+          },
+        })
+      ]);
+
+      // Combine both lists, marking default categories
+      const categories = [
+        ...defaultCategories.map(cat => ({ ...cat, isDefault: true })),
+        ...userCategories.map(cat => ({ ...cat, isDefault: false }))
+      ];
+
       res.json(categories);
     } catch (err) {
       next(err);
@@ -100,8 +118,6 @@ export const categoryController = {
 
   async create(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = categorySchema.parse(req.body);
-      
       const userId = req.user?.userId;
       if (!userId) {
         return res.status(401).json({
@@ -112,52 +128,83 @@ export const categoryController = {
         });
       }
 
-      // Check if category with same name exists for this user
-      const existingCategory = await prisma.category.findUnique({
-        where: { 
-          name_userId: {
-            name: data.name,
-            userId: userId
-          }
-        },
+      // Validate request body
+      const validation = categorySchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Validation error',
+            details: validation.error.issues,
+          },
+        });
+      }
+
+      const data: CategoryInput & { isDefault?: boolean } = validation.data;
+
+      // Only admins can create default categories
+      if (data.isDefault) {
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { role: true }
+        });
+
+        if (user?.role !== 'ADMIN') {
+          return res.status(403).json({
+            error: {
+              code: 'FORBIDDEN',
+              message: 'Only administrators can create default categories',
+            },
+          });
+        }
+      }
+
+      // For default categories, check for existing default with same name
+      // For user categories, check for existing category with same name for this user or in default
+      const existingCategory = await prisma.category.findFirst({
+        where: data.isDefault
+          ? { name: data.name, isDefault: true }
+          : {
+              OR: [
+                { name: data.name, userId },
+                { name: data.name, isDefault: true } // Prevent duplicate names with default categories
+              ]
+            },
       });
-      
+
       if (existingCategory) {
         return res.status(409).json({
           error: {
-            code: 'DUPLICATE_NAME',
+            code: 'DUPLICATE_CATEGORY',
             message: 'A category with this name already exists',
           },
         });
       }
-      
-      const category = await prisma.category.create({ 
+
+      // Create new category
+      const category = await prisma.category.create({
         data: {
-          ...data,
-          userId
+          name: data.name,
+          description: data.description,
+          isDefault: data.isDefault || false,
+          userId: data.isDefault ? null : userId, // Default categories have no user
         },
-        include: { products: false },
       });
-      
-      // Registrar atividade
-      await activityService.logCategoryActivity(
+
+      // Log activity
+      await activityService.create({
         userId,
-        'create',
-        category.id,
-        category.name
-      );
-      
+        type: 'system',
+        action: 'create',
+        entityType: 'CATEGORY',
+        entityId: category.id,
+        title: `Categoria ${category.isDefault ? 'Padrão ' : ''}Criada`,
+        description: `Categoria "${category.name}" foi criada`,
+        status: 'success'
+      });
+
       res.status(201).json(category);
     } catch (err) {
-      if (err instanceof z.ZodError) {
-        return res.status(400).json({
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'Validation failed',
-            details: err.issues,
-          },
-        });
-      }
       next(err);
     }
   },

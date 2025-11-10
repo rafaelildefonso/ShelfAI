@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import CurrencyInput from "react-currency-input-field";
 import SideBarMenu from "../components/SideBarMenu";
@@ -9,6 +9,56 @@ import type { Category } from "../services/categoryService";
 import { useCategories } from "../context/CategoryContext";
 import { useProducts } from "../context/ProductContext";
 import type { Product } from "../types/productType";
+import CustomSelect from "../components/CustomSelect";
+
+// Maximum allowed image size (5MB)
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB in bytes
+
+// Utility function to compress images
+const compressImage = (file: File, maxWidth = 800, quality = 0.6): Promise<string> => {
+  // Check file size before processing
+  if (file.size > MAX_IMAGE_SIZE) {
+    return Promise.reject(new Error('Tamanho da imagem excede o limite de 5MB'));
+  }
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        // Calculate new dimensions
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+
+        // Set canvas dimensions
+        canvas.width = width;
+        canvas.height = height;
+
+        // Draw and compress image
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Could not get canvas context'));
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Convert to JPEG with specified quality
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(compressedDataUrl);
+      };
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = event.target?.result as string;
+    };
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsDataURL(file);
+  });
+};
 
 interface ProductTemplate {
   id: string;
@@ -74,6 +124,7 @@ const ProductFormPage = () => {
     image?: string; // Adicionado campo image
     featured: boolean;
     active: boolean;
+    status?: string; // Adicionado campo status
     model?: string;
     color?: string;
     size?: string;
@@ -90,22 +141,39 @@ const ProductFormPage = () => {
   }
 
   const [product, setProduct] = useState<ProductFormData>({
+    // Identificação
     id: id || "",
     name: "",
     description: "",
+    sku: "",
+    
+    // Preços
     price: "0",
     originalPrice: "0",
     costPrice: "0",
+    
+    // Categorização
     categoryId: "",
     subcategory: "",
     brand: "",
-    sku: "",
     tags: [],
+    
+    // Dimensões
+    weight: 0,
+    length: 0,
+    width: 0,
+    height: 0,
+    
+    // Mídia
     images: [],
+    image: "",
+    
+    // Status e visibilidade
     featured: false,
     active: true,
-    templateData: {},
-    // Adicionando campos adicionais com valores padrão
+    status: 'draft',
+    
+    // Dados adicionais
     model: "",
     color: "",
     size: "",
@@ -113,12 +181,11 @@ const ProductFormPage = () => {
     stockLocation: "",
     origin: undefined,
     internalNotes: "",
-    // Campos numéricos com valor padrão 0
-    weight: 0,
-    length: 0,
-    width: 0,
-    height: 0,
-    // Campos de compatibilidade
+    
+    // Dados do template
+    templateData: {},
+    
+    // Métricas
     reviewCount: 0,
     views: 0,
     sales: 0,
@@ -132,7 +199,10 @@ const ProductFormPage = () => {
     if (!newCategoryName.trim()) return;
 
     try {
-      const newCategory = await addCategory({ name: newCategoryName });
+      const newCategory = await addCategory({ 
+        name: newCategoryName,
+        isDefault: true
+      });
 
       // Limpar o campo
       setNewCategoryName("");
@@ -144,10 +214,35 @@ const ProductFormPage = () => {
       }));
     } catch (error) {
       console.error("Erro ao criar categoria:", error);
+      // Se já existir uma categoria com o mesmo nome, apenas selecione-a
+      const existingCategory = categories.find(cat => 
+        cat.name.toLowerCase() === newCategoryName.toLowerCase()
+      );
+      
+      if (existingCategory) {
+        setProduct(prev => ({
+          ...prev,
+          categoryId: existingCategory.id
+        }));
+      }
     }
   };
 
   const [templateData, setTemplateData] = useState<{ [key: string]: any }>({});
+  const LIMITS = {
+    name: 100,
+    description: 600,
+    brand: 60,
+    subcategory: 60,
+    sku: 50,
+    stockLocation: 100,
+    tags: 200,
+  } as const;
+
+  const mainImageInputRef = useRef<HTMLInputElement | null>(null);
+  const galleryInputRef = useRef<HTMLInputElement | null>(null);
+  const [isDraggingMain, setIsDraggingMain] = useState(false);
+  const [isDraggingGallery, setIsDraggingGallery] = useState(false);
 
   const productTemplates: ProductTemplate[] = [
     {
@@ -629,43 +724,31 @@ const ProductFormPage = () => {
   };
 
   const handleInputChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement> | 
+    { target: { name: string; value: string | number | boolean | string[] } } | 
+    { name: string; value: string | number | boolean | string[] }
   ) => {
-    const { name, value, type } = e.target;
+    let name: string;
+    let value: any;
 
-    if (type === "checkbox") {
-      const checked = (e.target as HTMLInputElement).checked;
-      setProduct((prev: ProductFormData) => ({
-        ...prev,
-        [name]: checked,
-      }));
-    } else if (type === "number") {
-      // Ensure numeric values default to 0 if empty or invalid
-      const numValue = value === "" ? 0 : parseFloat(value) || 0;
-      setProduct((prev: ProductFormData) => ({
-        ...prev,
-        [name]: numValue,
-      }));
-    } else if (type === "text" || type === "textarea" || type === "select-one") {
-      // Ensure text values default to empty string if null/undefined
-      setProduct((prev: ProductFormData) => ({
-        ...prev,
-        [name]: value || "",
-      }));
+    // Handle both direct value objects and React events
+    if ('target' in e) {
+      name = e.target.name;
+      value = e.target.value;
     } else {
-      // Fallback for other input types
-      setProduct((prev: ProductFormData) => ({
-        ...prev,
-        [name]: value || "",
-      }));
+      name = e.name;
+      value = e.value;
     }
 
+    setProduct((prev: ProductFormData) => ({
+      ...prev,
+      [name]: value,
+    }));
+
     // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors((prev) => ({
-        ...prev,
+    if (errors[name as keyof typeof errors]) {
+      setErrors((prevErrors) => ({
+        ...prevErrors,
         [name]: "",
       }));
     }
@@ -737,41 +820,53 @@ const ProductFormPage = () => {
 
     setIsLoading(true);
 
-    // Converter valores monetários para número
-    const priceValue = parseFloat(
-      product.price.replace(".", "").replace(",", ".")
-    );
-    const originalPriceValue = product.originalPrice
-      ? parseFloat(product.originalPrice.replace(".", "").replace(",", "."))
-      : undefined;
-    const costPriceValue = product.costPrice
-      ? parseFloat(product.costPrice.replace(".", "").replace(",", "."))
-      : undefined;
+    const prepareProductData = (formData: ProductFormData) => {
+      // Convert currency values to numbers
+      const priceValue = parseFloat(
+        formData.price.replace(".", "").replace(",", ".")
+      );
+      const originalPriceValue = formData.originalPrice
+        ? parseFloat(formData.originalPrice.replace(".", "").replace(",", "."))
+        : undefined;
+      const costPriceValue = formData.costPrice
+        ? parseFloat(formData.costPrice.replace(".", "").replace(",", "."))
+        : undefined;
 
-    // Preparar os dados do produto para envio
-    const productData = {
-      ...product,
-      price: priceValue,
-      originalPrice: originalPriceValue,
-      costPrice: costPriceValue,
-      templateData,
-      images: product.images || [],
-      reviewCount: product.reviewCount || 0,
-      views: product.views || 0,
-      sales: product.sales || 0,
-      rating: product.rating,
-      status: "complete" as const,
-      // Garantir que as dimensões sejam números
-      length: product.length ? Number(product.length) : undefined,
-      width: product.width ? Number(product.width) : undefined,
-      height: product.height ? Number(product.height) : undefined,
+      // If categoryId is a string (not a UUID), it's a default category name
+      const categoryData = formData.categoryId && 
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(formData.categoryId)
+          ? { categoryId: formData.categoryId }
+          : { categoryId: formData.categoryId };
+
+      return {
+        ...formData,
+        ...categoryData,
+        price: priceValue,
+        originalPrice: originalPriceValue,
+        costPrice: costPriceValue,
+        templateData: formData.templateData || {},
+        images: formData.images || [],
+        // Ensure numeric values are properly converted
+        weight: formData.weight ? Number(formData.weight) : undefined,
+        length: formData.length ? Number(formData.length) : undefined,
+        width: formData.width ? Number(formData.width) : undefined,
+        height: formData.height ? Number(formData.height) : undefined,
+        // Set default values if not provided
+        status: formData.status || 'draft',
+        reviewCount: formData.reviewCount || 0,
+        views: formData.views || 0,
+        sales: formData.sales || 0,
+        rating: formData.rating || 0,
+        active: formData.active !== undefined ? formData.active : true,
+        featured: formData.featured || false,
+      };
     };
 
     try {
       if (isEditing && id) {
-        await handleEdit(id, productData as Product);
+        await handleEdit(id, prepareProductData(product) as Product);
       } else {
-        await handleAdd(productData as Product);
+        await handleAdd(prepareProductData(product) as Product);
       }
       navigate("/products");
     } catch (error) {
@@ -785,6 +880,8 @@ const ProductFormPage = () => {
   const renderTemplateField = (field: TemplateField) => {
     const value = templateData[field.id] || "";
     const error = errors[`template_${field.id}`];
+    const tplTextLimit = 100;
+    const tplTextareaLimit = 400;
 
     switch (field.type) {
       case "text":
@@ -803,7 +900,11 @@ const ProductFormPage = () => {
               }
               className={`form-input ${error ? "error" : ""}`}
               placeholder={field.placeholder}
+              maxLength={tplTextLimit}
             />
+            <div className={`char-counter ${String(value).length >= tplTextLimit ? "warning" : ""}`}>
+              {String(value).length} / {tplTextLimit}
+            </div>
             {error && <span className="error-text">{error}</span>}
           </div>
         );
@@ -876,7 +977,11 @@ const ProductFormPage = () => {
               className={`form-input ${error ? "error" : ""}`}
               placeholder={field.placeholder}
               rows={3}
+              maxLength={tplTextareaLimit}
             />
+            <div className={`char-counter ${String(value).length >= tplTextareaLimit ? "warning" : ""}`}>
+              {String(value).length} / {tplTextareaLimit}
+            </div>
             {error && <span className="error-text">{error}</span>}
           </div>
         );
@@ -981,37 +1086,240 @@ const ProductFormPage = () => {
     }
   };
 
-  // Handler para upload de imagem principal
-  const handleMainImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
+  const readFilesAsDataUrls = (files: File[]): Promise<string[]> => {
+    return Promise.all(
+      files.map(
+        (file) =>
+          new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(file);
+          })
+      )
+    );
+  };
+
+  const handleDropMain = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingMain(false);
+    
+    const files = Array.from(e.dataTransfer.files || []);
+    if (files.length === 0) return;
+    
+    // Only process the first file for main image
+    const file = files[0];
+    
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      alert('Por favor, solte um arquivo de imagem válido');
+      return;
+    }
+    
+    // Check file size
+    if (file.size > MAX_IMAGE_SIZE) {
+      alert('A imagem é muito grande. O tamanho máximo permitido é 5MB');
+      return;
+    }
+    
+    try {
+      const compressedImage = await compressImage(file);
+      setProduct((prev: ProductFormData) => ({ 
+        ...prev, 
+        image: compressedImage 
+      }));
+    } catch (error) {
+      console.error('Error processing dropped image:', error);
+      
+      // Fallback to original if compression fails but size is acceptable
+      if (file.size <= MAX_IMAGE_SIZE) {
+        try {
+          const [img] = await readFilesAsDataUrls([file]);
+          setProduct((prev: ProductFormData) => ({ 
+            ...prev, 
+            image: img 
+          }));
+        } catch (readError) {
+          console.error('Error reading file:', readError);
+          alert('Erro ao processar a imagem. Por favor, tente novamente.');
+        }
+      } else {
+        alert(error instanceof Error ? error.message : 'Erro ao processar a imagem');
+      }
+    }
+  };
+
+  const handleDropGallery = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingGallery(false);
+    
+    const files = Array.from(e.dataTransfer.files || []);
+    if (files.length === 0) return;
+    
+    // Filter out non-image files
+    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+    if (imageFiles.length !== files.length) {
+      alert('Apenas arquivos de imagem são permitidos');
+      return;
+    }
+    
+    // Filter out oversized files
+    const validFiles = imageFiles.filter(file => file.size <= MAX_IMAGE_SIZE);
+    const oversizedFiles = imageFiles.filter(file => file.size > MAX_IMAGE_SIZE);
+    
+    if (oversizedFiles.length > 0) {
+      alert(`${oversizedFiles.length} imagem(ns) excede(m) o tamanho máximo de 5MB e foram ignoradas`);
+    }
+    
+    if (validFiles.length === 0) return;
+    
+    try {
+      // Process valid images with compression
+      const compressedImages = await Promise.all(
+        validFiles.map(file => 
+          compressImage(file).catch(error => {
+            console.error('Error compressing image:', error);
+            // Fallback to original if compression fails but size is acceptable
+            return new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.onerror = () => reject(error);
+              reader.readAsDataURL(file);
+            });
+          })
+        )
+      );
+      
+      // Filter out any failed images
+      const validImages = compressedImages.filter((img): img is string => img !== undefined);
+      
+      if (validImages.length > 0) {
         setProduct((prev: ProductFormData) => ({
           ...prev,
-          image: reader.result as string,
+          images: [...(prev.images || []), ...validImages],
         }));
-      };
-      reader.readAsDataURL(file);
+      }
+    } catch (error) {
+      console.error('Error processing dropped images:', error);
+      
+      // Fallback to original images if compression fails
+      try {
+        const originalImages = await readFilesAsDataUrls(validFiles);
+        setProduct((prev: ProductFormData) => ({
+          ...prev,
+          images: [...(prev.images || []), ...originalImages],
+        }));
+      } catch (readError) {
+        console.error('Error reading files:', readError);
+        alert('Erro ao processar as imagens. Por favor, tente novamente.');
+      }
+    }
+  };
+
+  const handleMainImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      alert('Por favor, selecione um arquivo de imagem válido');
+      return;
+    }
+
+    // Check file size
+    if (file.size > MAX_IMAGE_SIZE) {
+      alert('A imagem é muito grande. O tamanho máximo permitido é 5MB');
+      return;
+    }
+
+    try {
+      // Compress the image before setting it
+      const compressedImage = await compressImage(file);
+      setProduct((prev: ProductFormData) => ({
+        ...prev,
+        image: compressedImage,
+      }));
+    } catch (error) {
+      console.error('Error processing image:', error);
+      alert(error instanceof Error ? error.message : 'Erro ao processar a imagem');
+      
+      // Fallback to original if compression fails but size is acceptable
+      if (file.size <= MAX_IMAGE_SIZE) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setProduct((prev: ProductFormData) => ({
+            ...prev,
+            image: reader.result as string,
+          }));
+        };
+        reader.onerror = () => {
+          alert('Erro ao ler o arquivo da imagem');
+        };
+        reader.readAsDataURL(file);
+      }
+    } finally {
+      // Reset the input to allow selecting the same file again if needed
+      e.target.value = '';
     }
   };
 
   // Handler para upload de múltiplas imagens
-  const handleImagesUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImagesUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (files.length > 0) {
-      Promise.all(
-        files.map(
-          (file) =>
-            new Promise<string>((resolve) => {
-              const reader = new FileReader();
-              reader.onloadend = () => resolve(reader.result as string);
-              reader.readAsDataURL(file);
-            })
+    if (files.length === 0) return;
+
+    // Filter out non-image files
+    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+    if (imageFiles.length !== files.length) {
+      alert('Apenas arquivos de imagem são permitidos');
+      return;
+    }
+
+    // Check each file size
+    const oversizedFiles = imageFiles.filter(file => file.size > MAX_IMAGE_SIZE);
+    if (oversizedFiles.length > 0) {
+      alert(`Algumas imagens excedem o tamanho máximo de 5MB`);
+      return;
+    }
+
+    try {
+      // Process images in parallel with compression
+      const compressedImages = await Promise.all(
+        imageFiles.map(file => 
+          compressImage(file).catch(error => {
+            console.error('Error compressing image:', error);
+            // Fallback to original if compression fails but size is acceptable
+            if (file.size <= MAX_IMAGE_SIZE) {
+              return new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.onerror = () => reject(new Error('Falha ao ler a imagem'));
+                reader.readAsDataURL(file);
+              });
+            }
+            return null;
+          })
         )
-      ).then((imgs) =>
-        setProduct((prev: ProductFormData) => ({ ...prev, images: imgs }))
       );
+      
+      // Filter out any null values from failed compressions
+      const validImages = compressedImages.filter((img): img is string => img !== null);
+      
+      if (validImages.length > 0) {
+        setProduct((prev: ProductFormData) => ({
+          ...prev,
+          images: [...(prev.images || []), ...validImages],
+        }));
+      }
+    } catch (error) {
+      console.error('Error processing images:', error);
+      alert('Ocorreu um erro ao processar as imagens');
+    } finally {
+      // Reset the input to allow selecting the same files again if needed
+      if (e.target) {
+        e.target.value = '';
+      }
     }
   };
 
@@ -1054,43 +1362,67 @@ const ProductFormPage = () => {
                 <div className="form-row">
                   <div className="form-group">
                     <label className="form-label">Imagem Principal</label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleMainImageUpload}
-                    />
-                    {product.image && (
-                      <img
-                        src={product.image}
-                        alt="Imagem principal"
-                        style={{ maxWidth: 120, marginTop: 8 }}
+                    <div
+                      className={`drop-area ${isDraggingMain ? "dragging" : ""}`}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        setIsDraggingMain(true);
+                      }}
+                      onDragLeave={() => setIsDraggingMain(false)}
+                      onDrop={handleDropMain}
+                      onClick={() => mainImageInputRef.current?.click()}
+                    >
+                      <div className="drop-area-content">
+                        <i className="fa-regular fa-image"></i>
+                        <span>Arraste e solte ou clique para selecionar</span>
+                        <small>PNG, JPG até 5MB</small>
+                      </div>
+                      <input
+                        ref={mainImageInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleMainImageUpload}
+                        style={{ display: "none" }}
                       />
+                    </div>
+                    {product.image && (
+                      <div className="image-preview">
+                        <img src={product.image} alt="Imagem principal" />
+                      </div>
                     )}
                   </div>
                   <div className="form-group">
                     <label className="form-label">Imagens Adicionais</label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={handleImagesUpload}
-                    />
                     <div
-                      style={{
-                        display: "flex",
-                        gap: 8,
-                        flexWrap: "wrap",
-                        marginTop: 8,
+                      className={`drop-area ${isDraggingGallery ? "dragging" : ""}`}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        setIsDraggingGallery(true);
                       }}
+                      onDragLeave={() => setIsDraggingGallery(false)}
+                      onDrop={handleDropGallery}
+                      onClick={() => galleryInputRef.current?.click()}
                     >
+                      <div className="drop-area-content">
+                        <i className="fa-solid fa-cloud-arrow-up"></i>
+                        <span>Arraste e solte múltiplas imagens</span>
+                        <small>PNG, JPG até 5MB</small>
+                      </div>
+                      <input
+                        ref={galleryInputRef}
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleImagesUpload}
+                        style={{ display: "none" }}
+                      />
+                    </div>
+                    <div className="gallery-preview">
                       {product.images &&
                         product.images.map((img, idx) => (
-                          <img
-                            key={idx}
-                            src={img}
-                            alt={`Imagem ${idx + 1}`}
-                            style={{ maxWidth: 80 }}
-                          />
+                          <div className="thumb" key={idx}>
+                            <img src={img} alt={`Imagem ${idx + 1}`} />
+                          </div>
                         ))}
                     </div>
                   </div>
@@ -1118,7 +1450,11 @@ const ProductFormPage = () => {
                       onChange={handleInputChange}
                       className={`form-input ${errors.name ? "error" : ""}`}
                       placeholder="Ex: Camiseta Premium Algodão"
+                      maxLength={LIMITS.name}
                     />
+                    <div className={`char-counter ${product.name.length >= LIMITS.name ? "warning" : ""}`}>
+                      {product.name.length} / {LIMITS.name}
+                    </div>
                     {errors.name && (
                       <span className="error-text">{errors.name}</span>
                     )}
@@ -1136,7 +1472,11 @@ const ProductFormPage = () => {
                       onChange={handleInputChange}
                       className={`form-input ${errors.sku ? "error" : ""}`}
                       placeholder="Ex: CAMP-001"
+                      maxLength={LIMITS.sku}
                     />
+                    <div className={`char-counter ${product.sku.length >= LIMITS.sku ? "warning" : ""}`}>
+                      {product.sku.length} / {LIMITS.sku}
+                    </div>
                     {errors.sku && (
                       <span className="error-text">{errors.sku}</span>
                     )}
@@ -1157,7 +1497,11 @@ const ProductFormPage = () => {
                     }`}
                     placeholder="Descreva o produto em detalhes..."
                     rows={4}
+                    maxLength={LIMITS.description}
                   />
+                  <div className={`char-counter ${product.description.length >= LIMITS.description ? "warning" : ""}`}>
+                    {product.description.length} / {LIMITS.description}
+                  </div>
                   {errors.description && (
                     <span className="error-text">{errors.description}</span>
                   )}
@@ -1176,7 +1520,11 @@ const ProductFormPage = () => {
                       onChange={handleInputChange}
                       className="form-input"
                       placeholder="Ex: Nike, Adidas, Apple"
+                      maxLength={LIMITS.brand}
                     />
+                    <div className={`char-counter ${product.brand && product.brand.length >= LIMITS.brand ? "warning" : ""}`}>
+                      {(product.brand || "").length} / {LIMITS.brand}
+                    </div>
                   </div>
 
                   <div className="form-group">
@@ -1191,7 +1539,11 @@ const ProductFormPage = () => {
                       onChange={handleInputChange}
                       className="form-input"
                       placeholder="Ex: Camisetas, Tênis, Smartphones"
+                      maxLength={LIMITS.subcategory}
                     />
+                    <div className={`char-counter ${product.subcategory && product.subcategory.length >= LIMITS.subcategory ? "warning" : ""}`}>
+                      {(product.subcategory || "").length} / {LIMITS.subcategory}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1207,30 +1559,59 @@ const ProductFormPage = () => {
                 <div className="form-row">
                   <div className="form-group">
                     <label htmlFor="categoryId" className="form-label">
-                      Categoria do Produto <span className="required">*</span>
+                      Categoria <span className="required">*</span>
                     </label>
-                    <select
-                      id="categoryId"
-                      name="categoryId"
+                    <CustomSelect
                       value={product.categoryId}
-                      onChange={handleInputChange}
-                      className={`form-input ${
-                        errors.categoryId ? "error" : ""
-                      }`}
-                      required
-                    >
-                      <option value="">Selecione uma categoria</option>
-                      {categories.map((category: Category) => (
-                        <option key={category.id} value={category.id}>
-                          {category.name}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(value) => {
+                        setProduct(prev => ({
+                          ...prev,
+                          categoryId: value
+                        }));
+                        
+                        // Clear error if exists
+                        if (errors.categoryId) {
+                          setErrors(prev => ({
+                            ...prev,
+                            categoryId: ''
+                          }));
+                        }
+                      }}
+                      placeholder="Selecione uma categoria"
+                      searchPlaceholder="Pesquisar categorias..."
+                      showSearch={true}
+                      maxHeight="300px"
+                      options={(() => {
+                        // Separate default and user categories
+                        const defaultCategories = categories
+                          .filter(cat => cat.isDefault)
+                          .map(cat => ({
+                            value: cat.id,
+                            label: cat.name,
+                            group: 'Categorias Padrão',
+                            isDefault: true
+                          }));
+
+                        const userCategories = categories
+                          .filter(cat => !cat.isDefault)
+                          .map(cat => ({
+                            value: cat.id,
+                            label: cat.name,
+                            group: 'Minhas Categorias',
+                            isDefault: false
+                          }));
+
+                        // Show user categories first, then default categories
+                        return [
+                          ...userCategories,
+                          ...defaultCategories
+                        ];
+                      })()}
+                    />
                     {errors.categoryId && (
                       <span className="error-text">{errors.categoryId}</span>
                     )}
                   </div>
-
                   <div className="form-group">
                     <label htmlFor="newCategory" className="form-label">
                       Nova Categoria
@@ -1243,6 +1624,7 @@ const ProductFormPage = () => {
                         className="form-input"
                         value={newCategoryName}
                         onChange={(e) => setNewCategoryName(e.target.value)}
+                        maxLength={60}
                       />
                       <button
                         type="button"
@@ -1371,7 +1753,11 @@ const ProductFormPage = () => {
                       onChange={handleInputChange}
                       className="form-input"
                       placeholder="Ex: Depósito A, Prateleira 5"
+                      maxLength={LIMITS.stockLocation}
                     />
+                    <div className={`char-counter ${product.stockLocation && (product.stockLocation as string).length >= LIMITS.stockLocation ? "warning" : ""}`}>
+                      {(product.stockLocation || "").length} / {LIMITS.stockLocation}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1482,10 +1868,14 @@ const ProductFormPage = () => {
                     onChange={handleTagsChange}
                     className="form-input"
                     placeholder="Ex: algodão, premium, confortável (separadas por vírgula)"
+                    maxLength={LIMITS.tags}
                   />
                   <div className="form-help">
                     Separe as tags por vírgula. Ex: algodão, premium,
                     confortável
+                  </div>
+                  <div className={`char-counter ${product.tags.join(", ").length >= LIMITS.tags ? "warning" : ""}`}>
+                    {product.tags.join(", ").length} / {LIMITS.tags}
                   </div>
                 </div>
 

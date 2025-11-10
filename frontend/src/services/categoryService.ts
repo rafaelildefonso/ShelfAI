@@ -17,6 +17,8 @@ export interface Category {
   id: string;
   name: string;
   description?: string;
+  isDefault: boolean;
+  userId?: string | null;
   products?: Array<{
     id: string;
     name: string;
@@ -30,14 +32,18 @@ export interface Category {
 export interface CategoryInput {
   name: string;
   description?: string;
+  isDefault?: boolean;
 }
 
 // Serviço de categorias
 export const categoryService = {
-  // Listar todas as categorias
+  // Listar todas as categorias (default e do usuário)
   async list(): Promise<Category[]> {
     const res = await fetch(API_URL, {
-      headers: { ...AUTH_HEADER() },
+      headers: { 
+        'Content-Type': 'application/json',
+        ...AUTH_HEADER() 
+      },
     });
 
     if (!res.ok) {
@@ -46,6 +52,18 @@ export const categoryService = {
     }
 
     return await res.json();
+  },
+
+  // Listar apenas categorias padrão
+  async listDefault(): Promise<Category[]> {
+    const allCategories = await this.list();
+    return allCategories.filter(cat => cat.isDefault);
+  },
+
+  // Listar apenas categorias do usuário
+  async listUserCategories(): Promise<Category[]> {
+    const allCategories = await this.list();
+    return allCategories.filter(cat => !cat.isDefault);
   },
 
   // Obter categoria por ID

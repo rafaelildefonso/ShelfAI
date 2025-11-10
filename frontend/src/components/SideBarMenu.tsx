@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useMenu } from '../context/MenuContext';
+import { useAuth } from '../context/AuthContext';
 import { useEffect, useRef } from 'react';
 
 interface SideBarMenuProps {
@@ -41,6 +42,9 @@ export default function SideBarMenu({ pageName }: SideBarMenuProps) {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [menuAberto, toggleMenu]);
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
+
   const menuItems = [
     {
       path: '/dashboard',
@@ -69,7 +73,15 @@ export default function SideBarMenu({ pageName }: SideBarMenuProps) {
       label: 'Exportar',
       icon: 'fa-solid fa-file-export',
       description: 'Exportar para marketplaces'
-    }
+    },
+    ...(isAdmin ? [{
+      path: '/admin',
+      name: 'admin',
+      label: 'Administração',
+      icon: 'fa-solid fa-shield-halved',
+      description: 'Painel de administração',
+      className: 'admin-menu-item'
+    }] : [])
   ];
 
   // Handle click on the collapsed sidebar
@@ -93,14 +105,14 @@ export default function SideBarMenu({ pageName }: SideBarMenuProps) {
       <div className="sidebar-header">
         <div className="sidebar-logo-menu-min">
           <div className="logo-icon">
-            <img src="/og-image.png" alt="" />
+            <img src="/icon-image.png" alt="" />
           </div>
         </div>
         <div className="sidebar-logo" onClick={(e) => {
           e.stopPropagation();
           window.location.href = '/dashboard';
         }}>
-          <img src="/og-image.png" alt="" />
+          <img src="/icon-image.png" alt="" />
           <img src="/app-icon.png" alt="" />
         </div>
         {menuAberto && (

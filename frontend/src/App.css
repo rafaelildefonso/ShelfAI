@@ -2373,7 +2373,7 @@ body {
 }
 
 .input-prefix {
-  position: absolute;
+  /* position: absolute; */
   left: 0.75rem;
   color: var(--text-secondary-color);
   font-weight: 500;
@@ -2381,7 +2381,7 @@ body {
 }
 
 .input-suffix {
-  position: absolute;
+  /* position: absolute; */
   right: 0.75rem;
   color: var(--text-secondary-color);
   font-weight: 500;
@@ -6029,6 +6029,28 @@ body {
   color: var(--accent-color);
 }
 
+/* Estilo para o item de menu de administração */
+.menu-item.admin-menu-item {
+  border-left: 3px solid var(--accent-color);
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-color);
+}
+
+.menu-item.admin-menu-item .menu-btn {
+  color: var(--accent-color);
+  font-weight: 600;
+}
+
+.menu-item.admin-menu-item .menu-icon {
+  color: var(--accent-color);
+}
+
+/* Adicionar margem superior ao menu de administração */
+.menu-item.admin-menu-item ~ .menu-item:not(.admin-menu-item) {
+  margin-top: 20px;
+}
+
 /* Mostrar botão apenas em telas menores que 1024px */
 @media (max-width: 1024px) {
   .toggle-menu {
@@ -9032,3 +9054,268 @@ body {
     padding: 0.4rem 0.8rem;
   }
 }}
+
+/* ===== PRODUCT FORM (modern styles) ===== */
+.product-form-container {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  box-shadow: 0 8px 25px var(--shadow-color);
+  padding: 1.25rem 1.25rem 1.5rem;
+}
+
+.product-form .form-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.product-form .form-section {
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.product-form .section-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.05rem;
+  margin: 0 0 0.75rem;
+}
+
+.product-form .form-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.product-form .form-group {
+  flex: 1 1 280px;
+  min-width: 260px;
+  display: flex;
+  flex-direction: column;
+}
+
+.product-form .form-label {
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 0.4rem;
+}
+
+.product-form .required {
+  color: var(--error-color);
+}
+
+.product-form .form-input {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--surface-color);
+  color: var(--text-color);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.product-form .form-input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.12);
+  background: var(--bg-color);
+}
+
+.product-form .form-input.error {
+  border-color: var(--error-color);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+}
+
+.product-form .form-input.success {
+  border-color: var(--success-color);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
+}
+
+.product-form textarea.form-input {
+  resize: vertical;
+}
+
+.product-form .error-text {
+  color: var(--error-color);
+  font-size: 0.8rem;
+  margin-top: 0.35rem;
+}
+
+.product-form .char-counter {
+  text-align: right;
+  font-size: 0.75rem;
+  color: var(--text-secondary-color);
+  margin-top: 0.25rem;
+}
+
+.product-form .char-counter.warning {
+  color: var(--warning-color);
+  font-weight: 600;
+}
+
+.product-form .input-group {
+  display: flex;
+  align-items: stretch;
+}
+
+.product-form .input-prefix,
+.product-form .input-suffix {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.6rem;
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary-color);
+  border-radius: 10px 0 0 10px;
+}
+
+.product-form .input-suffix {
+  border-radius: 0 10px 10px 0;
+}
+
+.product-form .input-group > .form-input {
+  border-radius: 0 10px 10px 0;
+  border-left: 0;
+}
+
+.product-form .input-group > .form-input#weight {
+  border-radius: 10px 0 0 10px;
+  border-left: 1px solid var(--border-color);
+  border-right: 0;
+}
+
+.product-form .dimensions-inputs {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Checkbox nice UI */
+.product-form .checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  color: var(--text-color);
+}
+
+.product-form .checkbox-label input[type="checkbox"] {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--border-color);
+  border-radius: 5px;
+  background: var(--surface-color);
+  position: relative;
+  transition: all 0.15s ease;
+}
+
+.product-form .checkbox-label input[type="checkbox"]:checked {
+  border-color: var(--accent-color);
+  background: var(--accent-color);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+}
+
+.product-form .checkbox-label input[type="checkbox"]:checked + .checkmark::before {
+  content: "\2713";
+  position: absolute;
+  color: white;
+  font-size: 0.8rem;
+  left: 3px;
+  top: -1px;
+}
+
+.product-form .checkmark { /* helper span, optional */
+  position: relative;
+}
+
+/* Drop areas */
+.product-form .drop-area {
+  border: 2px dashed var(--border-color);
+  border-radius: 12px;
+  background: var(--surface-color);
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--text-secondary-color);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.product-form .drop-area:hover {
+  border-color: var(--accent-color);
+  background: var(--bg-color);
+}
+
+.product-form .drop-area.dragging {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.12);
+}
+
+.product-form .drop-area-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.product-form .drop-area-content i {
+  font-size: 1.75rem;
+  color: var(--accent-color);
+}
+
+.product-form .image-preview {
+  margin-top: 0.6rem;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 0.4rem;
+  background: var(--surface-color);
+  width: fit-content;
+}
+
+.product-form .image-preview img {
+  display: block;
+  max-width: 160px;
+  max-height: 120px;
+  border-radius: 8px;
+}
+
+.product-form .gallery-preview {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.6rem;
+}
+
+.product-form .gallery-preview .thumb {
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 0.3rem;
+  background: var(--surface-color);
+}
+
+.product-form .gallery-preview .thumb img {
+  width: 90px;
+  height: 70px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.product-form .form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+@media (max-width: 768px) {
+  .product-form .form-row {
+    flex-direction: column;
+  }
+}

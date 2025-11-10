@@ -101,19 +101,56 @@ export const productController = {
       }
 
       // 🧠 Função auxiliar para validar usuários
-    const validateUserId = async (key: string) => {
-      if (data[key]) {
-        const userExists = await prisma.user.findUnique({
-          where: { id: data[key] },
+      const validateUserId = async (key: string) => {
+        if (data[key]) {
+          const userExists = await prisma.user.findUnique({
+            where: { id: data[key] },
+          });
+          if (!userExists) {
+            throw new Error(`Usuário com ID ${data[key]} não existe`);
+          }
+        }
+      };
+
+      // 🔍 Validar IDs relacionados a usuários
+      await validateUserId("userId");
+
+      // Verificar se a categoria existe, se não existir, criar
+      if (data.categoryId) {
+        const categoryExists = await prisma.category.findUnique({
+          where: { id: data.categoryId },
         });
-        if (!userExists) {
-          res.status(400).json({ error: { message: `Usuário com ID ${data[key]} não existe` } });
+
+        if (!categoryExists) {
+          // Se for uma categoria padrão (não UUID), criar uma nova categoria
+          if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(data.categoryId)) {
+            // Verificar se já existe uma categoria com o mesmo nome
+            const existingCategory = await prisma.category.findFirst({
+              where: {
+                name: data.categoryId,
+                userId: data.userId || null
+              }
+            });
+
+            if (existingCategory) {
+              // Usar a categoria existente
+              data.categoryId = existingCategory.id;
+            } else {
+              // Criar nova categoria
+              const newCategory = await prisma.category.create({
+                data: {
+                  name: data.categoryId,
+                  userId: data.userId || '', // Ensure userId is not null
+                  isDefault: true
+                }
+              });
+              data.categoryId = newCategory.id;
+            }
+          } else {
+            throw new Error(`Categoria com ID ${data.categoryId} não encontrada`);
+          }
         }
       }
-    };
-
-    // 🔍 Validar IDs relacionados a usuários
-    await validateUserId("userId");
 
       const product = await prisma.product.create({ data });
       

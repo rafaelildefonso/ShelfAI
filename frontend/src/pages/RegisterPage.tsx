@@ -193,41 +193,41 @@ const RegisterPage = () => {
     if (!formData.password) return null;
     
     return (
-      <div className="password-validation mt-2 p-3 bg-opacity-10 bg-gray-100 dark:bg-gray-800 rounded-lg">
-        <p className="text-sm font-medium mb-2">Sua senha deve conter:</p>
-        <ul className="space-y-1">
-          <li className={`flex items-center text-sm ${passwordChecks.length ? 'text-green-500' : 'text-gray-500'}`}>
+      <div className="mt-2 p-4 bg-(--bg-color) border border-(--border-color) rounded-lg">
+        <p className="text-sm font-medium mb-3 text-(--text-color)">Sua senha deve conter:</p>
+        <ul className="space-y-2">
+          <li className={`flex items-center text-sm ${passwordChecks.length ? 'text-green-600 dark:text-green-400' : 'text-(--text-secondary-color)'}`}>
             <FontAwesomeIcon 
               icon={passwordChecks.length ? faCheckCircle : faCircle} 
-              className="mr-2 text-xs" 
+              className="mr-2.5 text-xs" 
             />
             Pelo menos 8 caracteres
           </li>
-          <li className={`flex items-center text-sm ${passwordChecks.lowercase ? 'text-green-500' : 'text-gray-500'}`}>
+          <li className={`flex items-center text-sm ${passwordChecks.lowercase ? 'text-green-600 dark:text-green-400' : 'text-(--text-secondary-color)'}`}>
             <FontAwesomeIcon 
               icon={passwordChecks.lowercase ? faCheckCircle : faCircle} 
-              className="mr-2 text-xs" 
+              className="mr-2.5 text-xs" 
             />
             Pelo menos uma letra minúscula
           </li>
-          <li className={`flex items-center text-sm ${passwordChecks.uppercase ? 'text-green-500' : 'text-gray-500'}`}>
+          <li className={`flex items-center text-sm ${passwordChecks.uppercase ? 'text-green-600 dark:text-green-400' : 'text-(--text-secondary-color)'}`}>
             <FontAwesomeIcon 
               icon={passwordChecks.uppercase ? faCheckCircle : faCircle} 
-              className="mr-2 text-xs" 
+              className="mr-2.5 text-xs" 
             />
             Pelo menos uma letra maiúscula
           </li>
-          <li className={`flex items-center text-sm ${passwordChecks.number ? 'text-green-500' : 'text-gray-500'}`}>
+          <li className={`flex items-center text-sm ${passwordChecks.number ? 'text-green-600 dark:text-green-400' : 'text-(--text-secondary-color)'}`}>
             <FontAwesomeIcon 
               icon={passwordChecks.number ? faCheckCircle : faCircle} 
-              className="mr-2 text-xs" 
+              className="mr-2.5 text-xs" 
             />
             Pelo menos um número
           </li>
-          <li className={`flex items-center text-sm ${passwordChecks.specialChar ? 'text-green-500' : 'text-gray-500'}`}>
+          <li className={`flex items-center text-sm ${passwordChecks.specialChar ? 'text-green-600 dark:text-green-400' : 'text-(--text-secondary-color)'}`}>
             <FontAwesomeIcon 
               icon={passwordChecks.specialChar ? faCheckCircle : faCircle} 
-              className="mr-2 text-xs" 
+              className="mr-2.5 text-xs" 
             />
             Pelo menos um caractere especial (@$!%*?&)
           </li>
@@ -241,10 +241,10 @@ const RegisterPage = () => {
     
     const passwordsMatch = formData.password === formData.confirmPassword;
     return (
-      <div className={`mt-1 text-sm flex items-center ${passwordsMatch ? 'text-green-500' : 'text-red-500'}`}>
+      <div className={`mt-2 text-sm flex items-center ${passwordsMatch ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
         <FontAwesomeIcon 
           icon={passwordsMatch ? faCheckCircle : faCircle} 
-          className="mr-1 text-xs" 
+          className="mr-2 text-sm" 
         />
         {passwordsMatch ? 'As senhas coincidem' : 'As senhas não coincidem'}
       </div>

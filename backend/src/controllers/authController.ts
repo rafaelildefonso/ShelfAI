@@ -9,7 +9,7 @@ import {
   deactivateUser,
   activateUser,
   verifyToken,
-  generateToken,
+  // generateToken,
   generateTokenPair,
   refreshAccessToken,
 } from "../services/authService.js";

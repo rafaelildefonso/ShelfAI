@@ -18,6 +18,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { MenuProvider } from "./context/MenuContext";
 import NotFoundPage from "./pages/NotFoundPage";
 import { MobileMenuOverlay } from "./components/SideBarMenu";
+import AdminDashboard from "./pages/AdminDashboard";
 
 function App() {
   return (
@@ -94,6 +95,14 @@ function App() {
                   element={
                     <ProtectedRoute requiredRoles={["ADMIN", "USER"]}>
                       <SettingsScreen />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin"
+                  element={
+                    <ProtectedRoute requiredRoles={["ADMIN"]}>
+                      <AdminDashboard />
                     </ProtectedRoute>
                   }
                 />
