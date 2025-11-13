@@ -9,6 +9,7 @@ router.use(adminAuth);
 
 // Admin category routes
 router.post('/categories/default', adminCategoryController.createDefault);
+router.post('/categories/default/bulk', adminCategoryController.bulkCreateDefault);
 router.get('/categories/default', adminCategoryController.listDefaults);
 router.put('/categories/default/:id', adminCategoryController.updateDefault);
 router.delete('/categories/default/:id', adminCategoryController.deleteDefault);

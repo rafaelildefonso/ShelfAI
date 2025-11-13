@@ -9,6 +9,16 @@ interface CategoryInput {
   description?: string;
 }
 
+// Schema for bulk category creation
+const bulkCategorySchema = {
+  categories: [
+    {
+      name: String,
+      description: { type: String, optional: true }
+    }
+  ]
+} as const;
+
 export const adminCategoryController = {
   async createDefault(req: Request, res: Response, next: NextFunction) {
     try {
@@ -177,6 +187,107 @@ export const adminCategoryController = {
 
       res.status(204).send();
     } catch (err) {
+      next(err);
+    }
+  },
+
+  async bulkCreateDefault(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { categories } = req.body as { categories: Array<{ name: string; description?: string }> };
+      const userId = req.user?.userId;
+
+      if (!categories || !Array.isArray(categories) || categories.length === 0) {
+        return res.status(400).json({
+          error: 'Lista de categorias inválida ou vazia',
+        });
+      }
+
+      // Validate each category
+      const validationErrors: Array<{ index: number; error: string }> = [];
+      
+      categories.forEach((category, index) => {
+        if (!category.name || typeof category.name !== 'string' || category.name.trim() === '') {
+          validationErrors.push({
+            index,
+            error: 'O nome da categoria é obrigatório',
+          });
+        }
+      });
+
+      if (validationErrors.length > 0) {
+        return res.status(400).json({
+          error: 'Erro de validação',
+          details: validationErrors,
+        });
+      }
+
+      // Check for duplicate names in the request
+      const names = categories.map(c => c.name.trim().toLowerCase());
+      const uniqueNames = new Set(names);
+      
+      if (uniqueNames.size !== names.length) {
+        return res.status(400).json({
+          error: 'Não são permitidas categorias duplicadas no mesmo arquivo',
+        });
+      }
+
+      // Check for existing categories with the same names
+      const existingCategories = await prisma.category.findMany({
+        where: {
+          name: { in: names },
+          isDefault: true,
+        },
+        select: { name: true },
+      });
+
+      if (existingCategories.length > 0) {
+        const existingNames = existingCategories.map(c => c.name);
+        return res.status(400).json({
+          error: 'Algumas categorias já existem',
+          existingCategories: existingNames,
+        });
+      }
+
+      // Prepare data for bulk insert
+      const categoryData = categories.map(category => ({
+        name: category.name.trim(),
+        description: category.description?.trim() || null,
+        isDefault: true,
+        ...(userId && { userId }),
+      }));
+
+      // Use transaction to ensure all or nothing
+      const result = await prisma.$transaction(
+        categoryData.map(category => 
+          prisma.category.create({ data: category })
+        )
+      );
+
+      // Log activity
+      if (userId) {
+        await activityService.create({
+          userId,
+          type: 'system',
+          action: 'import',
+          entityType: 'DEFAULT_CATEGORY',
+          entityId: 'bulk_operation',
+          title: 'Categorias Padrão Importadas',
+          description: `${result.length} categorias foram importadas com sucesso`,
+          status: 'success',
+          metadata: {
+            count: result.length,
+            categories: result.map(c => c.name)
+          }
+        });
+      }
+
+      res.status(201).json({
+        message: `${result.length} categorias criadas com sucesso`,
+        count: result.length,
+        categories: result,
+      });
+    } catch (err) {
+      console.error('Error in bulkCreateDefault:', err);
       next(err);
     }
   },

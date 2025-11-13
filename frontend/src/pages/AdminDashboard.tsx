@@ -4,7 +4,8 @@ import { adminService } from '../services/adminService';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { FaPlus, FaEdit, FaTrash, FaArrowLeft, FaSave, FaTimes } from 'react-icons/fa';
+import CategoryImport from '../components/CategoryImport';
+import { FaPlus, FaEdit, FaTrash, FaArrowLeft, FaSave, FaTimes, FaFileImport } from 'react-icons/fa';
 
 interface Category {
   id: string;
@@ -24,6 +25,7 @@ const AdminDashboard: React.FC = () => {
     name: '',
     description: '',
   });
+  const [showImportModal, setShowImportModal] = useState(false);
 
   // Redirect if not admin
   useEffect(() => {
@@ -161,13 +163,21 @@ const AdminDashboard: React.FC = () => {
               <h2 className="text-xl font-semibold text-[var(--text-color)]">Categorias Padrão</h2>
               <p className="text-sm text-[var(--text-secondary-color)]">Gerencie as categorias padrão do sistema</p>
             </div>
-            <button
-              onClick={handleAddCategory}
-              disabled={isAdding}
-              className="flex items-center px-4 py-2 bg-[var(--accent-color)] text-[var(--accent-text-color)] rounded-lg hover:bg-[var(--accent-color-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-            >
-              <FaPlus className="mr-2" /> Adicionar Categoria
-            </button>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setShowImportModal(true)}
+                className="flex items-center px-4 py-2 text-[var(--text-color)] bg-[var(--surface-color)] rounded-lg border border-[var(--border-color)] hover:bg-[var(--bg-color)] transition-colors cursor-pointer"
+              >
+                <FaFileImport className="mr-2" /> Importar CSV
+              </button>
+              <button
+                onClick={handleAddCategory}
+                disabled={isAdding}
+                className="flex items-center px-4 py-2 bg-[var(--accent-color)] text-[var(--accent-text-color)] rounded-lg hover:bg-[var(--accent-color-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                <FaPlus className="mr-2" /> Adicionar Categoria
+              </button>
+            </div>
           </div>
 
           {isAdding && (
@@ -290,6 +300,23 @@ const AdminDashboard: React.FC = () => {
           <p>© {new Date().getFullYear()} ShelfAI - Todos os direitos reservados</p>
         </div>
       </div>
+
+      {/* Import Categories Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-[var(--surface-color)] rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <CategoryImport
+                onImportComplete={() => {
+                  loadCategories();
+                  setShowImportModal(false);
+                }}
+                onClose={() => setShowImportModal(false)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

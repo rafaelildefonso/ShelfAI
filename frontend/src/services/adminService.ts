@@ -73,4 +73,23 @@ export const adminService = {
       throw new Error(error.message || 'Erro ao excluir categoria padrão');
     }
   },
+
+  // Bulk create default categories
+  bulkCreateDefaultCategories: async (categories: Array<{ name: string; description?: string }>) => {
+    const res = await fetch(`${API_URL}/categories/default/bulk`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+      },
+      body: JSON.stringify({ categories }),
+    });
+
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.message || 'Erro ao importar categorias');
+    }
+
+    return await res.json();
+  },
 };

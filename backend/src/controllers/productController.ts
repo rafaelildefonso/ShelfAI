@@ -34,7 +34,10 @@ export const productController = {
         skip: (Number(page) - 1) * Number(pageSize),
         take: Number(pageSize),
         orderBy: { createdAt: 'desc' },
-        include: { user: true }, // Include user relation only
+        include: { 
+          user: true, // Inclui dados do usuário
+          category: true // Inclui dados da categoria
+        },
       });
       const total = await prisma.product.count({ where });
       res.json({ data: products, total });
@@ -48,7 +51,24 @@ export const productController = {
       const { id } = req.params; // Obter o ID do produto dos parâmetros da URL
       const product = await prisma.product.findUnique({
         where: { id },
-        include: { user: true }, // Include user but not category
+        include: { 
+          user: true, // Inclui dados do usuário
+          category: true, // Inclui dados da categoria
+          createdBy: { // Inclui informações do usuário que criou o produto
+            select: {
+              id: true,
+              name: true,
+              email: true
+            }
+          },
+          lastEditedBy: { // Inclui informações do último usuário que editou o produto
+            select: {
+              id: true,
+              name: true,
+              email: true
+            }
+          }
+        },
       });
 
       if (!product) return res.status(404).json({ error: { message: 'Produto não encontrado' } });

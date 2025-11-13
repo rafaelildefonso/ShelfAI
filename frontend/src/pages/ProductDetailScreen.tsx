@@ -184,27 +184,43 @@ const ProductDetailScreen = () => {
           {/* Coluna da Esquerda (Imagens e Ações) */}
           <div className="lg:col-span-1">
             <div className="bg-(--surface-color) rounded-lg shadow p-4">
-              <div className="main-image mb-4">
-                <img
-                  src={currentMainImage}
-                  alt={product.name}
-                  className="w-full h-auto object-cover rounded-md"
-                />
-              </div>
-              <div className="image-gallery grid grid-cols-4 sm:grid-cols-5 gap-2 overflow-x-auto">
-                {images.map((img, index) => (
+              <div className="main-image mb-4 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-md overflow-hidden" style={{ minHeight: '300px' }}>
+                {currentMainImage ? (
                   <img
-                    key={index}
-                    src={img}
-                    alt={`${product.name} - thumbnail ${index + 1}`}
-                    className={`w-full h-auto object-cover rounded-md cursor-pointer border-2 ${
-                      currentMainImage === img
-                        ? "border-accent"
-                        : "border-transparent"
-                    }`}
-                    onClick={() => setMainImage(img)}
+                    src={currentMainImage}
+                    alt={product.name}
+                    className="w-full h-auto max-h-80 object-contain"
                   />
-                ))}
+                ) : (
+                  <div className="text-center p-6">
+                    <i className="fa-solid fa-image text-6xl text-gray-400 dark:text-gray-500 mb-4"></i>
+                    <p className="text-gray-500 dark:text-gray-400">Sem imagem disponível</p>
+                  </div>
+                )}
+              </div>
+              <div className="image-gallery">
+                {images.length > 0 ? (
+                  <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 overflow-x-auto">
+                    {images.map((img, index) => (
+                      <img
+                        key={index}
+                        src={img}
+                        alt={`${product.name} - thumbnail ${index + 1}`}
+                        className={`w-full h-16 sm:h-20 object-cover rounded-md cursor-pointer border-2 ${
+                          currentMainImage === img
+                            ? "border-accent"
+                            : "border-transparent"
+                        }`}
+                        onClick={() => setMainImage(img)}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+                    <i className="fa-solid fa-images text-2xl mb-2"></i>
+                    <p className="text-sm">Nenhuma miniatura disponível</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -213,7 +229,7 @@ const ProductDetailScreen = () => {
           <div className="lg:col-span-2">
             <DetailSection title="Informações Gerais">
               <DetailItem label="Nome do Produto" value={product.name} />
-              <DetailItem label="SKU / ID Interno" value={product.sku} />
+              {product.sku && <DetailItem label="SKU / ID Interno" value={product.sku} />}
               <DetailItem
                 label="Status"
                 value={
@@ -228,42 +244,64 @@ const ProductDetailScreen = () => {
                   </span>
                 }
               />
-              <DetailItem
-                label="Categoria"
-                value={
-                  typeof product.category === "string"
-                    ? product.category
-                    : product.category?.name || "-"
-                }
-              />
-              <DetailItem label="Subcategoria" value={product.subcategory} />
-              <DetailItem label="Marca" value={product.brand} />
-              <DetailItem label="Modelo" value={product.model} />
-              <DetailItem label="Cor" value={product.color} />
-              <DetailItem label="Tamanho" value={product.size} />
-              <DetailItem label="Material" value={product.material} />
-              <DetailItem
-                label="Peso"
-                value={product.weight ? `${product.weight} kg` : "-"}
-              />
-              <DetailItem
-                label="Dimensões (C x L x A)"
-                value={
-                  product.length && product.width && product.height
-                    ? `${product.length} x ${product.width} x ${product.height} cm`
-                    : "-"
-                }
-              />
-              <DetailItem
-                label="Descrição Curta"
-                value={product.description}
-                fullWidth
-              />
-              <DetailItem
-                label="Tags"
-                value={product.tags.length > 0 ? product.tags.join(", ") : "-"}
-                fullWidth
-              />
+              {(product.category || product.categoryId) && (
+                <DetailItem
+                  label="Categoria"
+                  value={
+                    typeof product.category === "string"
+                      ? product.category
+                      : product.category?.name || "-"
+                  }
+                />
+              )}
+              {product.subcategory && (
+                <DetailItem label="Subcategoria" value={product.subcategory} />
+              )}
+              {product.brand && (
+                <DetailItem label="Marca" value={product.brand} />
+              )}
+              {product.model && (
+                <DetailItem label="Modelo" value={product.model} />
+              )}
+              {product.color && (
+                <DetailItem label="Cor" value={product.color} />
+              )}
+              {product.size && (
+                <DetailItem label="Tamanho" value={product.size} />
+              )}
+              {product.material && (
+                <DetailItem label="Material" value={product.material} />
+              )}
+              {product.weight && product.weight > 0 && (
+                <DetailItem
+                  label="Peso"
+                  value={`${product.weight} kg`}
+                />
+              )}
+              {(product.length || product.width || product.height) && (
+                <DetailItem
+                  label="Dimensões (C x L x A)"
+                  value={
+                    product.length && product.width && product.height
+                      ? `${product.length} x ${product.width} x ${product.height} cm`
+                      : "-"
+                  }
+                />
+              )}
+              {product.description && (
+                <DetailItem
+                  label="Descrição Curta"
+                  value={product.description}
+                  fullWidth
+                />
+              )}
+              {product.tags && product.tags.length > 0 && (
+                <DetailItem
+                  label="Tags"
+                  value={product.tags.join(", ")}
+                  fullWidth
+                />
+              )}
             </DetailSection>
 
             <DetailSection title="Estoque e Localização">

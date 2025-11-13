@@ -142,7 +142,7 @@ const MainContent = () => {
 
   // Listener para resize da janela com debounce
   useEffect(() => {
-    let resizeTimeout: number;
+    let resizeTimeout: NodeJS.Timeout;
 
     const handleResize = () => {
       clearTimeout(resizeTimeout);

@@ -1,12 +1,12 @@
-# ShelfIA
+# ShelfAI
 
-**ShelfIA** é uma plataforma moderna e clean que ajuda lojas a organizar seus produtos de forma inteligente, agilizando o cadastro em e-commerces. Com funcionalidades de importação, organização e exportação multicanal, ShelfIA combina praticidade com inteligência para lojistas que querem economizar tempo e reduzir erros.
+**ShelfAI** é uma plataforma moderna e clean que ajuda lojas a organizar seus produtos de forma inteligente, agilizando o cadastro em e-commerces. Com funcionalidades de importação, organização e exportação multicanal, ShelfAI combina praticidade com inteligência para lojistas que querem economizar tempo e reduzir erros.
 
 ---
 
 ## 🎯 Problema que resolve
 Cadastrar produtos manualmente em múltiplos marketplaces (Shopify, Mercado Livre, Magalu, etc.) é demorado e sujeito a erros.  
-ShelfIA simplifica esse processo, fornecendo ferramentas que:
+ShelfAI simplifica esse processo, fornecendo ferramentas que:
 - Padronizam os dados do produto
 - Geram descrições automáticas
 - Facilitam a exportação para diferentes plataformas
@@ -24,7 +24,7 @@ ShelfIA simplifica esse processo, fornecendo ferramentas que:
 ---
 
 ## 🎨 Paleta de cores
-ShelfIA usa uma paleta clean, moderna e agradável aos olhos, com suporte a modo claro e escuro:
+ShelfAI usa uma paleta clean, moderna e agradável aos olhos, com suporte a modo claro e escuro:
 
 ### Tema claro
 - Fundo: `#fbfbfe`  
@@ -47,12 +47,12 @@ ShelfIA usa uma paleta clean, moderna e agradável aos olhos, com suporte a modo
 ## 🛠 Tecnologias utilizadas
 - **Frontend:** React, TailwindCSS  
 - **Backend:** Node.js, Express  
-- **Banco de dados:** SQLite (ou PostgreSQL/MongoDB para versão maior)  
-- **Deploy:** Vercel/Render/Heroku  
+- **Banco de dados:** Supabase  
+- **Deploy:** Vercel/Railway  
 
 ---
 
 ## 🚀 Como rodar localmente
 1. Clone o repositório:
 ```bash
-git clone https://github.com/seu-usuario/shelfia.git
+git clone https://github.com/rafaelildefonso/ShelfAI.git
