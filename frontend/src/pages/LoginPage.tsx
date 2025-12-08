@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import { toast } from "react-toastify";
 import { validateEmail } from "../services/authService";
 import { useAuth } from "../context/AuthContext";
 import "./../App.css";
@@ -31,6 +32,7 @@ const LoginPage = () => {
       navigate(from, { replace: true });
     }
   }, [navigate, from]);
+
   const getErrorMessage = (error: any) => {
     if (!error) return "Erro desconhecido";
 
@@ -130,10 +132,13 @@ const LoginPage = () => {
         localStorage.setItem("rememberMe", "true");
       }
 
+      toast.success("Login realizado com sucesso!");
       // Redirecionar para onde o usuário estava tentando ir
       navigate(from, { replace: true });
     } catch (error: any) {
-      setErrors({ general: getErrorMessage(error) });
+      const msg = getErrorMessage(error);
+      setErrors({ general: msg });
+      toast.error(msg);
     } finally {
       setIsLoading(false);
     }

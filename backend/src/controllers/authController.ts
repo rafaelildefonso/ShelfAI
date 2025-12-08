@@ -13,6 +13,7 @@ import {
   generateTokenPair,
   refreshAccessToken,
 } from "../services/authService.js";
+import { activityService } from "../services/activityService.js";
 
 export const authController = {
   // Registro de usuário
@@ -20,6 +21,9 @@ export const authController = {
     try {
       const user = await registerUser(req.body);
       const { accessToken, refreshToken } = generateTokenPair(user);
+
+      // Log activity
+      await activityService.logAuthActivity(user.id, "register");
 
       res.status(201).json({
         message: "Usuário registrado com sucesso",
@@ -47,6 +51,9 @@ export const authController = {
     try {
       const { user } = await authenticateUser(req.body);
       const { accessToken, refreshToken } = generateTokenPair(user);
+
+      // Log activity
+      await activityService.logAuthActivity(user.id, "login");
 
       res.json({
         message: "Login realizado com sucesso",
@@ -140,6 +147,9 @@ export const authController = {
 
       await updatePassword(decoded.userId, req.body);
 
+      // Log activity
+      await activityService.logAuthActivity(decoded.userId, "password_update");
+
       res.json({ message: "Senha atualizada com sucesso" });
     } catch (error: any) {
       next(error);
@@ -161,6 +171,9 @@ export const authController = {
       const decoded = verifyToken(token);
 
       const updatedUser = await updateProfile(decoded.userId, req.body);
+
+      // Log activity
+      await activityService.logAuthActivity(decoded.userId, "profile_update");
 
       res.json({
         message: "Perfil atualizado com sucesso",
@@ -246,6 +259,14 @@ export const authController = {
       const { id } = req.params;
       const user = await deactivateUser(id);
 
+      // Log activity
+      await activityService.logAuthActivity(
+        req.user!.userId, // Admin performing the action
+        "profile_update",
+        "success",
+        `Admin desativou o usuário ${user.email}`
+      );
+
       res.json({
         message: "Usuário desativado com sucesso",
         user: {
@@ -284,6 +305,14 @@ export const authController = {
       const { id } = req.params;
       const user = await activateUser(id);
 
+      // Log activity
+      await activityService.logAuthActivity(
+        req.user!.userId, // Admin performing the action
+        "profile_update",
+        "success",
+        `Admin ativou o usuário ${user.email}`
+      );
+
       res.json({
         message: "Usuário ativado com sucesso",
         user: {
@@ -304,9 +333,9 @@ export const authController = {
       const { refreshToken } = req.body;
 
       if (!refreshToken) {
-        return res
-          .status(400)
-          .json({ error: { message: "Refresh token não fornecido", status: 400 } });
+        return res.status(400).json({
+          error: { message: "Refresh token não fornecido", status: 400 },
+        });
       }
 
       const tokens = await refreshAccessToken(refreshToken);

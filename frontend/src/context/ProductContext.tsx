@@ -6,6 +6,7 @@ import {
   deleteProduct,
 } from "../services/productService";
 import { useAuth } from "./AuthContext";
+import { supabase } from "../services/supabaseClient";
 import type { Product } from "../types/productType";
 
 interface ProductContextType {
@@ -40,11 +41,34 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
+    let subscription: any;
+
     if (isAuthenticated) {
       reload();
+
+      console.log(
+        "Setting up Supabase subscription for ALL tables (debugging)..."
+      );
+      subscription = supabase
+        .channel("product-context-changes")
+        .on("postgres_changes", { event: "*", schema: "public" }, (payload) => {
+          console.log("Realtime update received!", payload);
+          console.log("Table name:", payload.table);
+          // Reload if it's the product table (checking both cases)
+          if (payload.table === "Product" || payload.table === "product") {
+            reload();
+          }
+        })
+        .subscribe((status) => {
+          console.log("Supabase subscription status:", status);
+        });
     } else {
       setLoading(false);
     }
+
+    return () => {
+      if (subscription) subscription.unsubscribe();
+    };
   }, [isAuthenticated]);
 
   async function addProduct(product: Partial<Product>) {
@@ -88,7 +112,15 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <ProductContext.Provider
-      value={{ products, loading, error, addProduct, editProduct, removeProduct, reload }}
+      value={{
+        products,
+        loading,
+        error,
+        addProduct,
+        editProduct,
+        removeProduct,
+        reload,
+      }}
     >
       {children}
     </ProductContext.Provider>
@@ -97,6 +129,7 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
 
 export function useProducts() {
   const context = useContext(ProductContext);
-  if (!context) throw new Error("useProducts deve ser usado dentro de ProductProvider");
+  if (!context)
+    throw new Error("useProducts deve ser usado dentro de ProductProvider");
   return context;
 }

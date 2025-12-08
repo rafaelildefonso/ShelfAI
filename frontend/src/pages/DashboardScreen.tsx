@@ -4,6 +4,7 @@ import SideBarMenu from "../components/SideBarMenu";
 import Header from "../components/Header";
 import { getCategories, getProducts } from "../services/productService";
 import { activityService } from "../services/activityService";
+import { supabase } from "../services/supabaseClient";
 import type { Activity } from "../services/activityService";
 import { Bar, Pie } from "react-chartjs-2";
 
@@ -82,7 +83,7 @@ const MainContent = () => {
     pendingReviews: 0,
   });
 
-  useEffect(() => {
+  const fetchData = () => {
     setLoading(true);
     setError(null);
     Promise.all([
@@ -132,6 +133,35 @@ const MainContent = () => {
       })
       .catch(() => setError("Erro ao carregar dados do dashboard"))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchData();
+
+    // Realtime subscription
+    const subscription = supabase
+      .channel("dashboard-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "Product" },
+        () => {
+          console.log("Product changed, refreshing dashboard...");
+          fetchData();
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "Category" },
+        () => {
+          console.log("Category changed, refreshing dashboard...");
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
@@ -188,12 +218,12 @@ const MainContent = () => {
     productsByMonth: [],
     categoriesDistribution: [],
     importExportTrend: {
-      imports: [12, 15, 18, 22, 25, 28, 32, 35, 38, 42, 45, 48],
-      exports: [8, 10, 12, 15, 18, 20, 22, 25, 28, 30, 32, 35],
+      imports: [],
+      exports: [],
     },
   });
 
-  // 5. Efeito para atualizar os dados dos gráficos quando produtos mudarem
+  // 5. Efeito para atualizar os dados dos gráficos quando produtos e atividades mudarem
   useEffect(() => {
     const countCategories: Record<string, number> = {};
     products.forEach((p) => {
@@ -226,15 +256,37 @@ const MainContent = () => {
       return meses;
     };
 
+    // Calcular import/export por mês baseado em atividades
+    const contarAtividadesPorMes = (
+      atividades: Activity[],
+      tipo: "import" | "export"
+    ) => {
+      const meses = Array(12).fill(0);
+      const anoAtual = new Date().getFullYear();
+
+      atividades.forEach((a) => {
+        if (
+          a.type === tipo &&
+          a.createdAt &&
+          new Date(a.createdAt).getFullYear() === anoAtual
+        ) {
+          const mes = new Date(a.createdAt).getMonth();
+          meses[mes] += 1;
+        }
+      });
+
+      return meses;
+    };
+
     setChartData({
       productsByMonth: contarProdutosPorMes(products),
       categoriesDistribution: categorizedDistribution,
       importExportTrend: {
-        imports: [12, 15, 18, 22, 25, 28, 32, 35, 38, 42, 45, 48],
-        exports: [8, 10, 12, 15, 18, 20, 22, 25, 28, 30, 32, 35],
+        imports: contarAtividadesPorMes(recentActivities, "import"),
+        exports: contarAtividadesPorMes(recentActivities, "export"),
       },
     });
-  }, [products]);
+  }, [products, recentActivities]);
 
   // 4. Condicionais de renderização vêm por último
   if (loading)
@@ -461,7 +513,23 @@ const MainContent = () => {
                 {dashboardData.totalProducts.toLocaleString()}
               </span>
               <span className="stat-label">Total de Produtos</span>
-              <span className="stat-change positive">+12% este mês</span>
+              {(() => {
+                const currentMonth = new Date().getMonth();
+                const currentMonthProducts =
+                  chartData.productsByMonth[currentMonth] || 0;
+
+                if (currentMonthProducts > 0) {
+                  return (
+                    <span className="stat-change positive">
+                      +{currentMonthProducts} este mês
+                    </span>
+                  );
+                } else {
+                  return (
+                    <span className="stat-change">Nenhum novo este mês</span>
+                  );
+                }
+              })()}
             </div>
           </div>
 
@@ -475,7 +543,7 @@ const MainContent = () => {
               </span>
               <span className="stat-label">Produtos Completos</span>
               <span className="stat-change positive">
-                {completionRate}% do total
+                {completionRate}% de completude
               </span>
             </div>
           </div>
@@ -504,7 +572,7 @@ const MainContent = () => {
                 {dashboardData.totalCategories}
               </span>
               <span className="stat-label">Categorias</span>
-              <span className="stat-change positive">+2 novas</span>
+              <span className="stat-change positive">Ativas no sistema</span>
             </div>
           </div>
         </div>
@@ -671,8 +739,13 @@ const MainContent = () => {
                 ))
               ) : (
                 <div className="no-activities flex justify-center items-center flex-col gap-5">
-                  <i className="fa-solid fa-inbox text-(--text-secondary-color)" style={{fontSize:50}}></i>
-                  <p className="text-(--text-secondary-color)">Nenhuma atividade recente</p>
+                  <i
+                    className="fa-solid fa-inbox text-(--text-secondary-color)"
+                    style={{ fontSize: 50 }}
+                  ></i>
+                  <p className="text-(--text-secondary-color)">
+                    Nenhuma atividade recente
+                  </p>
                 </div>
               )}
             </div>

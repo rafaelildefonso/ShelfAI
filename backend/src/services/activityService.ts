@@ -1,14 +1,24 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 export interface CreateActivityData {
   userId: string;
-  type: 'import' | 'export' | 'product' | 'category' | 'user' | 'system';
-  action: 'create' | 'update' | 'delete' | 'import' | 'export';
+  type: "import" | "export" | "product" | "category" | "user" | "system";
+  action:
+    | "create"
+    | "update"
+    | "delete"
+    | "import"
+    | "export"
+    | "login"
+    | "register"
+    | "logout"
+    | "password_update"
+    | "profile_update";
   title: string;
   description: string;
-  status?: 'success' | 'warning' | 'error' | 'info';
+  status?: "success" | "warning" | "error" | "info";
   entityType?: string;
   entityId?: string;
   metadata?: any;
@@ -37,7 +47,7 @@ export const activityService = {
         action: data.action,
         title: data.title,
         description: data.description,
-        status: data.status || 'info',
+        status: data.status || "info",
         entityType: data.entityType,
         entityId: data.entityId,
         metadata: data.metadata,
@@ -50,13 +60,13 @@ export const activityService = {
    */
   async createMany(activities: CreateActivityData[]) {
     return await prisma.activity.createMany({
-      data: activities.map(activity => ({
+      data: activities.map((activity) => ({
         userId: activity.userId,
         type: activity.type,
         action: activity.action,
         title: activity.title,
         description: activity.description,
-        status: activity.status || 'info',
+        status: activity.status || "info",
         entityType: activity.entityType,
         entityId: activity.entityId,
         metadata: activity.metadata,
@@ -98,7 +108,7 @@ export const activityService = {
 
     return await prisma.activity.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: filters.limit || 50,
       skip: filters.offset || 0,
     });
@@ -159,15 +169,17 @@ export const activityService = {
       recent: activities.slice(0, 10),
     };
 
-    activities.forEach(activity => {
+    activities.forEach((activity) => {
       // Count by type
       stats.byType[activity.type] = (stats.byType[activity.type] || 0) + 1;
-      
+
       // Count by action
-      stats.byAction[activity.action] = (stats.byAction[activity.action] || 0) + 1;
-      
+      stats.byAction[activity.action] =
+        (stats.byAction[activity.action] || 0) + 1;
+
       // Count by status
-      stats.byStatus[activity.status] = (stats.byStatus[activity.status] || 0) + 1;
+      stats.byStatus[activity.status] =
+        (stats.byStatus[activity.status] || 0) + 1;
     });
 
     return stats;
@@ -178,15 +190,15 @@ export const activityService = {
    */
   async logProductActivity(
     userId: string,
-    action: 'create' | 'update' | 'delete',
+    action: "create" | "update" | "delete",
     productId: string,
     productName: string,
     details?: string
   ) {
     const titles = {
-      create: 'Produto Criado',
-      update: 'Produto Atualizado',
-      delete: 'Produto Deletado',
+      create: "Produto Criado",
+      update: "Produto Atualizado",
+      delete: "Produto Deletado",
     };
 
     const descriptions = {
@@ -197,12 +209,12 @@ export const activityService = {
 
     return await this.create({
       userId,
-      type: 'product',
+      type: "product",
       action,
       title: titles[action],
       description: descriptions[action],
-      status: 'success',
-      entityType: 'Product',
+      status: "success",
+      entityType: "Product",
       entityId: productId,
     });
   },
@@ -212,15 +224,15 @@ export const activityService = {
    */
   async logCategoryActivity(
     userId: string,
-    action: 'create' | 'update' | 'delete',
+    action: "create" | "update" | "delete",
     categoryId: string,
     categoryName: string,
     details?: string
   ) {
     const titles = {
-      create: 'Categoria Criada',
-      update: 'Categoria Atualizada',
-      delete: 'Categoria Deletada',
+      create: "Categoria Criada",
+      update: "Categoria Atualizada",
+      delete: "Categoria Deletada",
     };
 
     const descriptions = {
@@ -231,12 +243,12 @@ export const activityService = {
 
     return await this.create({
       userId,
-      type: 'category',
+      type: "category",
       action,
       title: titles[action],
       description: descriptions[action],
-      status: 'success',
-      entityType: 'Category',
+      status: "success",
+      entityType: "Category",
       entityId: categoryId,
     });
   },
@@ -248,13 +260,13 @@ export const activityService = {
     userId: string,
     fileName: string,
     productsCount: number,
-    status: 'success' | 'warning' | 'error' = 'success'
+    status: "success" | "warning" | "error" = "success"
   ) {
     return await this.create({
       userId,
-      type: 'import',
-      action: 'import',
-      title: 'Importação Concluída',
+      type: "import",
+      action: "import",
+      title: "Importação Concluída",
       description: `${productsCount} produtos importados do arquivo ${fileName}`,
       status,
       metadata: { fileName, productsCount },
@@ -268,16 +280,57 @@ export const activityService = {
     userId: string,
     marketplace: string,
     productsCount: number,
-    status: 'success' | 'warning' | 'error' = 'success'
+    status: "success" | "warning" | "error" = "success"
   ) {
     return await this.create({
       userId,
-      type: 'export',
-      action: 'export',
+      type: "export",
+      action: "export",
       title: `Exportação para ${marketplace}`,
       description: `${productsCount} produtos exportados com sucesso`,
       status,
       metadata: { marketplace, productsCount },
+    });
+  },
+  /**
+   * Registrar atividade de autenticação
+   */
+  async logAuthActivity(
+    userId: string,
+    action:
+      | "login"
+      | "register"
+      | "logout"
+      | "password_update"
+      | "profile_update",
+    status: "success" | "warning" | "error" = "success",
+    details?: string
+  ) {
+    const titles = {
+      login: "Login Realizado",
+      register: "Novo Usuário Registrado",
+      logout: "Logout Realizado",
+      password_update: "Senha Atualizada",
+      profile_update: "Perfil Atualizado",
+    };
+
+    const descriptions = {
+      login: details || "Usuário realizou login com sucesso",
+      register: "Novo usuário registrado no sistema",
+      logout: "Usuário realizou logout",
+      password_update: "Usuário atualizou sua senha",
+      profile_update: "Usuário atualizou seu perfil",
+    };
+
+    return await this.create({
+      userId,
+      type: "user",
+      action,
+      title: titles[action],
+      description: descriptions[action],
+      status,
+      entityType: "User",
+      entityId: userId,
     });
   },
 };

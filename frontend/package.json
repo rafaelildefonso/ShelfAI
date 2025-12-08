@@ -19,6 +19,7 @@
     "@fortawesome/react-fontawesome": "^3.1.0",
     "@mui/icons-material": "^7.3.5",
     "@mui/material": "^7.3.5",
+    "@supabase/supabase-js": "^2.86.0",
     "@tailwindcss/vite": "^4.1.13",
     "@types/node": "^24.10.1",
     "@types/react-toastify": "^4.0.2",

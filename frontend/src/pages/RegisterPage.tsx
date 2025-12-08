@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import {
   authService,
   validateEmail,
@@ -96,7 +97,7 @@ const RegisterPage = () => {
 
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { value } = e.target;
-    setFormData(prev => ({ ...prev, password: value }));
+    setFormData((prev) => ({ ...prev, password: value }));
 
     // Update password validation checks
     setPasswordChecks({
@@ -104,38 +105,40 @@ const RegisterPage = () => {
       lowercase: /[a-z]/.test(value),
       uppercase: /[A-Z]/.test(value),
       number: /\d/.test(value),
-      specialChar: /[!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~]/.test(value), 
+      specialChar: /[!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~]/.test(value),
     });
 
     // Clear error when user types
     if (errors.password) {
-      setErrors(prev => ({ ...prev, password: '' }));
+      setErrors((prev) => ({ ...prev, password: "" }));
     }
   };
 
-  const handleConfirmPasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleConfirmPasswordChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const { value } = e.target;
-    setFormData(prev => ({ ...prev, confirmPassword: value }));
+    setFormData((prev) => ({ ...prev, confirmPassword: value }));
 
     // Clear error when passwords match
     if (formData.password === value && errors.confirmPassword) {
-      setErrors(prev => ({ ...prev, confirmPassword: '' }));
+      setErrors((prev) => ({ ...prev, confirmPassword: "" }));
     }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
-    
-    if (name === 'password') {
+
+    if (name === "password") {
       handlePasswordChange(e);
       return;
     }
-    
-    if (name === 'confirmPassword') {
+
+    if (name === "confirmPassword") {
       handleConfirmPasswordChange(e);
       return;
     }
-    
+
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
@@ -177,7 +180,7 @@ const RegisterPage = () => {
       newErrors.confirmPassword = "As senhas não coincidem";
     }
 
-    if (formData.phone && formData.phone.replace(/\D/g, '').length < 10) {
+    if (formData.phone && formData.phone.replace(/\D/g, "").length < 10) {
       newErrors.phone = "Telefone deve ter pelo menos 10 dígitos";
     }
 
@@ -191,43 +194,75 @@ const RegisterPage = () => {
 
   const renderPasswordValidation = () => {
     if (!formData.password) return null;
-    
+
     return (
       <div className="mt-2 p-4 bg-(--bg-color) border border-(--border-color) rounded-lg">
-        <p className="text-sm font-medium mb-3 text-(--text-color)">Sua senha deve conter:</p>
+        <p className="text-sm font-medium mb-3 text-(--text-color)">
+          Sua senha deve conter:
+        </p>
         <ul className="space-y-2">
-          <li className={`flex items-center text-sm ${passwordChecks.length ? 'text-green-600 dark:text-green-400' : 'text-(--text-secondary-color)'}`}>
-            <FontAwesomeIcon 
-              icon={passwordChecks.length ? faCheckCircle : faCircle} 
-              className="mr-2.5 text-xs" 
+          <li
+            className={`flex items-center text-sm ${
+              passwordChecks.length
+                ? "text-green-600 dark:text-green-400"
+                : "text-(--text-secondary-color)"
+            }`}
+          >
+            <FontAwesomeIcon
+              icon={passwordChecks.length ? faCheckCircle : faCircle}
+              className="mr-2.5 text-xs"
             />
             Pelo menos 8 caracteres
           </li>
-          <li className={`flex items-center text-sm ${passwordChecks.lowercase ? 'text-green-600 dark:text-green-400' : 'text-(--text-secondary-color)'}`}>
-            <FontAwesomeIcon 
-              icon={passwordChecks.lowercase ? faCheckCircle : faCircle} 
-              className="mr-2.5 text-xs" 
+          <li
+            className={`flex items-center text-sm ${
+              passwordChecks.lowercase
+                ? "text-green-600 dark:text-green-400"
+                : "text-(--text-secondary-color)"
+            }`}
+          >
+            <FontAwesomeIcon
+              icon={passwordChecks.lowercase ? faCheckCircle : faCircle}
+              className="mr-2.5 text-xs"
             />
             Pelo menos uma letra minúscula
           </li>
-          <li className={`flex items-center text-sm ${passwordChecks.uppercase ? 'text-green-600 dark:text-green-400' : 'text-(--text-secondary-color)'}`}>
-            <FontAwesomeIcon 
-              icon={passwordChecks.uppercase ? faCheckCircle : faCircle} 
-              className="mr-2.5 text-xs" 
+          <li
+            className={`flex items-center text-sm ${
+              passwordChecks.uppercase
+                ? "text-green-600 dark:text-green-400"
+                : "text-(--text-secondary-color)"
+            }`}
+          >
+            <FontAwesomeIcon
+              icon={passwordChecks.uppercase ? faCheckCircle : faCircle}
+              className="mr-2.5 text-xs"
             />
             Pelo menos uma letra maiúscula
           </li>
-          <li className={`flex items-center text-sm ${passwordChecks.number ? 'text-green-600 dark:text-green-400' : 'text-(--text-secondary-color)'}`}>
-            <FontAwesomeIcon 
-              icon={passwordChecks.number ? faCheckCircle : faCircle} 
-              className="mr-2.5 text-xs" 
+          <li
+            className={`flex items-center text-sm ${
+              passwordChecks.number
+                ? "text-green-600 dark:text-green-400"
+                : "text-(--text-secondary-color)"
+            }`}
+          >
+            <FontAwesomeIcon
+              icon={passwordChecks.number ? faCheckCircle : faCircle}
+              className="mr-2.5 text-xs"
             />
             Pelo menos um número
           </li>
-          <li className={`flex items-center text-sm ${passwordChecks.specialChar ? 'text-green-600 dark:text-green-400' : 'text-(--text-secondary-color)'}`}>
-            <FontAwesomeIcon 
-              icon={passwordChecks.specialChar ? faCheckCircle : faCircle} 
-              className="mr-2.5 text-xs" 
+          <li
+            className={`flex items-center text-sm ${
+              passwordChecks.specialChar
+                ? "text-green-600 dark:text-green-400"
+                : "text-(--text-secondary-color)"
+            }`}
+          >
+            <FontAwesomeIcon
+              icon={passwordChecks.specialChar ? faCheckCircle : faCircle}
+              className="mr-2.5 text-xs"
             />
             Pelo menos um caractere especial (@$!%*?&)
           </li>
@@ -238,15 +273,21 @@ const RegisterPage = () => {
 
   const renderPasswordMatchFeedback = () => {
     if (!formData.confirmPassword) return null;
-    
+
     const passwordsMatch = formData.password === formData.confirmPassword;
     return (
-      <div className={`mt-2 text-sm flex items-center ${passwordsMatch ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-        <FontAwesomeIcon 
-          icon={passwordsMatch ? faCheckCircle : faCircle} 
-          className="mr-2 text-sm" 
+      <div
+        className={`mt-2 text-sm flex items-center ${
+          passwordsMatch
+            ? "text-green-600 dark:text-green-400"
+            : "text-red-600 dark:text-red-400"
+        }`}
+      >
+        <FontAwesomeIcon
+          icon={passwordsMatch ? faCheckCircle : faCircle}
+          className="mr-2 text-sm"
         />
-        {passwordsMatch ? 'As senhas coincidem' : 'As senhas não coincidem'}
+        {passwordsMatch ? "As senhas coincidem" : "As senhas não coincidem"}
       </div>
     );
   };
@@ -305,6 +346,7 @@ const RegisterPage = () => {
         });
       }
 
+      toast.success("Conta criada com sucesso!");
       // Redirect to dashboard
       navigate("/dashboard");
     } catch (error: any) {
@@ -318,6 +360,7 @@ const RegisterPage = () => {
       setErrors({
         general: errorMsg,
       });
+      toast.error(errorMsg);
     } finally {
       setIsLoading(false);
     }

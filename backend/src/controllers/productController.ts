@@ -1,7 +1,7 @@
-import { Request, Response, NextFunction } from 'express';
-import { PrismaClient } from '@prisma/client';
-import { activityService } from '../services/activityService.js';
-import { notificationService } from '../services/notificationService.js';
+import { Request, Response, NextFunction } from "express";
+import { PrismaClient } from "@prisma/client";
+import { activityService } from "../services/activityService.js";
+import { notificationService } from "../services/notificationService.js";
 
 const prisma = new PrismaClient();
 
@@ -20,7 +20,11 @@ export const productController = {
       }
 
       if (search) {
-        where.name = { contains: search };
+        const searchStr = String(search);
+        where.OR = [
+          { name: { contains: searchStr, mode: "insensitive" } },
+          { description: { contains: searchStr, mode: "insensitive" } },
+        ];
       }
       if (categoryId) {
         where.categoryId = categoryId;
@@ -33,10 +37,10 @@ export const productController = {
         where,
         skip: (Number(page) - 1) * Number(pageSize),
         take: Number(pageSize),
-        orderBy: { createdAt: 'desc' },
-        include: { 
+        orderBy: { createdAt: "desc" },
+        include: {
           user: true, // Inclui dados do usuário
-          category: true // Inclui dados da categoria
+          category: true, // Inclui dados da categoria
         },
       });
       const total = await prisma.product.count({ where });
@@ -51,31 +55,43 @@ export const productController = {
       const { id } = req.params; // Obter o ID do produto dos parâmetros da URL
       const product = await prisma.product.findUnique({
         where: { id },
-        include: { 
+        include: {
           user: true, // Inclui dados do usuário
           category: true, // Inclui dados da categoria
-          createdBy: { // Inclui informações do usuário que criou o produto
+          createdBy: {
+            // Inclui informações do usuário que criou o produto
             select: {
               id: true,
               name: true,
-              email: true
-            }
+              email: true,
+            },
           },
-          lastEditedBy: { // Inclui informações do último usuário que editou o produto
+          lastEditedBy: {
+            // Inclui informações do último usuário que editou o produto
             select: {
               id: true,
               name: true,
-              email: true
-            }
-          }
+              email: true,
+            },
+          },
         },
       });
 
-      if (!product) return res.status(404).json({ error: { message: 'Produto não encontrado' } });
+      if (!product)
+        return res
+          .status(404)
+          .json({ error: { message: "Produto não encontrado" } });
 
       // 🔒 VERIFICAÇÃO DE SEGURANÇA: Usuário só pode ver produtos que ele mesmo criou
       if (req.user?.userId && product.userId !== req.user.userId) {
-        return res.status(403).json({ error: { message: 'Acesso negado. Você só pode ver seus próprios produtos.' } });
+        return res
+          .status(403)
+          .json({
+            error: {
+              message:
+                "Acesso negado. Você só pode ver seus próprios produtos.",
+            },
+          });
       }
 
       res.json(product);
@@ -98,21 +114,21 @@ export const productController = {
       }
       // Não definir userId se não há usuário autenticado
       delete (data as any).user;
-    delete (data as any).createdBy;
-    delete (data as any).lastEditedBy;
+      delete (data as any).createdBy;
+      delete (data as any).lastEditedBy;
 
       // Se foi enviado categoryName ao invés de categoryId, criar ou encontrar a categoria
       if (data.categoryName && !data.categoryId) {
         let category = await (prisma as any).category.findUnique({
-          where: { name: data.categoryName }
+          where: { name: data.categoryName },
         });
 
         if (!category) {
           category = await (prisma as any).category.create({
             data: {
               name: data.categoryName,
-              description: `Categoria ${data.categoryName}`
-            }
+              description: `Categoria ${data.categoryName}`,
+            },
           });
         }
 
@@ -143,13 +159,17 @@ export const productController = {
 
         if (!categoryExists) {
           // Se for uma categoria padrão (não UUID), criar uma nova categoria
-          if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(data.categoryId)) {
+          if (
+            !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+              data.categoryId
+            )
+          ) {
             // Verificar se já existe uma categoria com o mesmo nome
             const existingCategory = await prisma.category.findFirst({
               where: {
                 name: data.categoryId,
-                userId: data.userId || null
-              }
+                userId: data.userId || null,
+              },
             });
 
             if (existingCategory) {
@@ -160,40 +180,42 @@ export const productController = {
               const newCategory = await prisma.category.create({
                 data: {
                   name: data.categoryId,
-                  userId: data.userId || '', // Ensure userId is not null
-                  isDefault: true
-                }
+                  userId: data.userId || "", // Ensure userId is not null
+                  isDefault: true,
+                },
               });
               data.categoryId = newCategory.id;
             }
           } else {
-            throw new Error(`Categoria com ID ${data.categoryId} não encontrada`);
+            throw new Error(
+              `Categoria com ID ${data.categoryId} não encontrada`
+            );
           }
         }
       }
 
       const product = await prisma.product.create({ data });
-      
+
       // Registrar atividade e notificação
       if (req.user?.userId) {
         await Promise.all([
           activityService.logProductActivity(
             req.user.userId,
-            'create',
+            "create",
             product.id,
             product.name
           ),
           notificationService.create({
             userId: req.user.userId,
-            title: 'Produto Criado',
+            title: "Produto Criado",
             message: `Produto "${product.name}" foi criado com sucesso`,
-            type: 'success',
+            type: "success",
             link: `/products/${product.id}`,
-            metadata: { productId: product.id }
-          })
+            metadata: { productId: product.id },
+          }),
         ]);
       }
-      
+
       res.status(201).json(product);
     } catch (err) {
       next(err);
@@ -211,41 +233,50 @@ export const productController = {
       });
 
       if (!existingProduct) {
-        return res.status(404).json({ error: { message: 'Produto não encontrado' } });
+        return res
+          .status(404)
+          .json({ error: { message: "Produto não encontrado" } });
       }
 
       // 🔒 VERIFICAÇÃO DE SEGURANÇA: Usuário só pode editar produtos que ele mesmo criou
       if (req.user?.userId && existingProduct.userId !== req.user.userId) {
-        return res.status(403).json({ error: { message: 'Acesso negado. Você só pode editar seus próprios produtos.' } });
+        return res
+          .status(403)
+          .json({
+            error: {
+              message:
+                "Acesso negado. Você só pode editar seus próprios produtos.",
+            },
+          });
       }
 
       // Extrair categoryId e limpar campos que não devem ser atualizados diretamente
       const { categoryId, userId, ...updateData } = data;
-      
+
       // Preparar os dados de atualização
       const updatePayload: any = { ...updateData };
 
       // Se houver um usuário autenticado, definir o lastEditedBy
       if (req.user?.userId) {
         updatePayload.lastEditedBy = {
-          connect: { id: req.user.userId }
+          connect: { id: req.user.userId },
         };
       }
 
       // Se categoryId foi fornecido, atualizar a relação de categoria
       if (categoryId) {
         updatePayload.category = {
-          connect: { id: categoryId }
+          connect: { id: categoryId },
         };
       } else if (categoryId === null) {
         // Se categoryId for explicitamente null, remover a categoria
         updatePayload.category = {
-          disconnect: true
+          disconnect: true,
         };
       }
 
       // Remover o campo categoryName se existir (usado apenas para exibição no frontend)
-      if ('categoryName' in updatePayload) {
+      if ("categoryName" in updatePayload) {
         delete updatePayload.categoryName;
       }
 
@@ -254,21 +285,21 @@ export const productController = {
         where: { id },
         data: updatePayload,
         include: {
-          category: true
-        }
+          category: true,
+        },
       });
-      
+
       // Registrar atividade
       if (req.user?.userId) {
         await activityService.logProductActivity(
           req.user.userId,
-          'update',
+          "update",
           product.id,
           product.name,
-          'Produto atualizado com sucesso'
+          "Produto atualizado com sucesso"
         );
       }
-      
+
       res.json(product);
     } catch (err) {
       next(err);
@@ -285,27 +316,36 @@ export const productController = {
       });
 
       if (!existingProduct) {
-        return res.status(404).json({ error: { message: 'Produto não encontrado' } });
+        return res
+          .status(404)
+          .json({ error: { message: "Produto não encontrado" } });
       }
 
       // 🔒 VERIFICAÇÃO DE SEGURANÇA: Usuário só pode excluir produtos que ele mesmo criou
       if (req.user?.userId && existingProduct.userId !== req.user.userId) {
-        return res.status(403).json({ error: { message: 'Acesso negado. Você só pode excluir seus próprios produtos.' } });
+        return res
+          .status(403)
+          .json({
+            error: {
+              message:
+                "Acesso negado. Você só pode excluir seus próprios produtos.",
+            },
+          });
       }
 
       const productName = existingProduct.name;
       await prisma.product.delete({ where: { id } });
-      
+
       // Registrar atividade
       if (req.user?.userId) {
         await activityService.logProductActivity(
           req.user.userId,
-          'delete',
+          "delete",
           id,
           productName
         );
       }
-      
+
       res.json({ ok: true });
     } catch (err) {
       next(err);

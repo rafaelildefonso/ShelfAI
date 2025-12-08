@@ -1,9 +1,12 @@
 import { useState, useRef, useEffect } from "react";
-import { useLocation } from "react-router-dom";
-import { getCategories, getProducts } from "../services/productService";
+import { useLocation, useNavigate } from "react-router-dom";
+import { getProducts } from "../services/productService";
+import { categoryService } from "../services/categoryService";
 import { useAuth } from "../context/AuthContext";
 import { notificationService } from "../services/notificationService";
 import { useMenu } from "../context/MenuContext";
+import type { Product } from "../types/productType";
+import type { Category } from "../services/categoryService";
 
 interface Notification {
   id: string;
@@ -16,13 +19,17 @@ interface Notification {
 
 export default function Header() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { toggleMenu } = useMenu();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState({
-    products: 0,
-    categories: 0,
+  const [searchResults, setSearchResults] = useState<{
+    products: Product[];
+    categories: Category[];
+  }>({
+    products: [],
+    categories: [],
   });
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -33,11 +40,13 @@ export default function Header() {
   useEffect(() => {
     const loadNotifications = async () => {
       try {
-        const response = await notificationService.getNotifications({ limit: 10 });
+        const response = await notificationService.getNotifications({
+          limit: 10,
+        });
         // Mapear notificações para incluir tempo formatado
-        const mappedNotifications = response.notifications.map(notif => ({
+        const mappedNotifications = response.notifications.map((notif) => ({
           ...notif,
-          time: notificationService.formatRelativeTime(notif.createdAt)
+          time: notificationService.formatRelativeTime(notif.createdAt),
         }));
         setNotifications(mappedNotifications);
       } catch (error) {
@@ -48,7 +57,7 @@ export default function Header() {
     };
 
     loadNotifications();
-    
+
     // Recarregar notificações a cada 30 segundos
     const interval = setInterval(loadNotifications, 30000);
     return () => clearInterval(interval);
@@ -73,35 +82,69 @@ export default function Header() {
     setShowUserMenu(false);
   };
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
-    const fetchSearchResults = async () => {
-      const query = e.target.value.toLocaleLowerCase();
+  // Debounce search effect
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(async () => {
+      if (searchQuery.length === 0) {
+        setSearchResults({ products: [], categories: [] });
+        setShowSearchResults(false);
+        return;
+      }
+
+      const lowerQuery = searchQuery.toLocaleLowerCase();
       try {
-        const { data: productsData } = await getProducts();
-        const productsResults = productsData.filter((p) =>
-          p.name.toLocaleLowerCase().includes(query)
-        ).length;
-        const { data: categoriesData } = await getCategories();
-        const categoriesResults = categoriesData.filter((c) =>
-          c.toLocaleLowerCase().includes(query)
-        ).length;
+        // Parallel fetch for better performance
+        const [productsResponse, categoriesData] = await Promise.all([
+          getProducts(),
+          categoryService.list(),
+        ]);
+
+        const productsResults = productsResponse.data
+          .filter((p) => p.name.toLocaleLowerCase().includes(lowerQuery))
+          .slice(0, 3); // Top 3 products
+
+        const categoriesResults = categoriesData
+          .filter((c) => c.name.toLocaleLowerCase().includes(lowerQuery))
+          .slice(0, 3); // Top 3 categories
 
         setSearchResults({
           products: productsResults,
           categories: categoriesResults,
         });
-        setShowSearchResults(e.target.value.length > 0);
+        setShowSearchResults(true);
       } catch (err) {
-        setSearchResults({ products: 0, categories: 0 });
+        setSearchResults({ products: [], categories: [] });
         setShowSearchResults(false);
       }
-    };
-    fetchSearchResults();
+    }, 500); // 500ms delay
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  };
+
+  const handleSearchSubmit = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      navigate(`/search?q=${searchQuery}`);
+      setShowSearchResults(false);
+    }
   };
 
   const clearSearch = () => {
     setSearchQuery("");
+    setSearchResults({ products: [], categories: [] });
+    setShowSearchResults(false);
+  };
+
+  const handleProductClick = (id: string) => {
+    navigate(`/products/${id}`);
+    setShowSearchResults(false);
+  };
+
+  const handleCategoryClick = (id: string) => {
+    navigate(`/search?categoryId=${id}`);
     setShowSearchResults(false);
   };
 
@@ -142,6 +185,8 @@ export default function Header() {
         return { current: "Exportar", parent: "Dashboard" };
       case "/settings":
         return { current: "Configurações", parent: "Dashboard" };
+      case "/search":
+        return { current: "Busca", parent: "Dashboard" };
       default:
         return { current: "Dashboard", parent: null };
     }
@@ -205,6 +250,7 @@ export default function Header() {
             className="search-input"
             value={searchQuery}
             onChange={handleSearchChange}
+            onKeyDown={handleSearchSubmit}
             onFocus={() => setShowSearchResults(searchQuery.length > 0)}
           />
           {searchQuery && (
@@ -226,24 +272,85 @@ export default function Header() {
                 </button>
               </div>
               <div className="search-results-content">
-                <div className="search-result-item">
-                  <i className="fa-solid fa-box"></i>
-                  <div>
-                    <span className="result-title">Produtos</span>
-                    <span className="result-count">
-                      {searchResults.products} encontrados
-                    </span>
+                {searchResults.products.length === 0 &&
+                searchResults.categories.length === 0 ? (
+                  <div className="search-no-results">
+                    <i className="fa-solid fa-search"></i>
+                    <p>Nenhum resultado encontrado</p>
+                    <span>Tente usar termos diferentes</span>
                   </div>
-                </div>
-                <div className="search-result-item">
-                  <i className="fa-solid fa-tags"></i>
-                  <div>
-                    <span className="result-title">Categorias</span>
-                    <span className="result-count">
-                      {searchResults.categories} encontradas
-                    </span>
-                  </div>
-                </div>
+                ) : (
+                  <>
+                    {searchResults.products.length > 0 && (
+                      <div className="search-section">
+                        <div className="search-section-title">
+                          <i className="fa-solid fa-box"></i> Produtos
+                        </div>
+                        {searchResults.products.map((product) => (
+                          <div
+                            key={product.id}
+                            className="search-result-item clickable"
+                            onClick={() => handleProductClick(product.id)}
+                          >
+                            <div className="result-image-container">
+                              {product.image ? (
+                                <img
+                                  src={product.image}
+                                  alt={product.name}
+                                  className="result-image"
+                                />
+                              ) : (
+                                <div className="result-image-placeholder">
+                                  <i className="fa-solid fa-image"></i>
+                                </div>
+                              )}
+                            </div>
+                            <div className="result-info">
+                              <span className="result-name">
+                                {product.name}
+                              </span>
+                              <span className="result-price">
+                                R$ {product.price?.toFixed(2)}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {searchResults.categories.length > 0 && (
+                      <div className="search-section">
+                        <div className="search-section-title">
+                          <i className="fa-solid fa-tags"></i> Categorias
+                        </div>
+                        {searchResults.categories.map((category) => (
+                          <div
+                            key={category.id}
+                            className="search-result-item clickable"
+                            onClick={() => handleCategoryClick(category.id)}
+                          >
+                            <div className="result-info">
+                              <span className="result-name">
+                                {category.name}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div
+                      className="search-view-all"
+                      onClick={() => {
+                        navigate(`/search?q=${searchQuery}`);
+                        setShowSearchResults(false);
+                      }}
+                    >
+                      Ver todos os resultados
+                      <i className="fa-solid fa-arrow-right"></i>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -260,8 +367,7 @@ export default function Header() {
             >
               <i className="fa-solid fa-bell"></i>
               {unreadNotifications > 0 && (
-                <div className="notification-badge">
-                </div>
+                <div className="notification-badge"></div>
               )}
             </button>
 
@@ -280,46 +386,53 @@ export default function Header() {
                 </div>
                 <div className="notifications-list">
                   {notifications.length > 0 ? (
-                  notifications.map((notification) => (
-                    <div
-                      key={notification.id}
-                      className={`notification-item ${
-                        !notification.read ? "unread" : ""
-                      }`}
-                      onClick={() => markNotificationAsRead(notification.id)}
-                    >
-                      <div className={`notification-icon ${notification.type}`}>
-                        <i
-                          className={`fa-solid ${
-                            notification.type === "success"
-                              ? "fa-check"
-                              : notification.type === "warning"
-                              ? "fa-exclamation"
-                              : notification.type === "error"
-                              ? "fa-times"
-                              : "fa-info"
-                          }`}
-                        ></i>
+                    notifications.map((notification) => (
+                      <div
+                        key={notification.id}
+                        className={`notification-item ${
+                          !notification.read ? "unread" : ""
+                        }`}
+                        onClick={() => markNotificationAsRead(notification.id)}
+                      >
+                        <div
+                          className={`notification-icon ${notification.type}`}
+                        >
+                          <i
+                            className={`fa-solid ${
+                              notification.type === "success"
+                                ? "fa-check"
+                                : notification.type === "warning"
+                                ? "fa-exclamation"
+                                : notification.type === "error"
+                                ? "fa-times"
+                                : "fa-info"
+                            }`}
+                          ></i>
+                        </div>
+                        <div className="notification-content">
+                          <div className="notification-title">
+                            {notification.title}
+                          </div>
+                          <div className="notification-message">
+                            {notification.message}
+                          </div>
+                          <div className="notification-time">
+                            {notification.time}
+                          </div>
+                        </div>
                       </div>
-                      <div className="notification-content">
-                        <div className="notification-title">
-                          {notification.title}
-                        </div>
-                        <div className="notification-message">
-                          {notification.message}
-                        </div>
-                        <div className="notification-time">
-                          {notification.time}
-                        </div>
-                      </div>
+                    ))
+                  ) : (
+                    <div className="no-activities flex justify-center items-center flex-col gap-5 my-5">
+                      <i
+                        className="fa-solid fa-inbox text-(--text-secondary-color)"
+                        style={{ fontSize: 50 }}
+                      ></i>
+                      <p className="text-(--text-secondary-color)">
+                        Nenhuma atividade recente
+                      </p>
                     </div>
-                  ))
-                ) : (
-                  <div className="no-activities flex justify-center items-center flex-col gap-5 my-5">
-                    <i className="fa-solid fa-inbox text-(--text-secondary-color)" style={{fontSize:50}}></i>
-                    <p className="text-(--text-secondary-color)">Nenhuma atividade recente</p>
-                </div>
-                )}
+                  )}
                 </div>
                 <div className="notifications-footer">
                   <button className="view-all-btn">
@@ -337,7 +450,7 @@ export default function Header() {
           onClick={toggleUserMenu}
         >
           <div className="user-initial">
-            {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+            {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
           </div>
           <div className="user-info">
             <span className="user-name">{user?.name || "Usuário"}</span>
@@ -354,7 +467,7 @@ export default function Header() {
             <div className="user-menu-dropdown">
               <div className="user-menu-header">
                 <div className="user-menu-initial">
-                  {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                  {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
                 </div>
                 <div className="user-menu-info">
                   <div className="user-menu-name">

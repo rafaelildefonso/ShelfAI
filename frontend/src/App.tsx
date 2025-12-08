@@ -1,5 +1,7 @@
 import "./App.css";
 import { Routes, Route } from "react-router-dom";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
@@ -19,11 +21,13 @@ import { MenuProvider } from "./context/MenuContext";
 import NotFoundPage from "./pages/NotFoundPage";
 import { MobileMenuOverlay } from "./components/SideBarMenu";
 import AdminDashboard from "./pages/AdminDashboard";
+import SearchResultsPage from "./pages/SearchResultsPage";
 
 function App() {
   return (
     <div className="App">
-<AuthProvider>
+      <ToastContainer position="top-right" autoClose={5000} />
+      <AuthProvider>
         <CategoryProvider>
           <ProductProvider>
             <MenuProvider>
@@ -103,6 +107,15 @@ function App() {
                   element={
                     <ProtectedRoute requiredRoles={["ADMIN"]}>
                       <AdminDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/search"
+                  element={
+                    <ProtectedRoute>
+                      <SearchResultsPage />
                     </ProtectedRoute>
                   }
                 />

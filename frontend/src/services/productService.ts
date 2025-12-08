@@ -3,15 +3,15 @@ import { categoryService } from "./categoryService";
 import { buildApiPath } from "../config/api";
 // Função para obter userId do usuário logado
 const getCurrentUser = (): any => {
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
   return user.user || {};
 };
 
-const API_URL = buildApiPath('/api/v1/products');
+const API_URL = buildApiPath("/api/v1/products");
 
 // Função para obter token do localStorage
 const getAuthToken = (): string | null => {
-  return localStorage.getItem('token');
+  return localStorage.getItem("token");
 };
 
 const AUTH_HEADER = (): { Authorization?: string } => {
@@ -19,13 +19,22 @@ const AUTH_HEADER = (): { Authorization?: string } => {
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
-export async function getProducts(params?: { page?: number; pageSize?: number; search?: string; categoryId?: string; status?: string }): Promise<{ data: Product[]; total: number }> {
+export async function getProducts(params?: {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  categoryId?: string;
+  status?: string;
+}): Promise<{ data: Product[]; total: number }> {
   const url = new URL(API_URL, window.location.origin);
-  if (params) Object.entries(params).forEach(([k, v]) => v && url.searchParams.append(k, String(v)));
+  if (params)
+    Object.entries(params).forEach(
+      ([k, v]) => v && url.searchParams.append(k, String(v))
+    );
   const res = await fetch(url.toString(), { headers: { ...AUTH_HEADER() } });
   if (!res.ok) {
     const error = await res.json();
-    throw new Error(error.message || 'Erro ao buscar produtos');
+    throw new Error(error.message || "Erro ao buscar produtos");
   }
 
   const result = await res.json();
@@ -79,10 +88,12 @@ export async function getProducts(params?: { page?: number; pageSize?: number; s
 }
 
 export async function getProductById(id: string): Promise<Product> {
-  const res = await fetch(`${API_URL}/${id}`, { headers: { ...AUTH_HEADER() } });
+  const res = await fetch(`${API_URL}/${id}`, {
+    headers: { ...AUTH_HEADER() },
+  });
   if (!res.ok) {
     const error = await res.json();
-    throw new Error(error.message || 'Erro ao buscar produto');
+    throw new Error(error.message || "Erro ao buscar produto");
   }
 
   const backendProduct = await res.json();
@@ -135,14 +146,16 @@ export async function getProductById(id: string): Promise<Product> {
 export async function getCategories(): Promise<{ data: string[] }> {
   try {
     const categories = await categoryService.list();
-    return { data: categories.map(cat => cat.name) };
+    return { data: categories.map((cat) => cat.name) };
   } catch (error) {
-    console.error('Erro ao buscar categorias:', error);
+    console.error("Erro ao buscar categorias:", error);
     return { data: [] };
   }
 }
 
-export async function createProduct(product: Partial<Product>): Promise<Product> {
+export async function createProduct(
+  product: Partial<Product>
+): Promise<Product> {
   let user = getCurrentUser();
   // Adaptar os dados do frontend para o formato do backend
   const adaptedData: any = {
@@ -186,10 +199,29 @@ export async function createProduct(product: Partial<Product>): Promise<Product>
   };
 
   // Remover apenas campos que são realmente opcionais e estão completamente vazios
-  const optionalFields = ['description', 'originalPrice', 'costPrice', 'subcategory', 'brand', 'weight', 'length', 'width', 'height', 'image', 'model', 'color', 'size', 'material', 'stockLocation', 'origin', 'marketplaceIntegrations', 'internalNotes'];
-  optionalFields.forEach(field => {
+  const optionalFields = [
+    "description",
+    "originalPrice",
+    "costPrice",
+    "subcategory",
+    "brand",
+    "weight",
+    "length",
+    "width",
+    "height",
+    "image",
+    "model",
+    "color",
+    "size",
+    "material",
+    "stockLocation",
+    "origin",
+    "marketplaceIntegrations",
+    "internalNotes",
+  ];
+  optionalFields.forEach((field) => {
     const value = adaptedData[field];
-    if (value === undefined || value === null || value === '') {
+    if (value === undefined || value === null || value === "") {
       delete adaptedData[field];
     }
   });
@@ -209,12 +241,15 @@ export async function createProduct(product: Partial<Product>): Promise<Product>
   });
   if (!res.ok) {
     const error = await res.json();
-    throw new Error(error.message || 'Erro ao criar produto');
+    throw new Error(error.message || "Erro ao criar produto");
   }
   return await res.json();
 }
 
-export async function updateProduct(id: string, updated: Partial<Product>): Promise<Product> {
+export async function updateProduct(
+  id: string,
+  updated: Partial<Product>
+): Promise<Product> {
   let user = getCurrentUser();
   // Adaptar os dados do frontend para o formato do backend
   const adaptedData: any = {
@@ -257,10 +292,29 @@ export async function updateProduct(id: string, updated: Partial<Product>): Prom
   };
 
   // Remover apenas campos que são realmente opcionais e estão completamente vazios
-  const optionalFields = ['description', 'originalPrice', 'costPrice', 'subcategory', 'brand', 'weight', 'length', 'width', 'height', 'image', 'model', 'color', 'size', 'material', 'stockLocation', 'origin', 'marketplaceIntegrations', 'internalNotes'];
-  optionalFields.forEach(field => {
+  const optionalFields = [
+    "description",
+    "originalPrice",
+    "costPrice",
+    "subcategory",
+    "brand",
+    "weight",
+    "length",
+    "width",
+    "height",
+    "image",
+    "model",
+    "color",
+    "size",
+    "material",
+    "stockLocation",
+    "origin",
+    "marketplaceIntegrations",
+    "internalNotes",
+  ];
+  optionalFields.forEach((field) => {
     const value = adaptedData[field];
-    if (value === undefined || value === null || value === '') {
+    if (value === undefined || value === null || value === "") {
       delete adaptedData[field];
     }
   });
@@ -280,7 +334,7 @@ export async function updateProduct(id: string, updated: Partial<Product>): Prom
   });
   if (!res.ok) {
     const error = await res.json();
-    throw new Error(error.message || 'Erro ao atualizar produto');
+    throw new Error(error.message || "Erro ao atualizar produto");
   }
   return await res.json();
 }
@@ -292,6 +346,25 @@ export async function deleteProduct(id: string): Promise<void> {
   });
   if (!res.ok) {
     const error = await res.json();
-    throw new Error(error.message || 'Erro ao excluir produto');
+    throw new Error(error.message || "Erro ao excluir produto");
   }
+}
+
+export async function analyzeProduct(data: {
+  imageBase64: string;
+  nameInput?: string;
+  additionalText?: string;
+}): Promise<any> {
+  const res = await fetch(buildApiPath("/api/v1/ai/analyze"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...AUTH_HEADER() },
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.message || "Erro ao analisar produto com IA");
+  }
+
+  return await res.json();
 }

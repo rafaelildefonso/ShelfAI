@@ -1,28 +1,35 @@
-import axios from 'axios';
+import axios from "axios";
 import { buildApiPath } from "../config/api";
+import { toast } from "react-toastify";
 
 export const uploadImage = async (file: File): Promise<string> => {
   const formData = new FormData();
-  formData.append('image', file);
+  formData.append("image", file);
 
-  const endpoint = buildApiPath('/api/files/upload/product');
-  const response = await axios.post(endpoint, formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-      'Authorization': `Bearer ${localStorage.getItem('token')}`
+  const endpoint = buildApiPath("/api/files/upload/product");
+  try {
+    const response = await axios.post(endpoint, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+    return response.data.url;
+  } catch (error: any) {
+    if (error.response && error.response.status === 429) {
+      toast.error("Muitas requisições de upload. Aguarde um momento.");
     }
-  });
-
-  return response.data.url;
+    throw error;
+  }
 };
 
 export const deleteImage = async (imageUrl: string): Promise<void> => {
-  const endpoint = buildApiPath('/api/files/delete/product');
+  const endpoint = buildApiPath("/api/files/delete/product");
   await axios.delete(endpoint, {
     headers: {
-      'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      'Content-Type': 'application/json'
+      Authorization: `Bearer ${localStorage.getItem("token")}`,
+      "Content-Type": "application/json",
     },
-    data: { imageUrl }
+    data: { imageUrl },
   });
 };

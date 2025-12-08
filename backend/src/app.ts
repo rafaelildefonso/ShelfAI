@@ -1,19 +1,19 @@
-import express from 'express';
-import morgan from 'morgan';
-import cors from 'cors';
-import swaggerUi from 'swagger-ui-express';
-import { swaggerSpec } from './config/swagger.js';
-import { errorHandler } from './middlewares/errorHandler.js';
-import fileRoutes from './routes/fileRoutes.js';
-import productRoutes from './routes/productRoutes.js';
-import userRoutes from './routes/userRoutes.js';
-import categoryRoutes from './routes/categoryRoutes.js';
-import { config } from './config/env.js';
+import express from "express";
+import morgan from "morgan";
+import cors from "cors";
+import swaggerUi from "swagger-ui-express";
+import { swaggerSpec } from "./config/swagger.js";
+import { errorHandler } from "./middlewares/errorHandler.js";
+import fileRoutes from "./routes/fileRoutes.js";
+import productRoutes from "./routes/productRoutes.js";
+import userRoutes from "./routes/userRoutes.js";
+import categoryRoutes from "./routes/categoryRoutes.js";
+import { config } from "./config/env.js";
 
 declare global {
   namespace NodeJS {
     interface ProcessEnv {
-      NODE_ENV?: 'development' | 'production' | 'test';
+      NODE_ENV?: "development" | "production" | "test";
       PORT?: string;
       FRONTEND_URL?: string;
     }
@@ -25,11 +25,14 @@ const app = express();
 // Configuração do CORS
 const normalizeOrigin = (url: string) => {
   // Remove a barra no final da URL, se existir
-  return url.endsWith('/') ? url.slice(0, -1) : url;
+  return url.endsWith("/") ? url.slice(0, -1) : url;
 };
 
 const corsOptions: cors.CorsOptions = {
-  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+  origin: (
+    origin: string | undefined,
+    callback: (err: Error | null, allow?: boolean) => void
+  ) => {
     if (!origin || !config.FRONTEND_URL) {
       callback(null, true);
       return;
@@ -41,19 +44,26 @@ const corsOptions: cors.CorsOptions = {
     if (normalizedOrigin === normalizedAllowedOrigin) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      callback(new Error("Not allowed by CORS"));
     }
   },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
 };
 
+import helmet from "helmet";
+import { apiLimiter } from "./middlewares/rateLimiter.js";
+
 // Middlewares
+app.use(helmet());
 app.use(cors(corsOptions));
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true, parameterLimit: 50000 }));
-app.use(morgan('dev'));
+app.use(express.json({ limit: "50mb" }));
+app.use(
+  express.urlencoded({ limit: "50mb", extended: true, parameterLimit: 50000 })
+);
+app.use(morgan("dev"));
+app.use("/api", apiLimiter);
 
 // Increase the HTTP request timeout
 app.use((req, res, next) => {
@@ -63,32 +73,34 @@ app.use((req, res, next) => {
 });
 
 // Documentação da API
-if (process.env.NODE_ENV !== 'production') {
-  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+if (process.env.NODE_ENV !== "production") {
+  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 }
 
-import authRoutes from './routes/authRoutes.js';
-import importExportRoutes from './routes/importExportRoutes.js';
-import notificationRoutes from './routes/notificationRoutes.js';
-import activityRoutes from './routes/activityRoutes.js';
-import adminRoutes from './routes/adminRoutes.js';
+import authRoutes from "./routes/authRoutes.js";
+import importExportRoutes from "./routes/importExportRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
+import activityRoutes from "./routes/activityRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
+import geminiRoutes from "./routes/geminiRoutes.js";
 
 // Rotas
-app.use('/api/files', fileRoutes);
-app.use('/api/v1/products', productRoutes);
-app.use('/api/v1/users', userRoutes);
-app.use('/api/v1/categories', categoryRoutes);
-app.use('/api/v1/auth', authRoutes);
-app.use('/api/v1/import-export', importExportRoutes);
-app.use('/api/v1/notifications', notificationRoutes);
-app.use('/api/v1/activities', activityRoutes);
-app.use('/api/v1/admin', adminRoutes);
+app.use("/api/files", fileRoutes);
+app.use("/api/v1/products", productRoutes);
+app.use("/api/v1/users", userRoutes);
+app.use("/api/v1/categories", categoryRoutes);
+app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/import-export", importExportRoutes);
+app.use("/api/v1/notifications", notificationRoutes);
+app.use("/api/v1/activities", activityRoutes);
+app.use("/api/v1/admin", adminRoutes);
+app.use("/api/v1/ai", geminiRoutes);
 
 // Rota de saúde
 
 // Rota de saúde
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
 // Middleware de tratamento de erros

@@ -6,6 +6,11 @@ import type { Product } from "../types/productType";
 import { useEffect, useState } from "react";
 import { getProductById } from "../services/productService";
 import Loading from "../components/Loading";
+import {
+  getMissingFields,
+  calculateProductStatus,
+} from "../utils/productUtils";
+import { supabase } from "../services/supabaseClient";
 
 // Componente para exibir uma seção de detalhes
 const DetailSection = ({
@@ -54,19 +59,45 @@ const ProductDetailScreen = () => {
   const [error, setError] = useState<string | null>(null);
 
   // const product = products.find((p) => p.id === id);
+  const fetchProduct = async () => {
+    try {
+      const productData = await getProductById(id!);
+      setProduct(productData);
+    } catch (error) {
+      setError("Erro ao carregar o produto");
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchProduct = async () => {
-      try {
-        const productData = await getProductById(id!);
-        setProduct(productData);
-      } catch (error) {
-        setError("Erro ao carregar o produto");
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchProduct();
+
+    const subscription = supabase
+      .channel(`product-detail-${id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "Product",
+          filter: `id=eq.${id}`,
+        },
+        (payload) => {
+          if (payload.eventType === "DELETE") {
+            alert("Este produto foi excluído.");
+            navigate("/products");
+          } else {
+            fetchProduct();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [id]);
 
   if (loading) {
@@ -184,7 +215,10 @@ const ProductDetailScreen = () => {
           {/* Coluna da Esquerda (Imagens e Ações) */}
           <div className="lg:col-span-1">
             <div className="bg-(--surface-color) rounded-lg shadow p-4">
-              <div className="main-image mb-4 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-md overflow-hidden" style={{ minHeight: '300px' }}>
+              <div
+                className="main-image mb-4 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-md overflow-hidden"
+                style={{ minHeight: "300px" }}
+              >
                 {currentMainImage ? (
                   <img
                     src={currentMainImage}
@@ -194,7 +228,9 @@ const ProductDetailScreen = () => {
                 ) : (
                   <div className="text-center p-6">
                     <i className="fa-solid fa-image text-6xl text-gray-400 dark:text-gray-500 mb-4"></i>
-                    <p className="text-gray-500 dark:text-gray-400">Sem imagem disponível</p>
+                    <p className="text-gray-500 dark:text-gray-400">
+                      Sem imagem disponível
+                    </p>
                   </div>
                 )}
               </div>
@@ -223,13 +259,53 @@ const ProductDetailScreen = () => {
                 )}
               </div>
             </div>
+
+            {/* Missing Fields Checklist */}
+            {(() => {
+              const missingFields = getMissingFields(product);
+              const status = calculateProductStatus(product);
+
+              if (status === "incomplete" && missingFields.length > 0) {
+                return (
+                  <div className="border border-yellow-400 rounded-lg p-4 mt-4">
+                    <div className="flex items-center gap-2 mb-3 text-yellow-500">
+                      <i className="fa-solid fa-triangle-exclamation"></i>
+                      <h3 className="font-semibold">
+                        Campos Obrigatórios Faltando
+                      </h3>
+                    </div>
+                    <ul className="space-y-2">
+                      {missingFields.map((field, index) => (
+                        <li
+                          key={index}
+                          className="flex items-center gap-2 text-sm text-yellow-400"
+                        >
+                          <i className="fa-regular fa-square"></i>
+                          <span>{field}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <button
+                      onClick={handleEdit}
+                      className="mt-4 w-full bg-yellow-400 hover:bg-yellow-500 text-white py-2 px-4 rounded-md transition-colors text-sm font-medium flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <i className="fa-solid fa-pen"></i>
+                      Preencher Agora
+                    </button>
+                  </div>
+                );
+              }
+              return null;
+            })()}
           </div>
 
           {/* Coluna da Direita (Detalhes) */}
           <div className="lg:col-span-2">
             <DetailSection title="Informações Gerais">
               <DetailItem label="Nome do Produto" value={product.name} />
-              {product.sku && <DetailItem label="SKU / ID Interno" value={product.sku} />}
+              {product.sku && (
+                <DetailItem label="SKU / ID Interno" value={product.sku} />
+              )}
               <DetailItem
                 label="Status"
                 value={
@@ -273,10 +349,7 @@ const ProductDetailScreen = () => {
                 <DetailItem label="Material" value={product.material} />
               )}
               {product.weight && product.weight > 0 && (
-                <DetailItem
-                  label="Peso"
-                  value={`${product.weight} kg`}
-                />
+                <DetailItem label="Peso" value={`${product.weight} kg`} />
               )}
               {(product.length || product.width || product.height) && (
                 <DetailItem
@@ -303,6 +376,69 @@ const ProductDetailScreen = () => {
                 />
               )}
             </DetailSection>
+
+            {/* Seção de Especificações do Template */}
+            {product.templateData &&
+              Object.keys(product.templateData).length > 0 && (
+                <DetailSection title="Especificações">
+                  {Object.entries(product.templateData)
+                    .filter(
+                      ([_, value]) =>
+                        value !== undefined && value !== null && value !== ""
+                    )
+                    .map(([fieldId, value]) => {
+                      // Mapeamento de IDs para labels
+                      const fieldLabels: Record<string, string> = {
+                        size: "Tamanho",
+                        color: "Cor",
+                        material: "Material",
+                        gender: "Gênero",
+                        season: "Temporada",
+                        care_instructions: "Instruções de Cuidado",
+                        heel_height: "Altura do Salto (cm)",
+                        sole_type: "Tipo de Sola",
+                        closure_type: "Tipo de Fechamento",
+                        brand: "Marca",
+                        model: "Modelo",
+                        storage: "Armazenamento",
+                        screen_size: "Tamanho da Tela",
+                        warranty: "Garantia",
+                        operating_system: "Sistema Operacional",
+                        dimensions: "Dimensões",
+                        weight: "Peso",
+                        assembly_required: "Requer Montagem",
+                        room_type: "Tipo de Ambiente",
+                        sport_type: "Tipo de Esporte",
+                        age_group: "Faixa Etária",
+                        product_type: "Tipo de Produto",
+                        skin_type: "Tipo de Pele",
+                        volume: "Volume/Peso",
+                        fragrance: "Fragrância",
+                        cruelty_free: "Cruelty Free",
+                      };
+
+                      const label =
+                        fieldLabels[fieldId] ||
+                        fieldId
+                          .replace(/_/g, " ")
+                          .replace(/\b\w/g, (l: string) => l.toUpperCase());
+                      const displayValue =
+                        typeof value === "boolean"
+                          ? value
+                            ? "Sim"
+                            : "Não"
+                          : String(value);
+
+                      return (
+                        <DetailItem
+                          key={fieldId}
+                          label={label}
+                          value={displayValue}
+                        />
+                      );
+                    })}
+                </DetailSection>
+              )}
 
             <DetailSection title="Estoque e Localização">
               <DetailItem
