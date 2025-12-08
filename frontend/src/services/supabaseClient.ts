@@ -5,10 +5,10 @@ const supabaseUrl =
 const supabaseAnonKey =
   import.meta.env.ANON_DATABASE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-console.log("Supabase Client Init:", {
-  url: supabaseUrl,
-  keyLength: supabaseAnonKey?.length,
-});
+// console.log("Supabase Client Init:", {
+//   url: supabaseUrl,
+//   keyLength: supabaseAnonKey?.length,
+// });
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error(
