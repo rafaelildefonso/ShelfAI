@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { GeminiService } from "../services/GeminiService";
+import { GeminiService } from "../services/GeminiService.js";
 
 const geminiService = new GeminiService();
 
