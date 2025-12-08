@@ -46,21 +46,22 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
     if (isAuthenticated) {
       reload();
 
-      console.log(
-        "Setting up Supabase subscription for ALL tables (debugging)..."
-      );
+      // console.log(
+      //   "Setting up Supabase subscription for ALL tables (debugging)..."
+      // );
       subscription = supabase
         .channel("product-context-changes")
         .on("postgres_changes", { event: "*", schema: "public" }, (payload) => {
-          console.log("Realtime update received!", payload);
-          console.log("Table name:", payload.table);
+          // console.log("Realtime update received!", payload);
+          // console.log("Table name:", payload.table);
           // Reload if it's the product table (checking both cases)
           if (payload.table === "Product" || payload.table === "product") {
             reload();
           }
         })
         .subscribe((status) => {
-          console.log("Supabase subscription status:", status);
+          // console.log("Supabase subscription status:", status);
+          status;
         });
     } else {
       setLoading(false);
