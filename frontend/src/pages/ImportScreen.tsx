@@ -12,6 +12,7 @@ import {
 } from "../services/importService";
 import { useProducts } from "../context/ProductContext";
 import { useNavigate } from "react-router-dom";
+import { convertJsonFileToCsv, downloadSampleFile } from "../utils/fileUtils";
 
 interface ImportStep {
   id: "upload" | "preview" | "mapping" | "confirm";
@@ -32,7 +33,8 @@ const ImportScreen = () => {
     "upload" | "preview" | "mapping" | "confirm"
   >("upload");
   const [file, setFile] = useState<File | null>(null);
-  const [fileType, setFileType] = useState<"csv" | "xlsx">("csv");
+  const [fileType, setFileType] = useState<"csv" | "xlsx" | "json">("csv");
+  const [displayFileName, setDisplayFileName] = useState<string>("");
   const [delimiter, setDelimiter] = useState(",");
   const [isDragging, setIsDragging] = useState(false);
 
@@ -56,6 +58,7 @@ const ImportScreen = () => {
   const [loading, setLoading] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [error, setError] = useState<string>("");
+  const [showDownloadMenu, setShowDownloadMenu] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -86,13 +89,31 @@ const ImportScreen = () => {
     }
   };
 
-  const handleFileSelect = (selectedFile: File) => {
-    setFile(selectedFile);
+  const handleFileSelect = async (selectedFile: File) => {
     setError("");
+    setDisplayFileName(selectedFile.name);
 
     // Determinar tipo de arquivo
     const extension = selectedFile.name.split(".").pop()?.toLowerCase();
-    const newFileType = extension === "csv" ? "csv" : "xlsx";
+
+    let fileToProcess = selectedFile;
+    let newFileType: "csv" | "xlsx" | "json" = "csv"; // Default fallback
+
+    if (extension === "json") {
+      try {
+        fileToProcess = await convertJsonFileToCsv(selectedFile);
+        newFileType = "json"; // UI shows JSON, logic treats as converted CSV
+      } catch (err: any) {
+        setError(err.message || "Erro ao processar arquivo JSON");
+        return;
+      }
+    } else if (extension === "xlsx" || extension === "xls") {
+      newFileType = "xlsx";
+    } else {
+      newFileType = "csv";
+    }
+
+    setFile(fileToProcess);
     setFileType(newFileType);
 
     // Resetar estados
@@ -120,6 +141,7 @@ const ImportScreen = () => {
   const removeFile = (e?: React.MouseEvent) => {
     e?.stopPropagation();
     setFile(null);
+    setDisplayFileName("");
     setPreviewData(null);
     setMapping({});
     setSelectedTemplate(null);
@@ -132,26 +154,15 @@ const ImportScreen = () => {
 
     try {
       setError("");
+      setPreviewLoading(true);
       const preview = await importService.previewTest(file);
       setPreviewData(preview);
       setMapping(preview.suggestedMapping || {});
       setCurrentStep("preview");
     } catch (err: any) {
       setError(`Test Preview: ${err.message}`);
-    }
-  };
-
-  const handleTestXlsx = async () => {
-    if (!file) return;
-
-    try {
-      setError("");
-      const preview = await importService.testXlsx(file);
-      setPreviewData(preview);
-      setMapping(preview.suggestedMapping || {});
-      setCurrentStep("preview");
-    } catch (err: any) {
-      setError(`Test XLSX: ${err.message}`);
+    } finally {
+      setPreviewLoading(false);
     }
   };
 
@@ -160,12 +171,15 @@ const ImportScreen = () => {
 
     try {
       setError("");
+      setPreviewLoading(true);
       const preview = await importService.testXlsxSimple(file);
       setPreviewData(preview);
       setMapping(preview.suggestedMapping || {});
       setCurrentStep("preview");
     } catch (err: any) {
       setError(`Test XLSX Simple: ${err.message}`);
+    } finally {
+      setPreviewLoading(false);
     }
   };
   const handleProceedToMapping = () => {
@@ -208,7 +222,9 @@ const ImportScreen = () => {
         saveTemplate,
         templateName: saveTemplate ? templateName : undefined,
         templateDescription: saveTemplate ? templateDescription : undefined,
-        delimiter: fileType === "csv" ? delimiter : undefined,
+
+        delimiter:
+          fileType === "csv" || fileType === "json" ? delimiter : undefined,
       });
 
       setResult(importResult);
@@ -230,6 +246,7 @@ const ImportScreen = () => {
   // Função para resetar tudo
   const handleReset = () => {
     setFile(null);
+    setDisplayFileName("");
     setPreviewData(null);
     setMapping({});
     setSelectedTemplate(null);
@@ -271,6 +288,51 @@ const ImportScreen = () => {
             </p>
           </div>
 
+          <div className="relative mb-6 flex justify-end">
+            <button
+              className="btn btn-outline flex items-center gap-2"
+              onClick={() => setShowDownloadMenu(!showDownloadMenu)}
+            >
+              <i className="fa-solid fa-download"></i>
+              Baixar Modelo / Template
+              <i className="fa-solid fa-chevron-down text-xs ml-1"></i>
+            </button>
+
+            {showDownloadMenu && (
+              <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200">
+                <button
+                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 cursor-pointer"
+                  onClick={() => {
+                    downloadSampleFile("csv");
+                    setShowDownloadMenu(false);
+                  }}
+                >
+                  <i className="fa-solid fa-file-csv text-green-600"></i> Modelo
+                  CSV
+                </button>
+                <button
+                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 cursor-pointer"
+                  onClick={() => {
+                    downloadSampleFile("xlsx");
+                    setShowDownloadMenu(false);
+                  }}
+                >
+                  <i className="fa-solid fa-file-excel text-green-600"></i>{" "}
+                  Modelo Excel
+                </button>
+                <button
+                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 cursor-pointer"
+                  onClick={() => {
+                    downloadSampleFile("json");
+                    setShowDownloadMenu(false);
+                  }}
+                >
+                  <i className="fa-solid fa-code text-blue-600"></i> Modelo JSON
+                </button>
+              </div>
+            )}
+          </div>
+
           {/* Indicador de progresso */}
           <div className="import-progress">
             {IMPORT_STEPS.map((step, index) => (
@@ -302,7 +364,7 @@ const ImportScreen = () => {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".csv,.xlsx,.xls"
+                  accept=".csv,.xlsx,.xls,.json"
                   style={{ display: "none" }}
                   onChange={handleFileChange}
                 />
@@ -310,7 +372,7 @@ const ImportScreen = () => {
                   <i className="fa-solid fa-cloud-arrow-up"></i>
                   <p>
                     {file
-                      ? `Arquivo selecionado: ${file.name}`
+                      ? `Arquivo selecionado: ${displayFileName}`
                       : isDragging
                       ? "Solte o arquivo para importar"
                       : "Arraste e solte o arquivo aqui ou clique para selecionar"}
@@ -336,7 +398,7 @@ const ImportScreen = () => {
                   <div className="config-header">
                     <h3>Configurações do Arquivo</h3>
                     <div className="file-info">
-                      <span className="file-name">{file.name}</span>
+                      <span className="file-name">{displayFileName}</span>
                       <span className="file-size">
                         ({(file.size / 1024).toFixed(1)} KB)
                       </span>
@@ -349,14 +411,18 @@ const ImportScreen = () => {
                       <div className="file-type-display">
                         <i
                           className={`fa-solid ${
-                            fileType === "csv" ? "fa-file-csv" : "fa-file-excel"
+                            fileType === "csv"
+                              ? "fa-file-csv"
+                              : fileType === "xlsx"
+                              ? "fa-file-excel"
+                              : "fa-file-code"
                           }`}
                         ></i>
                         <span>{fileType.toUpperCase()}</span>
                       </div>
                     </div>
 
-                    {fileType === "csv" && (
+                    {(fileType === "csv" || fileType === "json") && (
                       <div className="config-group">
                         <label>Delimitador</label>
                         <select
@@ -488,7 +554,7 @@ const ImportScreen = () => {
                   <div className="summary-grid">
                     <div className="summary-item">
                       <span className="summary-label">Arquivo:</span>
-                      <span className="summary-value">{file?.name}</span>
+                      <span className="summary-value">{displayFileName}</span>
                     </div>
                     <div className="summary-item">
                       <span className="summary-label">Total de linhas:</span>

@@ -6,7 +6,7 @@ import type { ModalType } from "./common/Modal";
 interface TemplateManagerProps {
   onTemplateSelect: (template: ImportTemplate | null) => void;
   selectedTemplateId?: string;
-  fileType?: "csv" | "xlsx";
+  fileType?: "csv" | "xlsx" | "json";
 }
 
 const TemplateManager: React.FC<TemplateManagerProps> = ({
@@ -221,10 +221,12 @@ const TemplateManager: React.FC<TemplateManagerProps> = ({
             >
               <option value="csv">CSV</option>
               <option value="xlsx">Excel (.xlsx)</option>
+              <option value="json">JSON</option>
             </select>
           </div>
 
-          {newTemplate.fileType === "csv" && (
+          {(newTemplate.fileType === "csv" ||
+            newTemplate.fileType === "json") && (
             <div className="form-group">
               <label>Delimitador</label>
               <select
@@ -299,7 +301,9 @@ const TemplateManager: React.FC<TemplateManagerProps> = ({
                       className={`fa-solid ${
                         template.fileType === "csv"
                           ? "fa-file-csv"
-                          : "fa-file-excel"
+                          : template.fileType === "xlsx"
+                          ? "fa-file-excel"
+                          : "fa-file-code"
                       }`}
                     ></i>
                     {template.fileType.toUpperCase()}

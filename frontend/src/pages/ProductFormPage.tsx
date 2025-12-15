@@ -9,6 +9,8 @@ import ImageGallery from "../components/ImageGallery";
 import "./../App.css";
 import { getProductById, analyzeProduct } from "../services/productService";
 import type { Category } from "../services/categoryService";
+import { uploadImage } from "../services/fileService";
+import imageCompression from "browser-image-compression";
 import { useCategories } from "../context/CategoryContext";
 import { useProducts } from "../context/ProductContext";
 import type { Product } from "../types/productType";
@@ -23,56 +25,7 @@ import {
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB in bytes
 
 // Utility function to compress images
-const compressImage = (
-  file: File,
-  maxWidth = 800,
-  quality = 0.6
-): Promise<string> => {
-  // Check file size before processing
-  if (file.size > MAX_IMAGE_SIZE) {
-    return Promise.reject(
-      new Error("Tamanho da imagem excede o limite de 5MB")
-    );
-  }
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        let width = img.width;
-        let height = img.height;
-
-        // Calculate new dimensions
-        if (width > maxWidth) {
-          height = Math.round((height * maxWidth) / width);
-          width = maxWidth;
-        }
-
-        // Set canvas dimensions
-        canvas.width = width;
-        canvas.height = height;
-
-        // Draw and compress image
-        const ctx = canvas.getContext("2d");
-        if (!ctx) {
-          reject(new Error("Could not get canvas context"));
-          return;
-        }
-
-        ctx.drawImage(img, 0, 0, width, height);
-
-        // Convert to JPEG with specified quality
-        const compressedDataUrl = canvas.toDataURL("image/jpeg", quality);
-        resolve(compressedDataUrl);
-      };
-      img.onerror = () => reject(new Error("Failed to load image"));
-      img.src = event.target?.result as string;
-    };
-    reader.onerror = () => reject(new Error("Failed to read file"));
-    reader.readAsDataURL(file);
-  });
-};
+// Removed local compressImage in favor of browser-image-compression
 
 const ProductFormPage = () => {
   const navigate = useNavigate();
@@ -399,17 +352,6 @@ const ProductFormPage = () => {
       [fieldId]: value,
     }));
   };
-
-  // const handleTagsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  //   const tags = e.target.value
-  //     .split(",")
-  //     .map((tag) => tag.trim())
-  //     .filter((tag) => tag);
-  //   setProduct((prev: ProductFormData) => ({
-  //     ...prev,
-  //     tags,
-  //   }));
-  // };
 
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
@@ -822,32 +764,53 @@ const ProductFormPage = () => {
 
     if (processableFiles.length === 0) return;
 
+    const MAX_IMAGES = 5;
+
+    if (
+      product.images.length >= MAX_IMAGES ||
+      product.images.length + processableFiles.length > MAX_IMAGES
+    ) {
+      toast.warning(
+        `Você pode adicionar no máximo ${MAX_IMAGES} imagens por produto.`
+      );
+      return;
+    }
+
     try {
-      const compressedImages = await Promise.all(
+      const processedImages = await Promise.all(
         processableFiles.map(async (file) => {
           try {
-            return await compressImage(file);
+            // Compress image
+            const options = {
+              maxSizeMB: 1,
+              maxWidthOrHeight: 1920,
+              useWebWorker: true,
+            };
+            const compressedFile = await imageCompression(file, options);
+
+            // Upload to Cloudinary via backend
+            const url = await uploadImage(compressedFile);
+            return url;
           } catch (e) {
-            console.error("Compression failed, using raw file", e);
-            return new Promise<string>((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onloadend = () => resolve(reader.result as string);
-              reader.onerror = reject;
-              reader.readAsDataURL(file);
-            });
+            console.error("Upload/Compression failed", e);
+            toast.error(`Erro ao enviar imagem: ${file.name}`);
+            return null;
           }
         })
       );
 
+      // Filter out failed uploads (nulls)
+      const successUrls = processedImages.filter(
+        (url) => url !== null
+      ) as string[];
+
       setProduct((prev) => ({
         ...prev,
-        images: [...prev.images, ...compressedImages],
+        images: [...prev.images, ...successUrls],
       }));
 
-      if (compressedImages.length > 0) {
-        toast.success(
-          `${compressedImages.length} imagens adicionadas com sucesso!`
-        );
+      if (successUrls.length > 0) {
+        toast.success(`${successUrls.length} imagens adicionadas com sucesso!`);
       }
     } catch (error) {
       console.error("Error processing images:", error);

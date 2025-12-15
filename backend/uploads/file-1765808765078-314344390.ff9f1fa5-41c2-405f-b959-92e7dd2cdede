@@ -1,0 +1,3 @@
+name,description,price,originalPrice,costPrice,sku,category,subcategory,brand,status,weight,length,width,height,tags,featured,active,image,stock,minStock,barcode,model,color,size,material,stockLocation,origin
+Smartphone X Pro,Smartphone de última geração com câmera 8K,2999.9,3499.9,1800,SM-X-PRO-128,Eletrônicos,Smartphones,TechBrand,active,0.18,15,7.5,0.8,"smartphone,5g,android",TRUE,TRUE,https://example.com/image1.jpg,50,5,7891234567890,Pro 2024,Preto,128GB,Alumínio,A-12-3,import
+Camiseta Algodão Premium,"Camiseta 100% algodão, super confortável",89.9,119.9,25,TSH-COT-BLK-M,Roupas,Camisetas,FashionWear,active,0.2,30,25,2,"moda,verão,básico",FALSE,TRUE,,100,10,7891234567891,Basic Fit,Preto,M,Algodão,B-05-1,manual

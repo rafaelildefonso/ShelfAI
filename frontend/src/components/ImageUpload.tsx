@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import imageCompression from "browser-image-compression";
 import { uploadImage } from "../services/fileService";
 import Modal from "./common/Modal";
 import type { ModalType } from "./common/Modal";
@@ -58,7 +59,18 @@ export const ImageUpload = ({
 
       try {
         setIsUploading(true);
-        const url = await uploadImage(file);
+
+        // Compress image
+        const options = {
+          maxSizeMB: 1,
+          maxWidthOrHeight: 1920,
+          useWebWorker: true,
+        };
+
+        const compressedFile = await imageCompression(file, options);
+
+        // Upload compressed file
+        const url = await uploadImage(compressedFile);
         onChange(url);
       } catch (error) {
         console.error("Error uploading image:", error);
