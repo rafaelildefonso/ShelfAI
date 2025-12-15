@@ -4,6 +4,8 @@ import Header from "../components/Header";
 import SideBarMenu from "../components/SideBarMenu";
 import type { Product } from "../types/productType";
 import { useEffect, useState } from "react";
+import Modal from "../components/common/Modal";
+import type { ModalType } from "../components/common/Modal";
 import { getProductById } from "../services/productService";
 import Loading from "../components/Loading";
 import {
@@ -58,6 +60,39 @@ const ProductDetailScreen = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Modal State
+  const [modalConfig, setModalConfig] = useState<{
+    isOpen: boolean;
+    type: ModalType;
+    title: string;
+    message: string;
+    onConfirm?: () => void;
+  }>({
+    isOpen: false,
+    type: "alert",
+    title: "",
+    message: "",
+  });
+
+  const closeModal = () => {
+    setModalConfig((prev) => ({ ...prev, isOpen: false }));
+  };
+
+  const showModal = (
+    type: ModalType,
+    title: string,
+    message: string,
+    onConfirm?: () => void
+  ) => {
+    setModalConfig({
+      isOpen: true,
+      type,
+      title,
+      message,
+      onConfirm,
+    });
+  };
+
   // const product = products.find((p) => p.id === id);
   const fetchProduct = async () => {
     try {
@@ -86,8 +121,9 @@ const ProductDetailScreen = () => {
         },
         (payload) => {
           if (payload.eventType === "DELETE") {
-            alert("Este produto foi excluído.");
-            navigate("/products");
+            showModal("alert", "Atenção", "Este produto foi excluído.", () =>
+              navigate("/products")
+            );
           } else {
             fetchProduct();
           }
@@ -147,15 +183,22 @@ const ProductDetailScreen = () => {
       name: `${product.name} (Cópia)`,
     };
     addProduct(duplicatedProduct);
-    alert("Produto duplicado com sucesso!");
-    navigate("/products");
+    showModal("success", "Sucesso", "Produto duplicado com sucesso!", () =>
+      navigate("/products")
+    );
   };
 
   const handleDelete = () => {
-    if (window.confirm("Tem certeza que deseja excluir este produto?")) {
-      removeProduct(product.id);
-      navigate("/products");
-    }
+    showModal(
+      "confirm",
+      "Confirmar Exclusão",
+      "Tem certeza que deseja excluir este produto?",
+      () => {
+        removeProduct(product!.id);
+        navigate("/products");
+        closeModal();
+      }
+    );
   };
 
   const profitMargin =
@@ -495,6 +538,15 @@ const ProductDetailScreen = () => {
           </div>
         </div>
       </main>
+
+      <Modal
+        isOpen={modalConfig.isOpen}
+        onClose={closeModal}
+        type={modalConfig.type}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        onConfirm={modalConfig.onConfirm}
+      />
     </div>
   );
 };

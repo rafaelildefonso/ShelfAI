@@ -384,7 +384,7 @@ const RegisterPage = () => {
               <div className="auth-header">
                 <Link to="/" className="auth-logo">
                   <div className="logo-icon">
-                    <i className="fa-solid fa-boxes-stacked"></i>
+                    <img src="/icon-image.png" alt="" />
                   </div>
                   <span className="logo-text">ShelfAI</span>
                 </Link>

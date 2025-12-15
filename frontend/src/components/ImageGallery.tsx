@@ -50,8 +50,8 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
         <div
           className={`cursor-pointer border-2 border-dashed rounded-lg p-8 flex flex-col items-center justify-center transition-colors ${
             isDragging
-              ? "border-blue-500 bg-blue-50/50"
-              : "border-gray-300 hover:border-gray-400"
+              ? "border-[var(--accent-color)] bg-[var(--bg-color)]"
+              : "border-[var(--border-color)] hover:border-[var(--accent-color)]"
           }`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
@@ -66,13 +66,24 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
             ref={fileInputRef}
             onChange={handleFileInput}
           />
-          <div className="w-12 h-12 mb-3 text-gray-400">
+          <div
+            className="w-12 h-12 mb-3"
+            style={{ color: "var(--text-secondary-color)" }}
+          >
             <i className="fa-solid fa-cloud-arrow-up text-4xl"></i>
           </div>
-          <p className="text-gray-600 font-medium mb-1">
+          <p
+            className="font-medium mb-1"
+            style={{ color: "var(--text-color)" }}
+          >
             Arraste imagens ou clique para selecionar
           </p>
-          <p className="text-gray-400 text-sm">PNG, JPG ou WEBP (Max 5MB)</p>
+          <p
+            className="text-sm"
+            style={{ color: "var(--text-secondary-color)" }}
+          >
+            PNG, JPG ou WEBP (Max 5MB)
+          </p>
         </div>
       </div>
 
@@ -100,7 +111,8 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
               drag
               dragConstraints={constraintsRef}
               dragElastic={0.1}
-              className="relative aspect-square rounded-lg overflow-hidden group shadow-sm bg-white cursor-move touch-none"
+              className="relative aspect-square rounded-lg overflow-hidden group shadow-sm cursor-move touch-none"
+              style={{ backgroundColor: "var(--surface-color)" }}
               whileDrag={{
                 scale: 1.05,
                 boxShadow: "0 10px 20px rgba(0,0,0,0.15)",
@@ -134,7 +146,14 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
       </Reorder.Group>
 
       {images.length === 0 && (
-        <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border border-gray-200 border-dashed">
+        <div
+          className="text-center py-8 rounded-lg border border-dashed"
+          style={{
+            color: "var(--text-secondary-color)",
+            backgroundColor: "var(--bg-color)",
+            borderColor: "var(--border-color)",
+          }}
+        >
           <p>Nenhuma imagem adicionada</p>
         </div>
       )}

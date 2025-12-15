@@ -6,7 +6,8 @@ const geminiService = new GeminiService();
 export class GeminiController {
   async analyzeProduct(req: Request, res: Response) {
     try {
-      const { imageBase64, nameInput, additionalText } = req.body;
+      const { imageBase64, nameInput, additionalText, templateContext } =
+        req.body;
 
       if (!imageBase64) {
         return res.status(400).json({ error: "Image is required" });
@@ -16,6 +17,7 @@ export class GeminiController {
         imageBase64,
         nameInput,
         additionalText,
+        templateContext,
       });
 
       return res.json(analysis);

@@ -15,6 +15,8 @@ import {
   FaFileImport,
 } from "react-icons/fa";
 import { supabase } from "../services/supabaseClient";
+import Modal from "../components/common/Modal";
+import type { ModalType } from "../components/common/Modal";
 
 interface Category {
   id: string;
@@ -35,6 +37,38 @@ const AdminDashboard: React.FC = () => {
     description: "",
   });
   const [showImportModal, setShowImportModal] = useState(false);
+
+  const [modalConfig, setModalConfig] = useState<{
+    isOpen: boolean;
+    type: ModalType;
+    title: string;
+    message: string;
+    onConfirm?: () => void;
+  }>({
+    isOpen: false,
+    type: "alert",
+    title: "",
+    message: "",
+  });
+
+  const closeModal = () => {
+    setModalConfig((prev) => ({ ...prev, isOpen: false }));
+  };
+
+  const showModal = (
+    type: ModalType,
+    title: string,
+    message: string,
+    onConfirm?: () => void
+  ) => {
+    setModalConfig({
+      isOpen: true,
+      type,
+      title,
+      message,
+      onConfirm,
+    });
+  };
 
   // Redirect if not admin
   useEffect(() => {
@@ -129,16 +163,22 @@ const AdminDashboard: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm("Tem certeza que deseja excluir esta categoria?")) {
-      try {
-        await adminService.deleteDefaultCategory(id);
-        toast.success("Categoria excluída com sucesso!");
-        await loadCategories();
-      } catch (error) {
-        console.error("Error deleting category:", error);
-        toast.error("Erro ao excluir categoria");
+    showModal(
+      "confirm",
+      "Excluir Categoria",
+      "Tem certeza que deseja excluir esta categoria?",
+      async () => {
+        closeModal();
+        try {
+          await adminService.deleteDefaultCategory(id);
+          toast.success("Categoria excluída com sucesso!");
+          await loadCategories();
+        } catch (error) {
+          console.error("Error deleting category:", error);
+          toast.error("Erro ao excluir categoria");
+        }
       }
-    }
+    );
   };
 
   if (loading || !user) {
@@ -373,6 +413,15 @@ const AdminDashboard: React.FC = () => {
           </div>
         </div>
       )}
+
+      <Modal
+        isOpen={modalConfig.isOpen}
+        onClose={closeModal}
+        type={modalConfig.type}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        onConfirm={modalConfig.onConfirm}
+      />
     </div>
   );
 };

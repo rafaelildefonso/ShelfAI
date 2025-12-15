@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import SideBarMenu from "../components/SideBarMenu";
 import Header from "../components/Header";
 import { useAuth } from "../context/AuthContext";
+import Modal from "../components/common/Modal";
+import type { ModalType } from "../components/common/Modal";
 
 interface SettingsSection {
   id: string;
@@ -66,6 +68,33 @@ const SettingsScreen = () => {
     autoSync: false,
     syncInterval: 60, // minutos
   });
+
+  // Modal State
+  const [modalConfig, setModalConfig] = useState<{
+    isOpen: boolean;
+    type: ModalType;
+    title: string;
+    message: string;
+    onConfirm?: () => void;
+  }>({
+    isOpen: false,
+    type: "alert",
+    title: "",
+    message: "",
+  });
+
+  const closeModal = () => {
+    setModalConfig((prev) => ({ ...prev, isOpen: false }));
+  };
+
+  const showModal = (type: ModalType, title: string, message: string) => {
+    setModalConfig({
+      isOpen: true,
+      type,
+      title,
+      message,
+    });
+  };
 
   // Carregar configurações do usuário quando o componente montar
   useEffect(() => {
@@ -135,10 +164,14 @@ const SettingsScreen = () => {
       await updateProfile({
         settings: settings,
       });
-      alert("Configurações salvas com sucesso!");
+      showModal("success", "Sucesso", "Configurações salvas com sucesso!");
     } catch (error) {
       console.error("Erro ao salvar configurações:", error);
-      alert("Erro ao salvar configurações. Tente novamente.");
+      showModal(
+        "error",
+        "Erro",
+        "Erro ao salvar configurações. Tente novamente."
+      );
     }
   };
 
@@ -763,6 +796,15 @@ const SettingsScreen = () => {
           </div>
         </div>
       </main>
+
+      <Modal
+        isOpen={modalConfig.isOpen}
+        onClose={closeModal}
+        type={modalConfig.type}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        onConfirm={closeModal}
+      />
     </div>
   );
 };

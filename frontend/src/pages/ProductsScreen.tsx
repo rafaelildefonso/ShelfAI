@@ -5,6 +5,8 @@ import Header from "../components/Header";
 import { useProducts } from "../context/ProductContext";
 import type { Product } from "../types/productType";
 import { ProductCard } from "../components/ProductCard";
+import Modal from "../components/common/Modal";
+import type { ModalType } from "../components/common/Modal";
 import { getProductWithCorrectStatus } from "../utils/productUtils";
 
 const MainContent = () => {
@@ -13,6 +15,38 @@ const MainContent = () => {
 
   const [filter, setFilter] = useState<"all" | Product["status"]>("all");
   const [searchTerm, setSearchTerm] = useState("");
+
+  const [modalConfig, setModalConfig] = useState<{
+    isOpen: boolean;
+    type: ModalType;
+    title: string;
+    message: string;
+    onConfirm?: () => void;
+  }>({
+    isOpen: false,
+    type: "alert",
+    title: "",
+    message: "",
+  });
+
+  const closeModal = () => {
+    setModalConfig((prev) => ({ ...prev, isOpen: false }));
+  };
+
+  const showModal = (
+    type: ModalType,
+    title: string,
+    message: string,
+    onConfirm?: () => void
+  ) => {
+    setModalConfig({
+      isOpen: true,
+      type,
+      title,
+      message,
+      onConfirm,
+    });
+  };
 
   // Recalcular o status de todos os produtos baseado nos campos
   const productsWithCorrectStatus = useMemo(() => {
@@ -41,9 +75,15 @@ const MainContent = () => {
 
   const handleDeleteProduct = useCallback(
     (id: string) => {
-      if (window.confirm("Tem certeza que deseja excluir este produto?")) {
-        removeProduct(id);
-      }
+      showModal(
+        "confirm",
+        "Excluir Produto",
+        "Tem certeza que deseja excluir este produto?",
+        () => {
+          removeProduct(id);
+          closeModal();
+        }
+      );
     },
     [removeProduct]
   );
@@ -73,7 +113,7 @@ const MainContent = () => {
   );
 
   return (
-    <div className="products-container">
+    <div className="products-container app-main">
       <main className="products-main">
         <div className="products-header">
           <div className="page-title">
@@ -179,6 +219,15 @@ const MainContent = () => {
           )}
         </div>
       </main>
+
+      <Modal
+        isOpen={modalConfig.isOpen}
+        onClose={closeModal}
+        type={modalConfig.type}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        onConfirm={modalConfig.onConfirm}
+      />
     </div>
   );
 };

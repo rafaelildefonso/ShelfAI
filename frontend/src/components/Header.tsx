@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { getProducts } from "../services/productService";
 import { categoryService } from "../services/categoryService";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import { notificationService } from "../services/notificationService";
 import { useMenu } from "../context/MenuContext";
 import type { Product } from "../types/productType";
@@ -21,8 +22,9 @@ export default function Header() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const { toggleMenu } = useMenu();
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const isDarkMode = theme === "dark";
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<{
     products: Product[];
@@ -39,6 +41,9 @@ export default function Header() {
   // Carregar notificações reais do backend
   useEffect(() => {
     const loadNotifications = async () => {
+      // Se a aba estiver oculta, não fazer a requisição para economizar recursos
+      if (document.hidden) return;
+
       try {
         const response = await notificationService.getNotifications({
           limit: 10,
@@ -56,21 +61,32 @@ export default function Header() {
       }
     };
 
+    // Carregar inicialmente
     loadNotifications();
 
-    // Recarregar notificações a cada 30 segundos
+    // Configurar intervalo de 30 segundos
     const interval = setInterval(loadNotifications, 30000);
-    return () => clearInterval(interval);
+
+    // Listener para quando a aba voltar a ficar visível
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadNotifications(); // Carregar imediatamente ao voltar
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, []);
 
   const userMenuRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
 
-  const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
-    document.documentElement.classList.toggle("dark");
-  };
+  const toggleDarkMode = toggleTheme;
 
   const toggleUserMenu = () => {
     setShowUserMenu(!showUserMenu);
@@ -223,27 +239,37 @@ export default function Header() {
   }, []);
 
   return (
-    <header className="app-header fixed top-0 left-[280px] right-0 h-[70px] bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-8 z-[999] shadow">
+    <header className="app-header">
       <div className="header-left">
         <div className="toggle-menu">
-          <button className="menu-btn" onClick={toggleMenu}>
-            <i className="fa-solid fa-bars"></i>
+          <button
+            className="menu-btn"
+            onClick={toggleMenu}
+            aria-label={isDarkMode ? "Abrir menu" : "Fechar menu"}
+            aria-expanded={false} // This assumes menu state isn't tracked here for expansion, but strictly it refers to sidebar.
+          >
+            <i className="fa-solid fa-bars" aria-hidden="true"></i>
           </button>
         </div>
-        <div className="breadcrumb">
+        <nav className="breadcrumb" aria-label="Breadcrumb">
           {breadcrumb.parent && (
             <>
               <span className="breadcrumb-item">{breadcrumb.parent}</span>
-              <i className="fa-solid fa-chevron-right breadcrumb-separator"></i>
+              <i
+                className="fa-solid fa-chevron-right breadcrumb-separator"
+                aria-hidden="true"
+              ></i>
             </>
           )}
-          <span className="breadcrumb-item current">{breadcrumb.current}</span>
-        </div>
+          <span className="breadcrumb-item current" aria-current="page">
+            {breadcrumb.current}
+          </span>
+        </nav>
       </div>
 
       <div className="header-center">
         <div className="search-container" ref={searchRef}>
-          <i className="fa-solid fa-search search-icon"></i>
+          <i className="fa-solid fa-search search-icon" aria-hidden="true"></i>
           <input
             type="text"
             placeholder="Buscar produtos, categorias..."
@@ -252,30 +278,39 @@ export default function Header() {
             onChange={handleSearchChange}
             onKeyDown={handleSearchSubmit}
             onFocus={() => setShowSearchResults(searchQuery.length > 0)}
+            aria-label="Buscar produtos e categorias"
+            aria-expanded={showSearchResults}
+            aria-controls="search-results-list"
+            aria-autocomplete="list"
           />
           {searchQuery && (
             <button
               className="search-clear"
               onClick={clearSearch}
               title="Limpar busca"
+              aria-label="Limpar busca"
             >
-              <i className="fa-solid fa-times"></i>
+              <i className="fa-solid fa-times" aria-hidden="true"></i>
             </button>
           )}
 
           {showSearchResults && (
-            <div className="search-results">
+            <div
+              className="search-results"
+              id="search-results-list"
+              role="listbox"
+            >
               <div className="search-results-header">
                 <span>Resultados para "{searchQuery}"</span>
-                <button onClick={clearSearch}>
-                  <i className="fa-solid fa-times"></i>
+                <button onClick={clearSearch} aria-label="Fechar resultados">
+                  <i className="fa-solid fa-times" aria-hidden="true"></i>
                 </button>
               </div>
               <div className="search-results-content">
                 {searchResults.products.length === 0 &&
                 searchResults.categories.length === 0 ? (
                   <div className="search-no-results">
-                    <i className="fa-solid fa-search"></i>
+                    <i className="fa-solid fa-search" aria-hidden="true"></i>
                     <p>Nenhum resultado encontrado</p>
                     <span>Tente usar termos diferentes</span>
                   </div>
@@ -284,24 +319,36 @@ export default function Header() {
                     {searchResults.products.length > 0 && (
                       <div className="search-section">
                         <div className="search-section-title">
-                          <i className="fa-solid fa-box"></i> Produtos
+                          <i className="fa-solid fa-box" aria-hidden="true"></i>{" "}
+                          Produtos
                         </div>
                         {searchResults.products.map((product) => (
                           <div
                             key={product.id}
                             className="search-result-item clickable"
                             onClick={() => handleProductClick(product.id)}
+                            role="option"
+                            tabIndex={0}
+                            aria-selected={false}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                handleProductClick(product.id);
+                              }
+                            }}
                           >
                             <div className="result-image-container">
                               {product.image ? (
                                 <img
                                   src={product.image}
-                                  alt={product.name}
+                                  alt="" // Decorative in this context as name is next to it
                                   className="result-image"
                                 />
                               ) : (
                                 <div className="result-image-placeholder">
-                                  <i className="fa-solid fa-image"></i>
+                                  <i
+                                    className="fa-solid fa-image"
+                                    aria-hidden="true"
+                                  ></i>
                                 </div>
                               )}
                             </div>
@@ -321,13 +368,25 @@ export default function Header() {
                     {searchResults.categories.length > 0 && (
                       <div className="search-section">
                         <div className="search-section-title">
-                          <i className="fa-solid fa-tags"></i> Categorias
+                          <i
+                            className="fa-solid fa-tags"
+                            aria-hidden="true"
+                          ></i>{" "}
+                          Categorias
                         </div>
                         {searchResults.categories.map((category) => (
                           <div
                             key={category.id}
                             className="search-result-item clickable"
                             onClick={() => handleCategoryClick(category.id)}
+                            role="option"
+                            tabIndex={0}
+                            aria-selected={false}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                handleCategoryClick(category.id);
+                              }
+                            }}
                           >
                             <div className="result-info">
                               <span className="result-name">
@@ -339,16 +398,20 @@ export default function Header() {
                       </div>
                     )}
 
-                    <div
+                    <button
                       className="search-view-all"
                       onClick={() => {
                         navigate(`/search?q=${searchQuery}`);
                         setShowSearchResults(false);
                       }}
+                      role="button"
                     >
                       Ver todos os resultados
-                      <i className="fa-solid fa-arrow-right"></i>
-                    </div>
+                      <i
+                        className="fa-solid fa-arrow-right"
+                        aria-hidden="true"
+                      ></i>
+                    </button>
                   </>
                 )}
               </div>
@@ -363,16 +426,23 @@ export default function Header() {
             <button
               className="action-btn notifications-btn"
               title="Notificações"
+              aria-label={`Notificações ${
+                unreadNotifications > 0
+                  ? `, ${unreadNotifications} não lidas`
+                  : ""
+              }`}
               onClick={toggleNotifications}
+              aria-expanded={showNotifications}
+              aria-haspopup="true"
             >
-              <i className="fa-solid fa-bell"></i>
+              <i className="fa-solid fa-bell" aria-hidden="true"></i>
               {unreadNotifications > 0 && (
-                <div className="notification-badge"></div>
+                <div className="notification-badge" aria-hidden="true"></div>
               )}
             </button>
 
             {showNotifications && (
-              <div className="notifications-dropdown">
+              <div className="notifications-dropdown" aria-live="polite">
                 <div className="notifications-header">
                   <h3>Notificações</h3>
                   {unreadNotifications > 0 && (
@@ -393,6 +463,14 @@ export default function Header() {
                           !notification.read ? "unread" : ""
                         }`}
                         onClick={() => markNotificationAsRead(notification.id)}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`${notification.title}: ${notification.message}`}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            markNotificationAsRead(notification.id);
+                          }
+                        }}
                       >
                         <div
                           className={`notification-icon ${notification.type}`}
@@ -407,6 +485,7 @@ export default function Header() {
                                 ? "fa-times"
                                 : "fa-info"
                             }`}
+                            aria-hidden="true"
                           ></i>
                         </div>
                         <div className="notification-content">
@@ -427,6 +506,7 @@ export default function Header() {
                       <i
                         className="fa-solid fa-inbox text-(--text-secondary-color)"
                         style={{ fontSize: 50 }}
+                        aria-hidden="true"
                       ></i>
                       <p className="text-(--text-secondary-color)">
                         Nenhuma atividade recente
@@ -435,38 +515,64 @@ export default function Header() {
                   )}
                 </div>
                 <div className="notifications-footer">
-                  <button className="view-all-btn">
+                  <Link
+                    to="/notifications"
+                    className="view-all-btn"
+                    onClick={toggleNotifications}
+                  >
                     Ver todas as notificações
-                  </button>
+                  </Link>
                 </div>
               </div>
             )}
           </div>
         </div>
 
-        <div
-          className="user-profile"
-          ref={userMenuRef}
-          onClick={toggleUserMenu}
-        >
-          <div className="user-initial">
-            {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
+        <div className="user-profile" ref={userMenuRef}>
+          <div
+            className="user-profile-trigger"
+            onClick={toggleUserMenu}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault(); // Prevent page scroll
+                toggleUserMenu();
+              }
+            }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.75rem",
+              cursor: "pointer",
+            }}
+            role="button"
+            tabIndex={0}
+            aria-expanded={showUserMenu}
+            aria-haspopup="true"
+            aria-label="Menu de usuário"
+          >
+            <div className="user-initial" aria-hidden="true">
+              {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
+            </div>
+            <div className="user-info">
+              <span className="user-name">{user?.name || "Usuário"}</span>
+            </div>
+            <button className="user-menu-btn" tabIndex={-1} aria-hidden="true">
+              <i
+                className={`fa-solid fa-chevron-down ${
+                  showUserMenu ? "rotated" : ""
+                }`}
+              ></i>
+            </button>
           </div>
-          <div className="user-info">
-            <span className="user-name">{user?.name || "Usuário"}</span>
-          </div>
-          <button className="user-menu-btn">
-            <i
-              className={`fa-solid fa-chevron-down ${
-                showUserMenu ? "rotated" : ""
-              }`}
-            ></i>
-          </button>
 
           {showUserMenu && (
-            <div className="user-menu-dropdown">
+            <div
+              className="user-menu-dropdown"
+              onClick={(e) => e.stopPropagation()}
+              role="menu"
+            >
               <div className="user-menu-header">
-                <div className="user-menu-initial">
+                <div className="user-menu-initial" aria-hidden="true">
                   {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
                 </div>
                 <div className="user-menu-info">
@@ -478,39 +584,67 @@ export default function Header() {
                   </div>
                 </div>
               </div>
-              <div className="user-menu-divider"></div>
+              <div className="user-menu-divider" role="separator"></div>
               <div className="user-menu-items">
-                <button className="user-menu-item">
-                  <i className="fa-solid fa-user"></i>
-                  <span>Meu Perfil</span>
-                </button>
-                <button className="user-menu-item">
-                  <i className="fa-solid fa-chart-line"></i>
+                <Link
+                  to="/reports"
+                  className="user-menu-item"
+                  role="menuitem"
+                  onClick={() => setShowUserMenu(false)}
+                >
+                  <i className="fa-solid fa-chart-line" aria-hidden="true"></i>
                   <span>Relatórios</span>
-                </button>
-                <button className="user-menu-item">
-                  <i className="fa-solid fa-gear"></i>
-                  <span>Configurações</span>
-                </button>
+                </Link>
+                <Link to="/settings">
+                  <button className="user-menu-item" role="menuitem">
+                    <i className="fa-solid fa-gear" aria-hidden="true"></i>
+                    <span>Configurações</span>
+                  </button>
+                </Link>
               </div>
-              <div className="user-menu-divider"></div>
+              <div className="user-menu-divider" role="separator"></div>
               <div className="user-menu-items">
-                <button className="user-menu-item">
-                  <i className="fa-solid fa-question-circle"></i>
+                <Link
+                  to="/help"
+                  className="user-menu-item"
+                  role="menuitem"
+                  onClick={() => setShowUserMenu(false)}
+                >
+                  <i
+                    className="fa-solid fa-question-circle"
+                    aria-hidden="true"
+                  ></i>
                   <span>Ajuda</span>
-                </button>
-                <button className="user-menu-item" onClick={toggleDarkMode}>
+                </Link>
+                <button
+                  className="user-menu-item"
+                  onClick={toggleDarkMode}
+                  role="menuitem"
+                >
                   <i
                     className={`fa-solid ${isDarkMode ? "fa-sun" : "fa-moon"}`}
+                    aria-hidden="true"
                   ></i>
                   <span>{isDarkMode ? "Modo claro" : "Modo escuro"}</span>
                 </button>
-                <button className="user-menu-item">
-                  <i className="fa-solid fa-comments"></i>
+                <Link
+                  to="/support"
+                  className="user-menu-item"
+                  role="menuitem"
+                  onClick={() => setShowUserMenu(false)}
+                >
+                  <i className="fa-solid fa-comments" aria-hidden="true"></i>
                   <span>Suporte</span>
-                </button>
-                <button className="user-menu-item logout" onClick={logout}>
-                  <i className="fa-solid fa-sign-out-alt"></i>
+                </Link>
+                <button
+                  className="user-menu-item logout"
+                  onClick={logout}
+                  role="menuitem"
+                >
+                  <i
+                    className="fa-solid fa-sign-out-alt"
+                    aria-hidden="true"
+                  ></i>
                   <span>Sair</span>
                 </button>
               </div>

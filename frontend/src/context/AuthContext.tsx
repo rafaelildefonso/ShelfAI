@@ -170,11 +170,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         }
         throw apiError;
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao carregar perfil do usuário:", error);
 
-      // Se não for uma tentativa de retry, tentar novamente até 3 vezes
-      if (!isRetry && retryCount < 3) {
+      // Check for 401 Unauthorized - DO NOT RETRY
+      const isUnauthorized =
+        error.message?.includes("401") ||
+        error.message?.includes("Unauthorized") ||
+        error.message?.includes("Token não fornecido") ||
+        error.status === 401;
+
+      if (isUnauthorized) {
+        console.warn(
+          "Autenticação falhou (401). Interrompendo retries e forçando logout."
+        );
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        setToken(null);
+        setUser(null);
+        setError(null);
+        return;
+      }
+
+      // Se não for uma tentativa de retry, tentar novamente até 2 vezes (reduzido de 3)
+      if (!isRetry && retryCount < 2) {
         console.log(
           `Tentativa ${
             retryCount + 1

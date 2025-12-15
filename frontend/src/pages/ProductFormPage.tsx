@@ -102,6 +102,9 @@ const ProductFormPage = () => {
     price: string;
     originalPrice?: string;
     costPrice?: string;
+    stock: string;
+    minStock: string;
+    barcode?: string;
     categoryId: string;
     subcategory?: string;
     brand?: string;
@@ -137,11 +140,14 @@ const ProductFormPage = () => {
     name: "",
     description: "",
     sku: "",
+    barcode: "",
 
     // Preços
     price: "0",
     originalPrice: "0",
     costPrice: "0",
+    stock: "0",
+    minStock: "5",
 
     // Categorização
     categoryId: "",
@@ -249,6 +255,9 @@ const ProductFormPage = () => {
             price: editingProduct.price?.toString() || "0",
             originalPrice: editingProduct.originalPrice?.toString() || "0",
             costPrice: editingProduct.costPrice?.toString() || "0",
+            stock: editingProduct.stock?.toString() || "0",
+            minStock: editingProduct.minStock?.toString() || "5",
+            barcode: editingProduct.barcode || "",
             categoryId: editingProduct.category?.id || "",
             subcategory: editingProduct.subcategory || "",
             brand: editingProduct.brand || "",
@@ -502,13 +511,37 @@ const ProductFormPage = () => {
         return "complete";
       };
 
+      // Process template data to ensure numbers are sent as numbers (flots/doubles)
+      const processedTemplateData = { ...templateData };
+      if (selectedTemplate) {
+        selectedTemplate.fields.forEach((field) => {
+          if (
+            field.type === "number" &&
+            processedTemplateData[field.id] !== undefined &&
+            processedTemplateData[field.id] !== ""
+          ) {
+            const stringVal = String(processedTemplateData[field.id]).replace(
+              ",",
+              "."
+            );
+            const numVal = parseFloat(stringVal);
+            if (!isNaN(numVal)) {
+              processedTemplateData[field.id] = numVal;
+            }
+          }
+        });
+      }
+
       return {
         ...formData,
         ...categoryData,
         price: priceValue,
         originalPrice: originalPriceValue,
         costPrice: costPriceValue,
-        templateData: templateData, // Use the separate templateData state instead of formData.templateData
+        stock: formData.stock ? parseInt(formData.stock) : 0,
+        minStock: formData.minStock ? parseInt(formData.minStock) : 5,
+        barcode: formData.barcode,
+        templateData: processedTemplateData, // Use processed data
         images: formData.images || [],
         // Ensure numeric values are properly converted
         weight: formData.weight ? Number(formData.weight) : undefined,
@@ -523,6 +556,10 @@ const ProductFormPage = () => {
         rating: formData.rating || 0,
         active: formData.active !== undefined ? formData.active : true,
         featured: formData.featured || false,
+        image:
+          formData.images && formData.images.length > 0
+            ? formData.images[0]
+            : "",
       };
     };
 
@@ -589,15 +626,13 @@ const ProductFormPage = () => {
               id={field.id}
               value={value}
               onChange={(e) =>
-                handleTemplateFieldChange(
-                  field.id,
-                  parseFloat(e.target.value) || 0
-                )
+                handleTemplateFieldChange(field.id, e.target.value)
               }
               className={`form-input ${error ? "error" : ""}`}
               placeholder={field.placeholder}
               min={field.validation?.min}
               max={field.validation?.max}
+              step={field.validation?.step || "any"}
             />
             {error && <span className="error-text">{error}</span>}
           </div>
@@ -830,10 +865,26 @@ const ProductFormPage = () => {
     try {
       // Use the first image for analysis
       const mainImage = product.images[0];
+
+      // Construct template context if a template is selected
+      let templateContext = "";
+      if (selectedTemplate) {
+        templateContext = `Template Selecionado: ${selectedTemplate.name}\n`;
+        templateContext += `Campos esperados:\n`;
+        selectedTemplate.fields.forEach((field) => {
+          templateContext += `- ID: ${field.id}, Label: ${field.label}, Tipo: ${field.type}`;
+          if (field.options) {
+            templateContext += `, Opções: [${field.options.join(", ")}]`;
+          }
+          templateContext += "\n";
+        });
+      }
+
       const analysis = await analyzeProduct({
         imageBase64: mainImage,
         nameInput: product.name,
         additionalText: product.description,
+        templateContext: templateContext || undefined,
       });
 
       // Map API response to product state
@@ -853,11 +904,22 @@ const ProductFormPage = () => {
         height: analysis.dimensions?.height || prev.height,
         length: analysis.dimensions?.length || prev.length,
         tags: analysis.tags?.length > 0 ? analysis.tags : prev.tags,
-        featured:
-          analysis.featured !== null ? analysis.featured : prev.featured,
-        active: analysis.active !== null ? analysis.active : prev.active,
+        // PRESERVE active and featured status from previous state
+        // featured: analysis.featured !== null ? analysis.featured : prev.featured,
+        // active: analysis.active !== null ? analysis.active : prev.active,
         brand: analysis.brand || prev.brand,
       }));
+
+      // Update template data if returned
+      if (
+        analysis.templateData &&
+        Object.keys(analysis.templateData).length > 0
+      ) {
+        setTemplateData((prev) => ({
+          ...prev,
+          ...analysis.templateData,
+        }));
+      }
 
       // Try to match category if provided
       if (analysis.category) {
@@ -881,7 +943,7 @@ const ProductFormPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-(--bg-color) flex flex-col">
       <Header />
       <div className="flex flex-1">
         <SideBarMenu pageName="products" />
@@ -892,15 +954,15 @@ const ProductFormPage = () => {
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => navigate("/products")}
-                  className="p-2 hover:bg-white rounded-full transition-colors text-gray-600 cursor-pointer"
+                  className="p-2 hover:bg-(--surface-color) rounded-full transition-colors text-(--text-secondary-color) cursor-pointer"
                 >
                   <i className="fa-solid fa-arrow-left text-xl"></i>
                 </button>
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-800">
+                  <h1 className="text-2xl font-bold text-(--text-color)">
                     {isEditing ? "Editar Produto" : "Novo Produto"}
                   </h1>
-                  <p className="text-gray-500 text-sm mt-1">
+                  <p className="text-(--text-secondary-color) text-sm mt-1">
                     {isEditing
                       ? "Atualize as informações do seu produto"
                       : "Adicione um novo produto ao seu catálogo"}
@@ -912,7 +974,7 @@ const ProductFormPage = () => {
                 {selectedTemplate && (
                   <button
                     onClick={() => setShowTemplateSelector(true)}
-                    className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-white transition-colors text-gray-700 cursor-pointer"
+                    className="flex items-center gap-2 px-4 py-2 border border-(--border-color) rounded-lg hover:bg-(--surface-color) transition-colors text-(--text-secondary-color) cursor-pointer"
                   >
                     <i className={selectedTemplate.icon}></i>
                     <span>Template: {selectedTemplate.name}</span>
@@ -926,12 +988,12 @@ const ProductFormPage = () => {
                 {/* Coluna Principal (Esquerda) */}
                 <div className="lg:col-span-2 space-y-6">
                   {/* Card de Mídia / Galeria */}
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                    <h2 className="text-lg font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                  <div className="bg-(--surface-color) rounded-xl shadow-sm border border-(--border-color) p-6">
+                    <h2 className="text-lg font-semibold text-(--text-color) mb-2 flex items-center gap-2">
                       <i className="fa-solid fa-images text-(--accent-color)"></i>
                       Galeria de Imagens
                     </h2>
-                    <p className="text-sm text-gray-500 mb-6">
+                    <p className="text-sm text-(--text-secondary-color) mb-6">
                       Adicione imagens do produto. A primeira imagem será a
                       principal. Arraste para reordenar.
                     </p>
@@ -950,8 +1012,8 @@ const ProductFormPage = () => {
                         disabled={product.images.length === 0 || isAnalyzing}
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium cursor-pointer ${
                           product.images.length === 0 || isAnalyzing
-                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                            : "bg-purple-100 text-purple-700 hover:bg-purple-200"
+                            ? "bg-(--bg-color) text-(--text-secondary-color) cursor-not-allowed"
+                            : "bg-(--accent-color)/10 text-(--accent-color) hover:bg-(--accent-color)/20"
                         }`}
                       >
                         {isAnalyzing ? (
@@ -965,8 +1027,8 @@ const ProductFormPage = () => {
                   </div>
 
                   {/* Card de Informações Básicas */}
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                    <h2 className="text-lg font-semibold text-gray-800 mb-6 flex items-center gap-2">
+                  <div className="bg-(--surface-color) rounded-xl shadow-sm border border-(--border-color) p-6">
+                    <h2 className="text-lg font-semibold text-(--text-color) mb-6 flex items-center gap-2">
                       <i className="fa-solid fa-info-circle text-(--accent-color)"></i>
                       Informações Básicas
                     </h2>
@@ -975,7 +1037,7 @@ const ProductFormPage = () => {
                       <div>
                         <label
                           htmlFor="name"
-                          className="block text-sm font-medium text-gray-700 mb-1"
+                          className="block text-sm font-medium text-(--text-color) mb-1"
                         >
                           Nome do Produto{" "}
                           <span className="text-red-500">*</span>
@@ -986,10 +1048,10 @@ const ProductFormPage = () => {
                           name="name"
                           value={product.name}
                           onChange={handleInputChange}
-                          className={`w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-(--accent-color) focus:border-(--accent-color) transition-colors ${
+                          className={`w-full px-4 py-2 rounded-lg border bg-(--bg-color) text-(--text-color) focus:ring-2 focus:ring-(--accent-color) focus:border-(--accent-color) transition-colors ${
                             errors.name
-                              ? "border-red-300 bg-red-50"
-                              : "border-gray-200"
+                              ? "border-(--error-color) bg-(--error-color)/10"
+                              : "border-(--border-color)"
                           }`}
                           placeholder="Ex: Camiseta Premium Algodão"
                           maxLength={LIMITS.name}
@@ -1016,7 +1078,7 @@ const ProductFormPage = () => {
                         <div>
                           <label
                             htmlFor="sku"
-                            className="block text-sm font-medium text-gray-700 mb-1"
+                            className="block text-sm font-medium text-(--text-color) mb-1"
                           >
                             SKU <span className="text-red-500">*</span>
                           </label>
@@ -1026,10 +1088,10 @@ const ProductFormPage = () => {
                             name="sku"
                             value={product.sku}
                             onChange={handleInputChange}
-                            className={`w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-(--accent-color) focus:border-(--accent-color) transition-colors ${
+                            className={`w-full px-4 py-2 rounded-lg border bg-(--bg-color) text-(--text-color) focus:ring-2 focus:ring-(--accent-color) focus:border-(--accent-color) transition-colors ${
                               errors.sku
-                                ? "border-red-300 bg-red-50"
-                                : "border-gray-200"
+                                ? "border-(--error-color) bg-(--error-color)/10"
+                                : "border-(--border-color)"
                             }`}
                             placeholder="Ex: CAMP-001"
                             maxLength={LIMITS.sku}
@@ -1045,7 +1107,7 @@ const ProductFormPage = () => {
                       <div>
                         <label
                           htmlFor="description"
-                          className="block text-sm font-medium text-gray-700 mb-1"
+                          className="block text-sm font-medium text-(--text-color) mb-1"
                         >
                           Descrição
                         </label>
@@ -1054,7 +1116,7 @@ const ProductFormPage = () => {
                           name="description"
                           value={product.description}
                           onChange={handleInputChange}
-                          className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-(--accent-color) focus:border-(--accent-color) transition-colors"
+                          className="w-full px-4 py-2 rounded-lg border border-(--border-color) bg-(--bg-color) text-(--text-color) focus:ring-2 focus:ring-(--accent-color) focus:border-(--accent-color) transition-colors"
                           placeholder="Descreva o produto em detalhes..."
                           rows={4}
                           maxLength={LIMITS.description}
@@ -1076,8 +1138,8 @@ const ProductFormPage = () => {
 
                   {/* Campos do Template (se houver) */}
                   {selectedTemplate && (
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                      <h2 className="text-lg font-semibold text-gray-800 mb-6 flex items-center gap-2">
+                    <div className="bg-(--surface-color) rounded-xl shadow-sm border border-(--border-color) p-6">
+                      <h2 className="text-lg font-semibold text-(--text-color) mb-6 flex items-center gap-2">
                         <i
                           className={`${selectedTemplate.icon} text-(--accent-color)`}
                         ></i>
@@ -1092,18 +1154,19 @@ const ProductFormPage = () => {
                   )}
 
                   {/* Preços */}
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                    <h2 className="text-lg font-semibold text-gray-800 mb-6 flex items-center gap-2">
+                  <div className="bg-(--surface-color) rounded-xl shadow-sm border border-(--border-color) p-6">
+                    <h2 className="text-lg font-semibold text-(--text-color) mb-6 flex items-center gap-2">
                       <i className="fa-solid fa-dollar-sign text-(--accent-color)"></i>
                       Precificação
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Preço de Venda <span className="text-red-500">*</span>
+                        <label className="block text-sm font-medium text-(--text-color) mb-1">
+                          Preço de Venda{" "}
+                          <span className="text-(--error-color)">*</span>
                         </label>
                         <div className="relative">
-                          <span className="absolute left-3 top-2 text-gray-400">
+                          <span className="absolute left-3 top-2 text-(--text-secondary-color)">
                             R$
                           </span>
                           <CurrencyInput
@@ -1117,10 +1180,10 @@ const ProductFormPage = () => {
                             decimalSeparator=","
                             groupSeparator="."
                             decimalsLimit={2}
-                            className={`w-full pl-10 pr-4 py-2 rounded-lg border focus:ring-2 focus:ring-(--accent-color) focus:border-(--accent-color) transition-colors ${
+                            className={`w-full pl-10 pr-4 py-2 rounded-lg border bg-(--bg-color) text-(--text-color) focus:ring-2 focus:ring-(--accent-color) focus:border-(--accent-color) transition-colors ${
                               errors.price
-                                ? "border-red-300 bg-red-50"
-                                : "border-gray-200"
+                                ? "border-(--error-color) bg-(--error-color)/10"
+                                : "border-(--border-color)"
                             }`}
                             placeholder="0,00"
                           />
@@ -1133,11 +1196,11 @@ const ProductFormPage = () => {
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-(--text-color) mb-1">
                           Preço Original (De)
                         </label>
                         <div className="relative">
-                          <span className="absolute left-3 top-2 text-gray-400">
+                          <span className="absolute left-3 top-2 text-(--text-secondary-color)">
                             R$
                           </span>
                           <CurrencyInput
@@ -1151,18 +1214,18 @@ const ProductFormPage = () => {
                             decimalSeparator=","
                             groupSeparator="."
                             decimalsLimit={2}
-                            className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-(--accent-color) focus:border-(--accent-color) transition-colors"
+                            className="w-full pl-10 pr-4 py-2 rounded-lg border border-(--border-color) bg-(--bg-color) text-(--text-color) focus:ring-2 focus:ring-(--accent-color) focus:border-(--accent-color) transition-colors"
                             placeholder="0,00"
                           />
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-(--text-color) mb-1">
                           Preço de Custo
                         </label>
                         <div className="relative">
-                          <span className="absolute left-3 top-2 text-gray-400">
+                          <span className="absolute left-3 top-2 text-(--text-secondary-color)">
                             R$
                           </span>
                           <CurrencyInput
@@ -1176,7 +1239,7 @@ const ProductFormPage = () => {
                             decimalSeparator=","
                             groupSeparator="."
                             decimalsLimit={2}
-                            className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-(--accent-color) focus:border-(--accent-color) transition-colors"
+                            className="w-full pl-10 pr-4 py-2 rounded-lg border border-(--border-color) bg-(--bg-color) text-(--text-color) focus:ring-2 focus:ring-(--accent-color) focus:border-(--accent-color) transition-colors"
                             placeholder="0,00"
                           />
                         </div>
@@ -1188,43 +1251,43 @@ const ProductFormPage = () => {
                 {/* Coluna Lateral (Direita) */}
                 <div className="space-y-6">
                   {/* Publicação */}
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                    <h2 className="text-lg font-semibold text-gray-800 mb-4">
+                  <div className="bg-(--surface-color) rounded-xl shadow-sm border border-(--border-color) p-6">
+                    <h2 className="text-lg font-semibold text-(--text-color) mb-4">
                       Status & Visibilidade
                     </h2>
 
                     <div className="space-y-4">
-                      <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
+                      <label className="flex items-center gap-3 p-3 bg-(--bg-color) rounded-lg cursor-pointer hover:bg-(--border-color)/20 transition-colors">
                         <input
                           type="checkbox"
                           name="active"
                           checked={product.active}
                           onChange={handleInputChange}
-                          className="w-5 h-5 rounded border-gray-300 text-(--accent-color) focus:ring-(--accent-color)"
+                          className="w-5 h-5 rounded border-(--border-color) text-(--accent-color) focus:ring-(--accent-color)"
                         />
                         <div>
-                          <span className="block font-medium text-gray-800">
+                          <span className="block font-medium text-(--text-color)">
                             Produto Ativo
                           </span>
-                          <span className="block text-xs text-gray-500">
+                          <span className="block text-xs text-(--text-secondary-color)">
                             Visível na loja
                           </span>
                         </div>
                       </label>
 
-                      <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
+                      <label className="flex items-center gap-3 p-3 bg-(--bg-color) rounded-lg cursor-pointer hover:bg-(--border-color)/20 transition-colors">
                         <input
                           type="checkbox"
                           name="featured"
                           checked={product.featured}
                           onChange={handleInputChange}
-                          className="w-5 h-5 rounded border-gray-300 text-(--accent-color) focus:ring-(--accent-color)"
+                          className="w-5 h-5 rounded border-(--border-color) text-(--accent-color) focus:ring-(--accent-color)"
                         />
                         <div>
-                          <span className="block font-medium text-gray-800">
+                          <span className="block font-medium text-(--text-color)">
                             Destaque
                           </span>
-                          <span className="block text-xs text-gray-500">
+                          <span className="block text-xs text-(--text-secondary-color)">
                             Exibir na home
                           </span>
                         </div>
@@ -1233,15 +1296,16 @@ const ProductFormPage = () => {
                   </div>
 
                   {/* Categorização */}
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                    <h2 className="text-lg font-semibold text-gray-800 mb-4">
+                  <div className="bg-(--surface-color) rounded-xl shadow-sm border border-(--border-color) p-6">
+                    <h2 className="text-lg font-semibold text-(--text-color) mb-4">
                       Organização
                     </h2>
 
                     <div className="space-y-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Categoria <span className="text-red-500">*</span>
+                        <label className="block text-sm font-medium text-(--text-color) mb-1">
+                          Categoria{" "}
+                          <span className="text-(--error-color)">*</span>
                         </label>
                         <CustomSelect
                           value={product.categoryId}
@@ -1283,7 +1347,7 @@ const ProductFormPage = () => {
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-(--text-color) mb-1">
                           Nova Categoria
                         </label>
                         <div className="flex gap-2">
@@ -1291,14 +1355,14 @@ const ProductFormPage = () => {
                             type="text"
                             value={newCategoryName}
                             onChange={(e) => setNewCategoryName(e.target.value)}
-                            className="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm"
+                            className="flex-1 px-3 py-2 rounded-lg border border-(--border-color) bg-(--bg-color) text-(--text-color) text-sm"
                             placeholder="Nome..."
                           />
                           <button
                             type="button"
                             onClick={handleAddCategory}
                             disabled={!newCategoryName.trim()}
-                            className="px-3 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 disabled:opacity-50 text-sm font-medium cursor-pointer"
+                            className="px-3 py-2 bg-(--bg-color) border border-(--border-color) text-(--text-secondary-color) rounded-lg hover:bg-(--surface-color) disabled:opacity-50 text-sm font-medium cursor-pointer"
                           >
                             Add
                           </button>
@@ -1306,7 +1370,7 @@ const ProductFormPage = () => {
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-(--text-color) mb-1">
                           Marca
                         </label>
                         <input
@@ -1314,7 +1378,7 @@ const ProductFormPage = () => {
                           name="brand"
                           value={product.brand}
                           onChange={handleInputChange}
-                          className="w-full px-4 py-2 rounded-lg border border-gray-200"
+                          className="w-full px-4 py-2 rounded-lg border border-(--border-color) bg-(--bg-color) text-(--text-color)"
                           placeholder="Ex: Nike"
                         />
                       </div>
@@ -1322,13 +1386,13 @@ const ProductFormPage = () => {
                   </div>
 
                   {/* Dimensões */}
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                    <h2 className="text-lg font-semibold text-gray-800 mb-4">
+                  <div className="bg-(--surface-color) rounded-xl shadow-sm border border-(--border-color) p-6">
+                    <h2 className="text-lg font-semibold text-(--text-color) mb-4">
                       Envio
                     </h2>
                     <div className="space-y-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-(--text-color) mb-1">
                           Peso (kg)
                         </label>
                         <input
@@ -1336,21 +1400,21 @@ const ProductFormPage = () => {
                           name="weight"
                           value={product.weight}
                           onChange={handleInputChange}
-                          className="w-full px-4 py-2 rounded-lg border border-gray-200"
+                          className="w-full px-4 py-2 rounded-lg border border-(--border-color) bg-(--bg-color) text-(--text-color)"
                           placeholder="0.00"
                           step="0.01"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-(--text-color) mb-1">
                           Dimensões (cm)
                         </label>
                         <div className="grid grid-cols-3 gap-2">
                           <input
                             type="number"
                             placeholder="L"
-                            className="px-3 py-2 rounded-lg border border-gray-200 text-center"
+                            className="px-3 py-2 rounded-lg border border-(--border-color) bg-(--bg-color) text-(--text-color) text-center"
                             value={product.width || ""}
                             onChange={(e) =>
                               setProduct((prev) => ({
@@ -1362,7 +1426,7 @@ const ProductFormPage = () => {
                           <input
                             type="number"
                             placeholder="A"
-                            className="px-3 py-2 rounded-lg border border-gray-200 text-center"
+                            className="px-3 py-2 rounded-lg border border-(--border-color) bg-(--bg-color) text-(--text-color) text-center"
                             value={product.height || ""}
                             onChange={(e) =>
                               setProduct((prev) => ({
@@ -1374,7 +1438,7 @@ const ProductFormPage = () => {
                           <input
                             type="number"
                             placeholder="P"
-                            className="px-3 py-2 rounded-lg border border-gray-200 text-center"
+                            className="px-3 py-2 rounded-lg border border-(--border-color) bg-(--bg-color) text-(--text-color) text-center"
                             value={product.length || ""}
                             onChange={(e) =>
                               setProduct((prev) => ({
@@ -1391,11 +1455,11 @@ const ProductFormPage = () => {
               </div>
 
               {/* Botões Finais */}
-              <div className="flex justify-end items-center gap-4 py-6 border-t border-gray-200 mt-8">
+              <div className="flex justify-end items-center gap-4 py-6 border-t border-(--border-color) mt-8">
                 <button
                   type="button"
                   onClick={() => navigate("/products")}
-                  className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium cursor-pointer"
+                  className="px-6 py-2 border border-(--border-color) rounded-lg text-(--text-color) hover:bg-(--bg-color) transition-colors font-medium cursor-pointer"
                 >
                   Cancelar
                 </button>

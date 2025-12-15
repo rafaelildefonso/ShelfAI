@@ -128,8 +128,9 @@ export const setupFetchInterceptor = () => {
       } catch (error) {
         processQueue(error, null);
         isRefreshing = false;
+        // Dispatch logout event and stop
         window.dispatchEvent(new CustomEvent("auth:logout"));
-        return response; // Return original 401 response
+        return response; // Return original 401 response so caller handles it (AuthContext will now ignore it)
       }
     }
 

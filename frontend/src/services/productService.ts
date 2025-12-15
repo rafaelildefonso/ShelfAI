@@ -54,6 +54,8 @@ export async function getProducts(params?: {
     sku: backendProduct.sku,
     status: backendProduct.status,
     stock: backendProduct.stock,
+    minStock: backendProduct.minStock,
+    barcode: backendProduct.barcode,
     weight: backendProduct.weight,
     length: backendProduct.length,
     width: backendProduct.width,
@@ -112,6 +114,9 @@ export async function getProductById(id: string): Promise<Product> {
     brand: backendProduct.brand,
     sku: backendProduct.sku,
     status: backendProduct.status,
+    stock: backendProduct.stock,
+    minStock: backendProduct.minStock,
+    barcode: backendProduct.barcode,
     weight: backendProduct.weight,
     length: backendProduct.length,
     width: backendProduct.width,
@@ -169,6 +174,9 @@ export async function createProduct(
     brand: product.brand,
     sku: product.sku,
     status: product.status,
+    stock: product.stock,
+    minStock: product.minStock,
+    barcode: product.barcode,
     weight: product.weight,
     length: product.length,
     width: product.width,
@@ -263,6 +271,9 @@ export async function updateProduct(
     brand: updated.brand,
     sku: updated.sku,
     status: updated.status,
+    stock: updated.stock,
+    minStock: updated.minStock,
+    barcode: updated.barcode,
     weight: updated.weight,
     length: updated.length,
     width: updated.width,
@@ -354,6 +365,7 @@ export async function analyzeProduct(data: {
   imageBase64: string;
   nameInput?: string;
   additionalText?: string;
+  templateContext?: string;
 }): Promise<any> {
   const res = await fetch(buildApiPath("/api/v1/ai/analyze"), {
     method: "POST",

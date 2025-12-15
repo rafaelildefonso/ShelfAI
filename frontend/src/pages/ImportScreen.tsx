@@ -4,48 +4,58 @@ import Header from "../components/Header";
 import ColumnMapper from "../components/ColumnMapper";
 import TablePreview from "../components/TablePreview";
 import TemplateManager from "../components/TemplateManager";
-import { importService, type ImportPreview, type ImportTemplate, PRODUCT_FIELDS } from "../services/importService";
+import {
+  importService,
+  type ImportPreview,
+  type ImportTemplate,
+  PRODUCT_FIELDS,
+} from "../services/importService";
 import { useProducts } from "../context/ProductContext";
 import { useNavigate } from "react-router-dom";
 
 interface ImportStep {
-  id: 'upload' | 'preview' | 'mapping' | 'confirm';
+  id: "upload" | "preview" | "mapping" | "confirm";
   title: string;
   description: string;
 }
 
 const IMPORT_STEPS: ImportStep[] = [
-  { id: 'upload', title: 'Upload', description: 'Selecione o arquivo' },
-  { id: 'preview', title: 'Preview', description: 'Visualize os dados' },
-  { id: 'mapping', title: 'Mapeamento', description: 'Configure as colunas' },
-  { id: 'confirm', title: 'Confirmação', description: 'Revise e importe' },
+  { id: "upload", title: "Upload", description: "Selecione o arquivo" },
+  { id: "preview", title: "Preview", description: "Visualize os dados" },
+  { id: "mapping", title: "Mapeamento", description: "Configure as colunas" },
+  { id: "confirm", title: "Confirmação", description: "Revise e importe" },
 ];
 
 const ImportScreen = () => {
   // Estados principais
-  const [currentStep, setCurrentStep] = useState<'upload' | 'preview' | 'mapping' | 'confirm'>('upload');
+  const [currentStep, setCurrentStep] = useState<
+    "upload" | "preview" | "mapping" | "confirm"
+  >("upload");
   const [file, setFile] = useState<File | null>(null);
-  const [fileType, setFileType] = useState<'csv' | 'xlsx'>('csv');
-  const [delimiter, setDelimiter] = useState(',');
+  const [fileType, setFileType] = useState<"csv" | "xlsx">("csv");
+  const [delimiter, setDelimiter] = useState(",");
   const [isDragging, setIsDragging] = useState(false);
 
   // Estados para preview e mapeamento
   const [previewData, setPreviewData] = useState<ImportPreview | null>(null);
-  const [mapping, setMapping] = useState<{[key: string]: string}>({});
-  const [selectedTemplate, setSelectedTemplate] = useState<ImportTemplate | null>(null);
+  const [mapping, setMapping] = useState<{ [key: string]: string }>({});
+  const [selectedTemplate, setSelectedTemplate] =
+    useState<ImportTemplate | null>(null);
 
   // Estados para importação
-  const [status, setStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
-  const [message, setMessage] = useState<string>('');
+  const [status, setStatus] = useState<
+    "idle" | "uploading" | "success" | "error"
+  >("idle");
+  const [message, setMessage] = useState<string>("");
   const [result, setResult] = useState<any>(null);
   const [saveTemplate, setSaveTemplate] = useState(false);
-  const [templateName, setTemplateName] = useState('');
-  const [templateDescription, setTemplateDescription] = useState('');
+  const [templateName, setTemplateName] = useState("");
+  const [templateDescription, setTemplateDescription] = useState("");
 
   // Estados para loading
   const [loading, setLoading] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState<string>("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -78,20 +88,20 @@ const ImportScreen = () => {
 
   const handleFileSelect = (selectedFile: File) => {
     setFile(selectedFile);
-    setError('');
+    setError("");
 
     // Determinar tipo de arquivo
-    const extension = selectedFile.name.split('.').pop()?.toLowerCase();
-    const newFileType = extension === 'csv' ? 'csv' : 'xlsx';
+    const extension = selectedFile.name.split(".").pop()?.toLowerCase();
+    const newFileType = extension === "csv" ? "csv" : "xlsx";
     setFileType(newFileType);
 
     // Resetar estados
     setPreviewData(null);
     setMapping({});
     setSelectedTemplate(null);
-    setCurrentStep('upload');
-    setStatus('idle');
-    setMessage('');
+    setCurrentStep("upload");
+    setStatus("idle");
+    setMessage("");
     setResult(null);
   };
 
@@ -101,9 +111,10 @@ const ImportScreen = () => {
     }
   };
 
-  const openFileDialog = (e?: React.MouseEvent) => {
-    e?.preventDefault();
-    fileInputRef.current?.click();
+  const openFileDialog = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
   };
 
   const removeFile = (e?: React.MouseEvent) => {
@@ -112,20 +123,19 @@ const ImportScreen = () => {
     setPreviewData(null);
     setMapping({});
     setSelectedTemplate(null);
-    setCurrentStep('upload');
+    setCurrentStep("upload");
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
-
 
   const handleTestPreview = async () => {
     if (!file) return;
 
     try {
-      setError('');
+      setError("");
       const preview = await importService.previewTest(file);
       setPreviewData(preview);
       setMapping(preview.suggestedMapping || {});
-      setCurrentStep('preview');
+      setCurrentStep("preview");
     } catch (err: any) {
       setError(`Test Preview: ${err.message}`);
     }
@@ -135,11 +145,11 @@ const ImportScreen = () => {
     if (!file) return;
 
     try {
-      setError('');
+      setError("");
       const preview = await importService.testXlsx(file);
       setPreviewData(preview);
       setMapping(preview.suggestedMapping || {});
-      setCurrentStep('preview');
+      setCurrentStep("preview");
     } catch (err: any) {
       setError(`Test XLSX: ${err.message}`);
     }
@@ -149,40 +159,40 @@ const ImportScreen = () => {
     if (!file) return;
 
     try {
-      setError('');
+      setError("");
       const preview = await importService.testXlsxSimple(file);
       setPreviewData(preview);
       setMapping(preview.suggestedMapping || {});
-      setCurrentStep('preview');
+      setCurrentStep("preview");
     } catch (err: any) {
       setError(`Test XLSX Simple: ${err.message}`);
     }
   };
   const handleProceedToMapping = () => {
-    setCurrentStep('mapping');
+    setCurrentStep("mapping");
   };
 
   // Função para voltar ao preview
   const handleBackToPreview = () => {
-    setCurrentStep('preview');
+    setCurrentStep("preview");
   };
 
   // Função para atualizar mapeamento
   const handleMappingChange = (field: string, column: string) => {
-    setMapping(prev => ({
+    setMapping((prev) => ({
       ...prev,
-      [field]: column
+      [field]: column,
     }));
   };
 
   // Função para prosseguir para confirmação
   const handleProceedToConfirm = () => {
-    setCurrentStep('confirm');
+    setCurrentStep("confirm");
   };
 
   // Função para voltar ao mapeamento
   const handleBackToMapping = () => {
-    setCurrentStep('mapping');
+    setCurrentStep("mapping");
   };
 
   // Função para importar
@@ -191,28 +201,27 @@ const ImportScreen = () => {
 
     try {
       setLoading(true);
-      setStatus('uploading');
-      setError('');
+      setStatus("uploading");
+      setError("");
 
       const importResult = await importService.importProducts(file, mapping, {
         saveTemplate,
         templateName: saveTemplate ? templateName : undefined,
         templateDescription: saveTemplate ? templateDescription : undefined,
-        delimiter: fileType === 'csv' ? delimiter : undefined,
+        delimiter: fileType === "csv" ? delimiter : undefined,
       });
 
       setResult(importResult);
-      setStatus('success');
-      setMessage(`Importação concluída: ${importResult.imported} produtos importados!`);
+      setStatus("success");
+      setMessage(
+        `Importação concluída: ${importResult.imported} produtos importados!`
+      );
 
       // Atualizar contexto de produtos para refletir as mudanças
       await reload();
-
-
-
     } catch (err: any) {
-      setStatus('error');
-      setMessage(err.message || 'Erro ao importar produtos');
+      setStatus("error");
+      setMessage(err.message || "Erro ao importar produtos");
     } finally {
       setLoading(false);
     }
@@ -224,24 +233,26 @@ const ImportScreen = () => {
     setPreviewData(null);
     setMapping({});
     setSelectedTemplate(null);
-    setCurrentStep('upload');
-    setStatus('idle');
-    setMessage('');
+    setCurrentStep("upload");
+    setStatus("idle");
+    setMessage("");
     setResult(null);
-    setError('');
+    setError("");
     setSaveTemplate(false);
-    setTemplateName('');
-    setTemplateDescription('');
+    setTemplateName("");
+    setTemplateDescription("");
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const getCurrentStepIndex = () => {
-    return IMPORT_STEPS.findIndex(step => step.id === currentStep);
+    return IMPORT_STEPS.findIndex((step) => step.id === currentStep);
   };
 
   const canProceed = () => {
-    const requiredFields = PRODUCT_FIELDS.filter(field => field.required);
-    const mappedRequiredFields = requiredFields.filter(field => mapping[field.key]);
+    const requiredFields = PRODUCT_FIELDS.filter((field) => field.required);
+    const mappedRequiredFields = requiredFields.filter(
+      (field) => mapping[field.key]
+    );
 
     return mappedRequiredFields.length === requiredFields.length;
   };
@@ -255,7 +266,8 @@ const ImportScreen = () => {
           <div className="import-header">
             <h1>Importar Produtos</h1>
             <p>
-              Importe produtos de arquivos CSV ou Excel com mapeamento personalizado de colunas.
+              Importe produtos de arquivos CSV ou Excel com mapeamento
+              personalizado de colunas.
             </p>
           </div>
 
@@ -264,7 +276,9 @@ const ImportScreen = () => {
             {IMPORT_STEPS.map((step, index) => (
               <div
                 key={step.id}
-                className={`progress-step ${index <= getCurrentStepIndex() ? 'active' : ''} ${currentStep === step.id ? 'current' : ''}`}
+                className={`progress-step ${
+                  index <= getCurrentStepIndex() ? "active" : ""
+                } ${currentStep === step.id ? "current" : ""}`}
               >
                 <div className="step-number">{index + 1}</div>
                 <div className="step-info">
@@ -276,10 +290,10 @@ const ImportScreen = () => {
           </div>
 
           {/* Área de upload */}
-          {currentStep === 'upload' && (
+          {currentStep === "upload" && (
             <div className="upload-section">
               <div
-                className={`import-dropzone ${isDragging ? 'dragging' : ''}`}
+                className={`import-dropzone ${isDragging ? "dragging" : ""}`}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
@@ -323,7 +337,9 @@ const ImportScreen = () => {
                     <h3>Configurações do Arquivo</h3>
                     <div className="file-info">
                       <span className="file-name">{file.name}</span>
-                      <span className="file-size">({(file.size / 1024).toFixed(1)} KB)</span>
+                      <span className="file-size">
+                        ({(file.size / 1024).toFixed(1)} KB)
+                      </span>
                     </div>
                   </div>
 
@@ -331,12 +347,16 @@ const ImportScreen = () => {
                     <div className="config-group">
                       <label>Tipo de Arquivo</label>
                       <div className="file-type-display">
-                        <i className={`fa-solid ${fileType === 'csv' ? 'fa-file-csv' : 'fa-file-excel'}`}></i>
+                        <i
+                          className={`fa-solid ${
+                            fileType === "csv" ? "fa-file-csv" : "fa-file-excel"
+                          }`}
+                        ></i>
                         <span>{fileType.toUpperCase()}</span>
                       </div>
                     </div>
 
-                    {fileType === 'csv' && (
+                    {fileType === "csv" && (
                       <div className="config-group">
                         <label>Delimitador</label>
                         <select
@@ -362,13 +382,13 @@ const ImportScreen = () => {
                   </div>
 
                   <div className="config-actions">
-                    
                     <button
                       className="btn btn-outline"
                       onClick={handleTestXlsxSimple}
                       disabled={previewLoading}
                     >
-                      <i className="fa-solid fa-file-excel"></i> Test XLSX Simple
+                      <i className="fa-solid fa-file-excel"></i> Test XLSX
+                      Simple
                     </button>
                     <button
                       className="btn btn-primary"
@@ -377,7 +397,8 @@ const ImportScreen = () => {
                     >
                       {previewLoading ? (
                         <>
-                          <i className="fa-solid fa-spinner fa-spin"></i> Gerando preview...
+                          <i className="fa-solid fa-spinner fa-spin"></i>{" "}
+                          Gerando preview...
                         </>
                       ) : (
                         <>
@@ -392,14 +413,21 @@ const ImportScreen = () => {
           )}
 
           {/* Preview dos dados */}
-          {currentStep === 'preview' && previewData && (
+          {currentStep === "preview" && previewData && (
             <div className="preview-section">
               <div className="section-actions">
-                <button className="btn btn-outline" onClick={() => setCurrentStep('upload')}>
+                <button
+                  className="btn btn-outline"
+                  onClick={() => setCurrentStep("upload")}
+                >
                   <i className="fa-solid fa-arrow-left"></i> Voltar
                 </button>
-                <button className="btn btn-primary" onClick={handleProceedToMapping}>
-                  <i className="fa-solid fa-arrow-right"></i> Configurar Mapeamento
+                <button
+                  className="btn btn-primary"
+                  onClick={handleProceedToMapping}
+                >
+                  <i className="fa-solid fa-arrow-right"></i> Configurar
+                  Mapeamento
                 </button>
               </div>
 
@@ -412,10 +440,13 @@ const ImportScreen = () => {
           )}
 
           {/* Mapeamento de colunas */}
-          {currentStep === 'mapping' && previewData && (
+          {currentStep === "mapping" && previewData && (
             <div className="mapping-section">
               <div className="section-actions">
-                <button className="btn btn-outline" onClick={handleBackToPreview}>
+                <button
+                  className="btn btn-outline"
+                  onClick={handleBackToPreview}
+                >
                   <i className="fa-solid fa-arrow-left"></i> Voltar ao Preview
                 </button>
                 <button
@@ -423,7 +454,8 @@ const ImportScreen = () => {
                   onClick={handleProceedToConfirm}
                   disabled={!canProceed()}
                 >
-                  <i className="fa-solid fa-arrow-right"></i> Confirmar Importação
+                  <i className="fa-solid fa-arrow-right"></i> Confirmar
+                  Importação
                 </button>
               </div>
 
@@ -438,11 +470,15 @@ const ImportScreen = () => {
           )}
 
           {/* Confirmação e importação */}
-          {currentStep === 'confirm' && previewData && (
+          {currentStep === "confirm" && previewData && (
             <div className="confirm-section">
               <div className="section-actions">
-                <button className="btn btn-outline" onClick={handleBackToMapping}>
-                  <i className="fa-solid fa-arrow-left"></i> Voltar ao Mapeamento
+                <button
+                  className="btn btn-outline"
+                  onClick={handleBackToMapping}
+                >
+                  <i className="fa-solid fa-arrow-left"></i> Voltar ao
+                  Mapeamento
                 </button>
               </div>
 
@@ -456,19 +492,31 @@ const ImportScreen = () => {
                     </div>
                     <div className="summary-item">
                       <span className="summary-label">Total de linhas:</span>
-                      <span className="summary-value">{previewData.totalRows}</span>
+                      <span className="summary-value">
+                        {previewData.totalRows}
+                      </span>
                     </div>
                     <div className="summary-item">
                       <span className="summary-label">Campos mapeados:</span>
                       <span className="summary-value">
-                        {Object.values(mapping).filter(col => col).length}
+                        {Object.values(mapping).filter((col) => col).length}
                       </span>
                     </div>
                     <div className="summary-item">
-                      <span className="summary-label">Campos obrigatórios:</span>
+                      <span className="summary-label">
+                        Campos obrigatórios:
+                      </span>
                       <span className="summary-value">
-                        {PRODUCT_FIELDS.filter(field => field.required && mapping[field.key]).length}/
-                        {PRODUCT_FIELDS.filter(field => field.required).length}
+                        {
+                          PRODUCT_FIELDS.filter(
+                            (field) => field.required && mapping[field.key]
+                          ).length
+                        }
+                        /
+                        {
+                          PRODUCT_FIELDS.filter((field) => field.required)
+                            .length
+                        }
                       </span>
                     </div>
                   </div>
@@ -502,7 +550,9 @@ const ImportScreen = () => {
                         <label>Descrição (opcional)</label>
                         <textarea
                           value={templateDescription}
-                          onChange={(e) => setTemplateDescription(e.target.value)}
+                          onChange={(e) =>
+                            setTemplateDescription(e.target.value)
+                          }
                           placeholder="Descrição do template"
                           rows={2}
                         />
@@ -519,11 +569,13 @@ const ImportScreen = () => {
                   >
                     {loading ? (
                       <>
-                        <i className="fa-solid fa-spinner fa-spin"></i> Importando...
+                        <i className="fa-solid fa-spinner fa-spin"></i>{" "}
+                        Importando...
                       </>
                     ) : (
                       <>
-                        <i className="fa-solid fa-upload"></i> Importar {previewData.totalRows} Produtos
+                        <i className="fa-solid fa-upload"></i> Importar{" "}
+                        {previewData.totalRows} Produtos
                       </>
                     )}
                   </button>
@@ -541,7 +593,7 @@ const ImportScreen = () => {
           )}
 
           {/* Resultados da importação */}
-          {status === 'success' && result && (
+          {status === "success" && result && (
             <div className="import-success">
               <i className="fa-solid fa-circle-check"></i>
               <div className="success-content">
@@ -549,7 +601,9 @@ const ImportScreen = () => {
                 <div className="result-details">
                   <div className="result-item">
                     <span className="result-label">Produtos importados:</span>
-                    <span className="result-value success">{result.imported}</span>
+                    <span className="result-value success">
+                      {result.imported}
+                    </span>
                   </div>
                   <div className="result-item">
                     <span className="result-label">Total processado:</span>
@@ -558,7 +612,9 @@ const ImportScreen = () => {
                   {result.errors && result.errors.length > 0 && (
                     <div className="result-item">
                       <span className="result-label">Erros:</span>
-                      <span className="result-value error">{result.errors.length}</span>
+                      <span className="result-value error">
+                        {result.errors.length}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -577,7 +633,10 @@ const ImportScreen = () => {
                 )}
               </div>
               <div className="success-actions">
-                <button className="btn btn-primary" onClick={() => navigate('/products')}>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => navigate("/products")}
+                >
                   <i className="fa-solid fa-eye"></i> Ver Produtos Importados
                 </button>
                 <button className="btn btn-outline" onClick={handleReset}>
@@ -587,14 +646,17 @@ const ImportScreen = () => {
             </div>
           )}
 
-          {status === 'error' && (
+          {status === "error" && (
             <div className="import-error">
               <i className="fa-solid fa-circle-exclamation"></i>
               <div className="error-content">
                 <h3>Erro na Importação</h3>
                 <p>{message}</p>
               </div>
-              <button className="btn btn-outline" onClick={() => setStatus('idle')}>
+              <button
+                className="btn btn-outline"
+                onClick={() => setStatus("idle")}
+              >
                 <i className="fa-solid fa-redo"></i> Tentar Novamente
               </button>
             </div>

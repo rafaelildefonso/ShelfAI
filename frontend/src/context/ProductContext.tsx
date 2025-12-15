@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import {
   getProducts,
+  getProductById,
   createProduct,
   updateProduct,
   deleteProduct,
@@ -51,16 +52,42 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
       // );
       subscription = supabase
         .channel("product-context-changes")
-        .on("postgres_changes", { event: "*", schema: "public" }, (payload) => {
-          // console.log("Realtime update received!", payload);
-          // console.log("Table name:", payload.table);
-          // Reload if it's the product table (checking both cases)
-          if (payload.table === "Product" || payload.table === "product") {
-            reload();
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "Product" },
+          async (payload) => {
+            // console.log("Realtime update received!", payload);
+
+            if (payload.eventType === "INSERT") {
+              // Fetch complete product data including relations
+              try {
+                const newProduct = await getProductById(payload.new.id);
+                setProducts((prev) => [newProduct, ...prev]);
+              } catch (err) {
+                console.error("Error fetching new product:", err);
+                // Fallback to reload if fetch fails
+                reload();
+              }
+            } else if (payload.eventType === "UPDATE") {
+              try {
+                const updatedProduct = await getProductById(payload.new.id);
+                setProducts((prev) =>
+                  prev.map((p) =>
+                    p.id === updatedProduct.id ? updatedProduct : p
+                  )
+                );
+              } catch (err) {
+                console.error("Error fetching updated product:", err);
+                reload();
+              }
+            } else if (payload.eventType === "DELETE") {
+              setProducts((prev) =>
+                prev.filter((p) => p.id !== payload.old.id)
+              );
+            }
           }
-        })
+        )
         .subscribe((status) => {
-          // console.log("Supabase subscription status:", status);
           status;
         });
     } else {

@@ -10,6 +10,7 @@ export interface TemplateField {
     min?: number;
     max?: number;
     pattern?: string;
+    step?: number | string;
   };
 }
 
@@ -134,7 +135,7 @@ export const productTemplates: ProductTemplate[] = [
         label: "Altura do Salto (cm)",
         type: "number",
         required: false,
-        validation: { min: 0, max: 20 },
+        validation: { min: 0, max: 20, step: 0.5 },
       },
       {
         id: "sole_type",
@@ -199,7 +200,7 @@ export const productTemplates: ProductTemplate[] = [
         label: "Tamanho da Tela (polegadas)",
         type: "number",
         required: false,
-        validation: { min: 1, max: 100 },
+        validation: { min: 1, max: 100, step: 0.1 },
       },
       {
         id: "warranty",
@@ -256,7 +257,7 @@ export const productTemplates: ProductTemplate[] = [
         label: "Peso (kg)",
         type: "number",
         required: false,
-        validation: { min: 0, max: 1000 },
+        validation: { min: 0, max: 1000, step: 0.01 },
       },
       {
         id: "assembly_required",

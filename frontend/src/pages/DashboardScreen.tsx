@@ -2,9 +2,9 @@ import { useState, useEffect, useRef } from "react";
 import "./../App.css";
 import SideBarMenu from "../components/SideBarMenu";
 import Header from "../components/Header";
-import { getCategories, getProducts } from "../services/productService";
+import { getProducts } from "../services/productService";
+import { categoryService } from "../services/categoryService";
 import { activityService } from "../services/activityService";
-import { supabase } from "../services/supabaseClient";
 import type { Activity } from "../services/activityService";
 import { Bar, Pie } from "react-chartjs-2";
 
@@ -54,14 +54,52 @@ type CategoriaDistribuicao = {
   color: string;
 };
 
-const coresCategorias: Record<string, string> = {
-  Roupas: "#8B5CF6",
-  Calçados: "#10B981",
-  Acessórios: "#F59E0B",
-  Eletrônicos: "#EF4444",
-  Vestuário: "#22c04aff",
-  Tecnologia: "#26a3d4ff",
-  Casa: "#3B82F6",
+// Paleta de cores vibrantes e distintas
+const colorPalette = [
+  "#8B5CF6", // Purple
+  "#10B981", // Green
+  "#F59E0B", // Orange
+  "#EF4444", // Red
+  "#3B82F6", // Blue
+  "#EC4899", // Pink
+  "#14B8A6", // Teal
+  "#F97316", // Deep Orange
+  "#8B5CF6", // Violet
+  "#06B6D4", // Cyan
+  "#84CC16", // Lime
+  "#F43F5E", // Rose
+  "#6366F1", // Indigo
+  "#A855F7", // Purple Light
+  "#22D3EE", // Sky
+  "#FBBF24", // Amber
+];
+
+// Função para gerar cores dinâmicas para categorias
+const generateCategoryColor = (categoryName: string, index: number): string => {
+  // Se o índice está dentro da paleta, usar cor da paleta
+  if (index < colorPalette.length) {
+    return colorPalette[index];
+  }
+
+  // Para categorias extras, gerar cores usando distribuição melhorada
+  // Usar hash do nome para consistência
+  let hash = 0;
+  for (let i = 0; i < categoryName.length; i++) {
+    hash = categoryName.charCodeAt(i) + ((hash << 5) - hash);
+    hash = hash & hash; // Convert to 32bit integer
+  }
+
+  // Usar o ângulo dourado (222.5°) para distribuição uniforme de matizes
+  const goldenAngle = 222.5;
+  const hue = (index * goldenAngle + (Math.abs(hash) % 60)) % 360;
+
+  // Saturação alta para cores vibrantes (70-85%)
+  const saturation = 70 + (Math.abs(hash) % 16);
+
+  // Luminosidade média-alta para boa visibilidade (55-65%)
+  const lightness = 55 + (Math.abs(hash) % 11);
+
+  return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 };
 
 import type { Product } from "../types/productType";
@@ -88,7 +126,7 @@ const MainContent = () => {
     setError(null);
     Promise.all([
       getProducts().then((res) => res.data),
-      getCategories().then((res) => res.data),
+      categoryService.list(),
       activityService.getActivities({ limit: 10 }),
       activityService.getStats(30),
     ])
@@ -103,7 +141,11 @@ const MainContent = () => {
         const incompleteProducts = productsData.filter(
           (p: any) => p.status === "incomplete"
         ).length;
-        const totalCategories = categoriesData.length;
+        // Contar apenas categorias do usuário (não default)
+        const userCategories = categoriesData.filter(
+          (cat: any) => !cat.isDefault
+        );
+        const totalCategories = userCategories.length;
 
         // Calcular produtos com estoque baixo (se houver campo de estoque)
         const lowStockProducts = productsData.filter(
@@ -137,31 +179,7 @@ const MainContent = () => {
 
   useEffect(() => {
     fetchData();
-
-    // Realtime subscription
-    const subscription = supabase
-      .channel("dashboard-changes")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "Product" },
-        () => {
-          console.log("Product changed, refreshing dashboard...");
-          fetchData();
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "Category" },
-        () => {
-          console.log("Category changed, refreshing dashboard...");
-          fetchData();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      subscription.unsubscribe();
-    };
+    // Realtime updates are now handled globally by ProductContext
   }, []);
 
   const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
@@ -236,10 +254,10 @@ const MainContent = () => {
 
     const categorizedDistribution: CategoriaDistribuicao[] = Object.entries(
       countCategories
-    ).map(([categoryName, qtd]) => ({
+    ).map(([categoryName, qtd], index) => ({
       name: categoryName,
       value: Math.round((qtd / products.length) * 100),
-      color: coresCategorias[categoryName] || "#ccccccff",
+      color: generateCategoryColor(categoryName, index),
     }));
 
     const contarProdutosPorMes = (produtos: Product[]) => {
@@ -471,6 +489,7 @@ const MainContent = () => {
           <div className="welcome-section">
             <h1>Bem-vindo ao ShelfAI</h1>
             <p>Sua solução inteligente para gestão de produtos e e-commerce</p>
+            {/*
             <div className="welcome-stats">
               <div className="welcome-stat">
                 <span className="welcome-stat-number">
@@ -489,9 +508,10 @@ const MainContent = () => {
                 <span className="welcome-stat-label">Categorias Ativas</span>
               </div>
             </div>
+            */}
           </div>
           <div className="dashboard-actions-header">
-            <Link to="/products" className="quick-action-btn primary">
+            <Link to="/products/new" className="quick-action-btn primary">
               <i className="fa-solid fa-plus"></i>
               Adicionar Produto
             </Link>

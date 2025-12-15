@@ -20,13 +20,16 @@ export interface Product {
   brand?: string;
   sku?: string;
   status: "complete" | "incomplete";
+  stock?: number;
+  minStock?: number;
+  barcode?: string;
   weight?: number;
   length?: number;
   width?: number;
   height?: number;
-  tags: string[]; 
-  featured?: boolean; 
-  active?: boolean; 
+  tags: string[];
+  featured?: boolean;
+  active?: boolean;
   image?: string;
   images?: string[];
   model?: string;
@@ -45,7 +48,7 @@ export interface Product {
   reviewCount?: number;
   views?: number;
   sales?: number;
-  userId: string; 
+  userId: string;
   user: { id: string; name: string; email: string };
   createdAt: Date;
   updatedAt: Date;

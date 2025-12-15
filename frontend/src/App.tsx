@@ -22,6 +22,10 @@ import NotFoundPage from "./pages/NotFoundPage";
 import { MobileMenuOverlay } from "./components/SideBarMenu";
 import AdminDashboard from "./pages/AdminDashboard";
 import SearchResultsPage from "./pages/SearchResultsPage";
+import NotificationsPage from "./pages/NotificationsPage";
+import HelpPage from "./pages/HelpPage";
+import ReportsPage from "./pages/ReportsPage";
+import SupportPage from "./pages/SupportPage";
 
 function App() {
   return (
@@ -116,6 +120,39 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <SearchResultsPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/notifications"
+                  element={
+                    <ProtectedRoute>
+                      <NotificationsPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/help"
+                  element={
+                    <ProtectedRoute>
+                      <HelpPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/reports"
+                  element={
+                    <ProtectedRoute>
+                      <ReportsPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/support"
+                  element={
+                    <ProtectedRoute>
+                      <SupportPage />
                     </ProtectedRoute>
                   }
                 />

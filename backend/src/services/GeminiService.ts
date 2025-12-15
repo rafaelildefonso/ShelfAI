@@ -9,6 +9,7 @@ interface AnalyzeProductInput {
   imageBase64: string;
   nameInput?: string;
   additionalText?: string;
+  templateContext?: string;
 }
 
 export class GeminiService {
@@ -16,6 +17,7 @@ export class GeminiService {
     imageBase64,
     nameInput,
     additionalText,
+    templateContext,
   }: AnalyzeProductInput) {
     try {
       const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
@@ -27,6 +29,7 @@ Sua tarefa: analisar a imagem do produto (e, opcionalmente, o nome/atributos for
 INPUTS disponíveis ao chamar você:
 - name_input: ${nameInput || "null"}
 - additional_text: ${additionalText || "null"}
+- template_context: ${templateContext || "null"} (Contexto de campos específicos do template selecionado que DEVEM ser preenchidos em templateData)
 
 REQUISITOS GERAIS:
 1. Responda **somente** com um objeto JSON (sem texto, sem comentários).
@@ -64,7 +67,8 @@ ESQUEMA OBRIGATÓRIO (retorne exatamente estas chaves — sempre)
   },
   "tags": [ string, ... ],     // lista 0..10, palavras-chave curtas
   "featured": boolean,
-  "active": boolean
+  "active": boolean,
+  "templateData": { [key: string]: any } // Preencher com base no template_context
 }
 
 REGRAS DETALHADAS POR CAMPO:
@@ -123,6 +127,13 @@ REGRAS DETALHADAS POR CAMPO:
 - active:
   - \`true\` se o produto aparenta estar disponível para venda.
   - \`false\` apenas se houver indicação óbvia de descontinuação (ex.: imagem de produto riscado, "descontinuado" no texto). Se incerto, \`true\`.
+
+- templateData:
+  - Este campo é CRÍTICO. Analise o \`template_context\` acima. Ele contém definições de campos (ids, labels, types, options).
+  - Tente preencher as chaves deste objeto correspondendo aos \`ids\` dos campos passados no contexto.
+  - Se um campo for do tipo "select" e tiver "options", VOCÊ DEVE TENTAR ESCOLHER A OPÇÃO MAIS ADEQUADA da lista. Se nenhuma for adequada, null.
+  - Exemplo: Se o contexto pede "size" com options ["P", "M", "G"] e a imagem mostra uma etiqueta "M", retorne "size": "M".
+  - Se não houver contexto, retorne objeto vazio {}.
 
 REGRAS ADICIONAIS E BOAS PRÁTICAS:
 - Sempre priorize **precisão sobre completude**: prefira \`null\` a inventar.

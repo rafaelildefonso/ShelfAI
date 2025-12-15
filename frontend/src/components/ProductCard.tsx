@@ -69,8 +69,8 @@ export const ProductCard = ({
         {product.image ? (
           <img src={product.image} alt={product.name} />
         ) : (
-          <div className="no-image">
-            <i className="fa-solid fa-image"></i>
+          <div className="no-image" aria-label="Sem imagem">
+            <i className="fa-solid fa-image" aria-hidden="true"></i>
           </div>
         )}
 
@@ -164,22 +164,29 @@ export const ProductCard = ({
               onEdit?.(product);
             }}
             title="Editar produto"
+            aria-label={`Editar ${product.name}`}
           >
-            <i className="fa-solid fa-edit"></i>
+            <i className="fa-solid fa-edit" aria-hidden="true"></i>
           </button>
           <button
             className="action-btn duplicate-btn"
             title="Duplicar produto"
+            aria-label={`Duplicar ${product.name}`}
             onClick={(e) => {
               e.stopPropagation();
               onDuplicate?.(product);
             }}
           >
-            <i className="fa-solid fa-copy"></i>
+            <i className="fa-solid fa-copy" aria-hidden="true"></i>
           </button>
           <button
             className="action-btn toggle-btn"
             title={product.active ? "Desativar" : "Ativar"}
+            aria-label={
+              product.active
+                ? `Desativar ${product.name}`
+                : `Ativar ${product.name}`
+            }
             onClick={(e) => {
               e.stopPropagation();
               toggleStatus();
@@ -189,6 +196,7 @@ export const ProductCard = ({
               className={`fa-solid ${
                 product.active ? "fa-eye-slash" : "fa-eye"
               }`}
+              aria-hidden="true"
             ></i>
           </button>
           <button
@@ -198,8 +206,9 @@ export const ProductCard = ({
               onDelete?.(product.id);
             }}
             title="Excluir produto"
+            aria-label={`Excluir ${product.name}`}
           >
-            <i className="fa-solid fa-trash"></i>
+            <i className="fa-solid fa-trash" aria-hidden="true"></i>
           </button>
         </div>
       )}

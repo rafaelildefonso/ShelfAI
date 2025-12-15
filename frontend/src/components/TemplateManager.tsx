@@ -1,29 +1,63 @@
-import React, { useState, useEffect } from 'react';
-import { importService, type ImportTemplate } from '../services/importService';
+import React, { useState, useEffect } from "react";
+import { importService, type ImportTemplate } from "../services/importService";
+import Modal from "./common/Modal";
+import type { ModalType } from "./common/Modal";
 
 interface TemplateManagerProps {
   onTemplateSelect: (template: ImportTemplate | null) => void;
   selectedTemplateId?: string;
-  fileType?: 'csv' | 'xlsx';
+  fileType?: "csv" | "xlsx";
 }
 
 const TemplateManager: React.FC<TemplateManagerProps> = ({
   onTemplateSelect,
   selectedTemplateId,
-  fileType
+  fileType,
 }) => {
   const [templates, setTemplates] = useState<ImportTemplate[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState<string>("");
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newTemplate, setNewTemplate] = useState({
-    name: '',
-    description: '',
-    fileType: fileType || 'csv',
-    delimiter: ',',
-    mapping: {} as {[key: string]: string},
-    isDefault: false
+    name: "",
+    description: "",
+    fileType: fileType || "csv",
+    delimiter: ",",
+    mapping: {} as { [key: string]: string },
+    isDefault: false,
   });
+
+  const [modalConfig, setModalConfig] = useState<{
+    isOpen: boolean;
+    type: ModalType;
+    title: string;
+    message: string;
+    onConfirm?: () => void;
+  }>({
+    isOpen: false,
+    type: "alert",
+    title: "",
+    message: "",
+  });
+
+  const closeModal = () => {
+    setModalConfig((prev) => ({ ...prev, isOpen: false }));
+  };
+
+  const showModal = (
+    type: ModalType,
+    title: string,
+    message: string,
+    onConfirm?: () => void
+  ) => {
+    setModalConfig({
+      isOpen: true,
+      type,
+      title,
+      message,
+      onConfirm,
+    });
+  };
 
   useEffect(() => {
     loadTemplates();
@@ -31,18 +65,18 @@ const TemplateManager: React.FC<TemplateManagerProps> = ({
 
   useEffect(() => {
     if (fileType) {
-      setNewTemplate(prev => ({ ...prev, fileType }));
+      setNewTemplate((prev) => ({ ...prev, fileType }));
     }
   }, [fileType]);
 
   const loadTemplates = async () => {
     try {
       setLoading(true);
-      setError('');
+      setError("");
       const result = await importService.getTemplates();
       setTemplates(result.data);
     } catch (err: any) {
-      setError(err.message || 'Erro ao carregar templates');
+      setError(err.message || "Erro ao carregar templates");
     } finally {
       setLoading(false);
     }
@@ -52,49 +86,55 @@ const TemplateManager: React.FC<TemplateManagerProps> = ({
     e.preventDefault();
     try {
       setLoading(true);
-      setError('');
+      setError("");
 
       const template = await importService.createTemplate({
         ...newTemplate,
-        mapping: newTemplate.mapping
+        mapping: newTemplate.mapping,
       });
 
-      setTemplates(prev => [...prev, template]);
+      setTemplates((prev) => [...prev, template]);
       setShowCreateForm(false);
       setNewTemplate({
-        name: '',
-        description: '',
-        fileType: fileType || 'csv',
-        delimiter: ',',
+        name: "",
+        description: "",
+        fileType: fileType || "csv",
+        delimiter: ",",
         mapping: {},
-        isDefault: false
+        isDefault: false,
       });
 
       onTemplateSelect(template);
     } catch (err: any) {
-      setError(err.message || 'Erro ao criar template');
+      setError(err.message || "Erro ao criar template");
     } finally {
       setLoading(false);
     }
   };
 
   const handleDeleteTemplate = async (templateId: string) => {
-    if (!confirm('Tem certeza que deseja excluir este template?')) return;
+    showModal(
+      "confirm",
+      "Excluir Template",
+      "Tem certeza que deseja excluir este template?",
+      async () => {
+        closeModal();
+        try {
+          setLoading(true);
+          setError("");
+          await importService.deleteTemplate(templateId);
+          setTemplates((prev) => prev.filter((t) => t.id !== templateId));
 
-    try {
-      setLoading(true);
-      setError('');
-      await importService.deleteTemplate(templateId);
-      setTemplates(prev => prev.filter(t => t.id !== templateId));
-
-      if (selectedTemplateId === templateId) {
-        onTemplateSelect(null);
+          if (selectedTemplateId === templateId) {
+            onTemplateSelect(null);
+          }
+        } catch (err: any) {
+          setError(err.message || "Erro ao excluir template");
+        } finally {
+          setLoading(false);
+        }
       }
-    } catch (err: any) {
-      setError(err.message || 'Erro ao excluir template');
-    } finally {
-      setLoading(false);
-    }
+    ); // Close showModal callback
   };
 
   const handleTemplateSelect = (template: ImportTemplate | null) => {
@@ -102,7 +142,7 @@ const TemplateManager: React.FC<TemplateManagerProps> = ({
   };
 
   const filteredTemplates = fileType
-    ? templates.filter(t => t.fileType === fileType)
+    ? templates.filter((t) => t.fileType === fileType)
     : templates;
 
   return (
@@ -122,7 +162,9 @@ const TemplateManager: React.FC<TemplateManagerProps> = ({
             onClick={loadTemplates}
             disabled={loading}
           >
-            <i className={`fa-solid fa-sync-alt ${loading ? 'fa-spin' : ''}`}></i>
+            <i
+              className={`fa-solid fa-sync-alt ${loading ? "fa-spin" : ""}`}
+            ></i>
             Atualizar
           </button>
         </div>
@@ -143,7 +185,9 @@ const TemplateManager: React.FC<TemplateManagerProps> = ({
             <input
               type="text"
               value={newTemplate.name}
-              onChange={(e) => setNewTemplate(prev => ({ ...prev, name: e.target.value }))}
+              onChange={(e) =>
+                setNewTemplate((prev) => ({ ...prev, name: e.target.value }))
+              }
               placeholder="Ex: Produtos Eletrônicos"
               required
             />
@@ -153,7 +197,12 @@ const TemplateManager: React.FC<TemplateManagerProps> = ({
             <label>Descrição</label>
             <textarea
               value={newTemplate.description}
-              onChange={(e) => setNewTemplate(prev => ({ ...prev, description: e.target.value }))}
+              onChange={(e) =>
+                setNewTemplate((prev) => ({
+                  ...prev,
+                  description: e.target.value,
+                }))
+              }
               placeholder="Descrição opcional do template"
               rows={2}
             />
@@ -163,19 +212,29 @@ const TemplateManager: React.FC<TemplateManagerProps> = ({
             <label>Tipo de Arquivo</label>
             <select
               value={newTemplate.fileType}
-              onChange={(e) => setNewTemplate(prev => ({ ...prev, fileType: e.target.value as 'csv' | 'xlsx' }))}
+              onChange={(e) =>
+                setNewTemplate((prev) => ({
+                  ...prev,
+                  fileType: e.target.value as "csv" | "xlsx",
+                }))
+              }
             >
               <option value="csv">CSV</option>
               <option value="xlsx">Excel (.xlsx)</option>
             </select>
           </div>
 
-          {newTemplate.fileType === 'csv' && (
+          {newTemplate.fileType === "csv" && (
             <div className="form-group">
               <label>Delimitador</label>
               <select
                 value={newTemplate.delimiter}
-                onChange={(e) => setNewTemplate(prev => ({ ...prev, delimiter: e.target.value }))}
+                onChange={(e) =>
+                  setNewTemplate((prev) => ({
+                    ...prev,
+                    delimiter: e.target.value,
+                  }))
+                }
               >
                 <option value=",">Vírgula (,)</option>
                 <option value=";">Ponto e vírgula (;)</option>
@@ -185,8 +244,12 @@ const TemplateManager: React.FC<TemplateManagerProps> = ({
           )}
 
           <div className="form-actions">
-            <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? 'Criando...' : 'Criar Template'}
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={loading}
+            >
+              {loading ? "Criando..." : "Criar Template"}
             </button>
             <button
               type="button"
@@ -205,13 +268,18 @@ const TemplateManager: React.FC<TemplateManagerProps> = ({
           <div className="no-templates">
             <i className="fa-solid fa-file-import"></i>
             <p>Nenhum template encontrado</p>
-            <small>Crie um template para reutilizar mapeamentos em futuras importações</small>
+            <small>
+              Crie um template para reutilizar mapeamentos em futuras
+              importações
+            </small>
           </div>
         ) : (
-          filteredTemplates.map(template => (
+          filteredTemplates.map((template) => (
             <div
               key={template.id}
-              className={`template-item ${selectedTemplateId === template.id ? 'selected' : ''}`}
+              className={`template-item ${
+                selectedTemplateId === template.id ? "selected" : ""
+              }`}
             >
               <div className="template-info">
                 <div className="template-name">
@@ -221,11 +289,19 @@ const TemplateManager: React.FC<TemplateManagerProps> = ({
                   )}
                 </div>
                 {template.description && (
-                  <div className="template-description">{template.description}</div>
+                  <div className="template-description">
+                    {template.description}
+                  </div>
                 )}
                 <div className="template-meta">
                   <span className="template-type">
-                    <i className={`fa-solid ${template.fileType === 'csv' ? 'fa-file-csv' : 'fa-file-excel'}`}></i>
+                    <i
+                      className={`fa-solid ${
+                        template.fileType === "csv"
+                          ? "fa-file-csv"
+                          : "fa-file-excel"
+                      }`}
+                    ></i>
                     {template.fileType.toUpperCase()}
                   </span>
                   {template.delimiter && (
@@ -241,7 +317,9 @@ const TemplateManager: React.FC<TemplateManagerProps> = ({
 
               <div className="template-actions">
                 <button
-                  className={`btn-select ${selectedTemplateId === template.id ? 'active' : ''}`}
+                  className={`btn-select ${
+                    selectedTemplateId === template.id ? "active" : ""
+                  }`}
                   onClick={() => handleTemplateSelect(template)}
                   title="Usar este template"
                 >
@@ -260,6 +338,14 @@ const TemplateManager: React.FC<TemplateManagerProps> = ({
           ))
         )}
       </div>
+      <Modal
+        isOpen={modalConfig.isOpen}
+        onClose={closeModal}
+        type={modalConfig.type}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        onConfirm={modalConfig.onConfirm}
+      />
     </div>
   );
 };

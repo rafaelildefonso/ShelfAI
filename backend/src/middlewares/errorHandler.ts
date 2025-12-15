@@ -1,7 +1,7 @@
-import { Request, Response, NextFunction } from 'express';
-import { ZodError } from 'zod';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
-import { AppError } from '../utils/appError.js';
+import { Request, Response, NextFunction } from "express";
+import { ZodError } from "zod";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
+import { AppError } from "../utils/appError.js";
 
 export const errorHandler = (
   err: Error | AppError | ZodError | PrismaClientKnownRequestError,
@@ -9,7 +9,7 @@ export const errorHandler = (
   res: Response,
   next: NextFunction
 ) => {
-  console.error('Error:', err);
+  console.error("Error:", err);
 
   // Handle AppError
   if (err instanceof AppError) {
@@ -19,7 +19,7 @@ export const errorHandler = (
       details?: any;
       code?: string;
     } = {
-      status: 'error',
+      status: "error",
       message: err.message,
     };
 
@@ -27,7 +27,7 @@ export const errorHandler = (
       errorResponse.details = err.details;
     }
 
-    if ('code' in err && err.code) {
+    if ("code" in err && err.code) {
       errorResponse.code = err.code;
     }
 
@@ -37,8 +37,8 @@ export const errorHandler = (
   // Handle Zod Validation Errors
   if (err instanceof ZodError) {
     return res.status(400).json({
-      status: 'error',
-      message: 'Erro de validação',
+      status: "error",
+      message: "Erro de validação",
       details: err.issues,
     });
   }
@@ -46,19 +46,28 @@ export const errorHandler = (
   // Handle Prisma Errors
   if (err instanceof PrismaClientKnownRequestError) {
     return res.status(400).json({
-      status: 'error',
-      message: 'Erro no banco de dados',
+      status: "error",
+      message: "Erro no banco de dados",
       code: err.code,
       meta: err.meta,
     });
   }
 
+  // Handle JWT Errors
+  if (err.name === "JsonWebTokenError" || err.name === "TokenExpiredError") {
+    return res.status(401).json({
+      status: "error",
+      message: "Token inválido ou expirado",
+      code: "UNAUTHORIZED",
+    });
+  }
+
   // Handle other unhandled errors
-  console.error('Unhandled error:', err);
-  
+  console.error("Unhandled error:", err);
+
   return res.status(500).json({
-    status: 'error',
-    message: 'Erro interno do servidor',
-    details: process.env.NODE_ENV === 'development' ? err.message : undefined,
+    status: "error",
+    message: "Erro interno do servidor",
+    details: process.env.NODE_ENV === "development" ? err.message : undefined,
   });
 };
