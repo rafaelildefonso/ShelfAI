@@ -7,6 +7,9 @@
   },
   "description": "",
   "main": "dist/server.js",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "seed": "ts-node --project tsconfig.seed.json prisma/seed.ts",
     "seed:build": "tsc --project tsconfig.seed.json && node dist-seed/prisma/seed.js",
