@@ -42,6 +42,7 @@ model User {
   updatedProducts Product[] @relation("UpdatedByUser")
   notifications Notification[]
   activities  Activity[]
+  productTemplates ProductTemplate[]
 
   @@index([email])
   @@index([phone])
@@ -136,6 +137,21 @@ model ImportTemplate {
   @@unique([name, userId])
   @@index([userId])
   @@index([isDefault])
+}
+
+model ProductTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  category    String   // Categoria do produto (Ex: "Vestuário", "Eletrônicos")
+  description String?
+  icon        String?  // Ícone font-awesome (Ex: "fa-solid fa-shirt")
+  fields      Json     // Array de TemplateField
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
 }
 
 model Notification {

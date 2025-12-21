@@ -16,10 +16,10 @@ import { useProducts } from "../context/ProductContext";
 import type { Product } from "../types/productType";
 import CustomSelect from "../components/CustomSelect";
 import {
-  productTemplates as sharedProductTemplates,
+  productTemplateService,
   type ProductTemplate,
   type TemplateField,
-} from "../data/productTemplates";
+} from "../services/productTemplateService";
 
 // Maximum allowed image size (5MB)
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB in bytes
@@ -35,6 +35,8 @@ const ProductFormPage = () => {
   const [selectedTemplate, setSelectedTemplate] =
     useState<ProductTemplate | null>(null);
   const [showTemplateSelector, setShowTemplateSelector] = useState(!isEditing);
+  const [templateSearch, setTemplateSearch] = useState("");
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -145,6 +147,27 @@ const ProductFormPage = () => {
   const { categories, addCategory } = useCategories();
   const [newCategoryName, setNewCategoryName] = useState("");
 
+  // Memoize category options to prevent recalculation on each render
+  const categoryOptions = React.useMemo(() => {
+    const defaultCategories = categories
+      .filter((cat) => cat.isDefault)
+      .map((cat) => ({
+        value: cat.id,
+        label: cat.name,
+        group: "Padrão",
+      }));
+
+    const userCategories = categories
+      .filter((cat) => !cat.isDefault)
+      .map((cat) => ({
+        value: cat.id,
+        label: cat.name,
+        group: "Personalizadas",
+      }));
+
+    return [...userCategories, ...defaultCategories];
+  }, [categories]);
+
   const handleAddCategory = async () => {
     if (!newCategoryName.trim()) return;
 
@@ -189,14 +212,22 @@ const ProductFormPage = () => {
     tags: 200,
   } as const;
 
-  const productTemplates = sharedProductTemplates;
+  const [productTemplates, setProductTemplates] = useState<ProductTemplate[]>(
+    []
+  );
 
   useEffect(() => {
-    // As categorias já são carregadas pelo CategoryContext
-    // Carregar produto se estiver editando
-    if (isEditing && id) {
-      const loadProduct = async () => {
-        try {
+    const loadData = async () => {
+      setIsLoadingTemplates(true);
+      try {
+        // 1. Load Templates
+        const templatesResult = await productTemplateService.getTemplates();
+        const templates: ProductTemplate[] = templatesResult.data;
+        setProductTemplates(templates);
+        setIsLoadingTemplates(false);
+
+        // 2. Load Product if editing
+        if (isEditing && id) {
           const editingProduct = await getProductById(id);
 
           // Extract and format product data with proper defaults
@@ -257,7 +288,7 @@ const ProductFormPage = () => {
             Object.keys(editingProduct.templateData).length > 0
           ) {
             // Contar quantos campos de cada template batem com os dados salvos
-            const templateScores = productTemplates.map((t) => {
+            const templateScores = templates.map((t) => {
               const matchingFields = t.fields.filter(
                 (field) => editingProduct.templateData?.[field.id] !== undefined
               );
@@ -276,19 +307,19 @@ const ProductFormPage = () => {
             if (bestMatch) {
               setSelectedTemplate(bestMatch.template);
               setShowTemplateSelector(false);
-            } else {
-              console.log("NO TEMPLATE FOUND!");
             }
-          } else {
-            console.log("No template data available");
           }
-        } catch (error) {
-          console.error("Erro ao carregar produto:", error);
         }
-      };
+      } catch (error) {
+        console.error("Erro ao carregar dados:", error);
+        toast.error("Erro ao carregar dados do produto");
+      } finally {
+        setIsLoading(false);
+        setIsLoadingTemplates(false);
+      }
+    };
 
-      loadProduct();
-    }
+    loadData();
   }, [id, isEditing]);
 
   const handleTemplateSelect = (template: ProductTemplate) => {
@@ -657,6 +688,14 @@ const ProductFormPage = () => {
     }
   };
 
+  // Filter templates
+  const filteredTemplates = productTemplates.filter(
+    (t) =>
+      t.name.toLowerCase().includes(templateSearch.toLowerCase()) ||
+      t.category.toLowerCase().includes(templateSearch.toLowerCase()) ||
+      t.description.toLowerCase().includes(templateSearch.toLowerCase())
+  );
+
   if (showTemplateSelector) {
     return (
       <div>
@@ -676,25 +715,141 @@ const ProductFormPage = () => {
               </p>
             </div>
 
-            <div className="templates-grid">
-              {productTemplates.map((template) => (
-                <div
-                  key={template.id}
-                  className="template-card"
-                  onClick={() => handleTemplateSelect(template)}
+            {/* Search Bar */}
+            <div style={{ marginBottom: "1.5rem" }}>
+              <div style={{ position: "relative", maxWidth: "400px" }}>
+                <i
+                  className="fa-solid fa-search"
+                  style={{
+                    position: "absolute",
+                    left: "12px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    color: "var(--text-secondary-color)",
+                  }}
+                ></i>
+                <input
+                  type="text"
+                  placeholder="Pesquisar templates..."
+                  value={templateSearch}
+                  onChange={(e) => setTemplateSearch(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "0.75rem 1rem 0.75rem 2.5rem",
+                    borderRadius: "8px",
+                    border: "1px solid var(--border-color)",
+                    backgroundColor: "var(--surface-color)",
+                    color: "var(--text-color)",
+                    fontSize: "0.95rem",
+                  }}
+                />
+                {templateSearch && (
+                  <button
+                    onClick={() => setTemplateSearch("")}
+                    style={{
+                      position: "absolute",
+                      right: "12px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      color: "var(--text-secondary-color)",
+                    }}
+                  >
+                    <i className="fa-solid fa-times"></i>
+                  </button>
+                )}
+              </div>
+              {templateSearch && (
+                <p
+                  style={{
+                    marginTop: "0.5rem",
+                    color: "var(--text-secondary-color)",
+                    fontSize: "0.85rem",
+                  }}
                 >
-                  <div className="template-icon">
-                    <i className={template.icon}></i>
-                  </div>
-                  <h3 className="template-name">{template.name}</h3>
-                  <p className="template-description">{template.description}</p>
-                  <div className="template-fields-count">
-                    <i className="fa-solid fa-list"></i>
-                    <span>{template.fields.length} campos específicos</span>
-                  </div>
-                </div>
-              ))}
+                  {filteredTemplates.length} template(s) encontrado(s)
+                </p>
+              )}
             </div>
+
+            {/* Loading State */}
+            {isLoadingTemplates ? (
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  padding: "3rem",
+                }}
+              >
+                <div
+                  className="spinner"
+                  style={{
+                    width: "40px",
+                    height: "40px",
+                    border: "3px solid var(--border-color)",
+                    borderTopColor: "var(--accent-color)",
+                    borderRadius: "50%",
+                    animation: "spin 1s linear infinite",
+                  }}
+                ></div>
+                <span
+                  style={{
+                    marginLeft: "1rem",
+                    color: "var(--text-secondary-color)",
+                  }}
+                >
+                  Carregando templates...
+                </span>
+              </div>
+            ) : filteredTemplates.length === 0 ? (
+              <div
+                style={{
+                  textAlign: "center",
+                  padding: "3rem",
+                  color: "var(--text-secondary-color)",
+                }}
+              >
+                <i
+                  className="fa-solid fa-box-open"
+                  style={{
+                    fontSize: "3rem",
+                    opacity: "0.5",
+                    marginBottom: "1rem",
+                    display: "block",
+                  }}
+                ></i>
+                <p>
+                  {templateSearch
+                    ? "Nenhum template encontrado para esta pesquisa."
+                    : "Nenhum template cadastrado. Crie templates no painel administrativo."}
+                </p>
+              </div>
+            ) : (
+              <div className="templates-grid">
+                {filteredTemplates.map((template) => (
+                  <div
+                    key={template.id}
+                    className="template-card"
+                    onClick={() => handleTemplateSelect(template)}
+                  >
+                    <div className="template-icon">
+                      <i className={template.icon}></i>
+                    </div>
+                    <h3 className="template-name">{template.name}</h3>
+                    <p className="template-description">
+                      {template.description}
+                    </p>
+                    <div className="template-fields-count">
+                      <i className="fa-solid fa-list"></i>
+                      <span>{template.fields.length} campos específicos</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className="template-actions">
               <button
@@ -1284,28 +1439,10 @@ const ProductFormPage = () => {
                               }));
                           }}
                           placeholder="Selecione..."
-                          searchPlaceholder="Buscar..."
+                          searchPlaceholder="Buscar categoria..."
                           showSearch={true}
-                          options={(() => {
-                            const defaultCategories = categories
-                              .filter((cat) => cat.isDefault)
-                              .map((cat) => ({
-                                value: cat.id,
-                                label: cat.name,
-                                group: "Padrão",
-                                isDefault: true,
-                              }));
-
-                            const userCategories = categories
-                              .filter((cat) => !cat.isDefault)
-                              .map((cat) => ({
-                                value: cat.id,
-                                label: cat.name,
-                                group: "Personalizadas",
-                                isDefault: false,
-                              }));
-                            return [...userCategories, ...defaultCategories];
-                          })()}
+                          maxHeight="250px"
+                          options={categoryOptions}
                         />
                       </div>
 

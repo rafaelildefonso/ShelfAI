@@ -17,6 +17,9 @@ import {
 import { supabase } from "../services/supabaseClient";
 import Modal from "../components/common/Modal";
 import type { ModalType } from "../components/common/Modal";
+import ProductTemplateManager from "../components/ProductTemplateManager";
+
+type TabType = "categories" | "templates";
 
 interface Category {
   id: string;
@@ -37,6 +40,12 @@ const AdminDashboard: React.FC = () => {
     description: "",
   });
   const [showImportModal, setShowImportModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>("categories");
+
+  // Pagination & Search for categories
+  const [categorySearch, setCategorySearch] = useState("");
+  const [categoryPage, setCategoryPage] = useState(1);
+  const CATEGORIES_PER_PAGE = 15;
 
   const [modalConfig, setModalConfig] = useState<{
     isOpen: boolean;
@@ -113,6 +122,30 @@ const AdminDashboard: React.FC = () => {
       setIsLoading(false);
     }
   };
+
+  // Filter and paginate categories
+  const filteredCategories = React.useMemo(() => {
+    if (!categorySearch.trim()) return categories;
+    const term = categorySearch.toLowerCase();
+    return categories.filter(
+      (c) =>
+        c.name.toLowerCase().includes(term) ||
+        (c.description && c.description.toLowerCase().includes(term))
+    );
+  }, [categories, categorySearch]);
+
+  const totalCategoryPages = Math.ceil(
+    filteredCategories.length / CATEGORIES_PER_PAGE
+  );
+  const paginatedCategories = React.useMemo(() => {
+    const start = (categoryPage - 1) * CATEGORIES_PER_PAGE;
+    return filteredCategories.slice(start, start + CATEGORIES_PER_PAGE);
+  }, [filteredCategories, categoryPage]);
+
+  // Reset page when search changes
+  React.useEffect(() => {
+    setCategoryPage(1);
+  }, [categorySearch]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -233,162 +266,254 @@ const AdminDashboard: React.FC = () => {
           </button>
         </div>
 
-        <div className="bg-[var(--surface-color)] rounded-xl shadow-md overflow-hidden mb-8 border border-[var(--border-color)]">
-          <div className="p-6 border-b border-[var(--border-color)] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[var(--surface-color)]">
-            <div>
-              <h2 className="text-xl font-semibold text-[var(--text-color)]">
-                Categorias Padrão
-              </h2>
-              <p className="text-sm text-[var(--text-secondary-color)]">
-                Gerencie as categorias padrão do sistema
-              </p>
-            </div>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => setShowImportModal(true)}
-                className="flex items-center px-4 py-2 text-[var(--text-color)] bg-[var(--surface-color)] rounded-lg border border-[var(--border-color)] hover:bg-[var(--bg-color)] transition-colors cursor-pointer"
-              >
-                <FaFileImport className="mr-2" /> Importar CSV
-              </button>
-              <button
-                onClick={handleAddCategory}
-                disabled={isAdding}
-                className="flex items-center px-4 py-2 bg-[var(--accent-color)] text-[var(--accent-text-color)] rounded-lg hover:bg-[var(--accent-color-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-              >
-                <FaPlus className="mr-2" /> Adicionar Categoria
-              </button>
-            </div>
-          </div>
+        {/* Tabs */}
+        <div className="flex border-b border-[var(--border-color)] mb-6 overflow-x-auto">
+          <button
+            onClick={() => setActiveTab("categories")}
+            className={`px-6 py-3 font-medium text-sm transition-colors border-b-2 whitespace-nowrap ${
+              activeTab === "categories"
+                ? "border-[var(--accent-color)] text-[var(--accent-color)]"
+                : "border-transparent text-[var(--text-secondary-color)] hover:text-[var(--text-color)]"
+            }`}
+          >
+            Categorias Padrão
+          </button>
+          <button
+            onClick={() => setActiveTab("templates")}
+            className={`px-6 py-3 font-medium text-sm transition-colors border-b-2 whitespace-nowrap ${
+              activeTab === "templates"
+                ? "border-[var(--accent-color)] text-[var(--accent-color)]"
+                : "border-transparent text-[var(--text-secondary-color)] hover:text-[var(--text-color)]"
+            }`}
+          >
+            Templates de Produto
+          </button>
+        </div>
 
-          {isAdding && (
-            <div className="p-6 border-b border-[var(--border-color)] bg-[var(--bg-color)]">
-              <h3 className="text-lg font-medium text-[var(--text-color)] mb-4">
-                {isEditing ? "Editar Categoria" : "Nova Categoria"}
-              </h3>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-[var(--text-secondary-color)] mb-1">
-                    Nome <span className="text-[var(--error-color)]">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--surface-color)] text-[var(--text-color)] focus:ring-2 focus:ring-[var(--accent-color)] focus:border-transparent transition-colors cursor-text"
-                    placeholder="Digite o nome da categoria"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-[var(--text-secondary-color)] mb-1">
-                    Descrição
-                  </label>
-                  <textarea
-                    name="description"
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--surface-color)] text-[var(--text-color)] focus:ring-2 focus:ring-[var(--accent-color)] focus:border-transparent transition-colors cursor-text"
-                    rows={3}
-                    placeholder="Adicione uma descrição para a categoria (opcional)"
-                  />
-                </div>
-                <div className="flex justify-end space-x-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsAdding(false);
-                      setIsEditing(null);
-                    }}
-                    className="px-4 py-2 text-sm font-medium text-[var(--text-color)] bg-[var(--surface-color)] border border-[var(--border-color)] rounded-lg hover:bg-[var(--bg-color)] transition-colors flex items-center cursor-pointer"
-                  >
-                    <FaTimes className="mr-2" /> Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 text-sm font-medium text-[var(--accent-text-color)] bg-[var(--accent-color)] hover:bg-[var(--accent-color-hover)] rounded-lg transition-colors flex items-center cursor-pointer"
-                  >
-                    <FaSave className="mr-2" />{" "}
-                    {isEditing ? "Atualizar" : "Salvar"}
-                  </button>
-                </div>
-              </form>
+        {activeTab === "templates" ? (
+          <ProductTemplateManager />
+        ) : (
+          <div className="bg-[var(--surface-color)] rounded-xl shadow-md overflow-hidden mb-8 border border-[var(--border-color)]">
+            <div className="p-6 border-b border-[var(--border-color)] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[var(--surface-color)]">
+              <div>
+                <h2 className="text-xl font-semibold text-[var(--text-color)]">
+                  Categorias Padrão
+                </h2>
+                <p className="text-sm text-[var(--text-secondary-color)]">
+                  Gerencie as categorias padrão do sistema
+                </p>
+              </div>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => setShowImportModal(true)}
+                  className="flex items-center px-4 py-2 text-[var(--text-color)] bg-[var(--surface-color)] rounded-lg border border-[var(--border-color)] hover:bg-[var(--bg-color)] transition-colors cursor-pointer"
+                >
+                  <FaFileImport className="mr-2" /> Importar CSV
+                </button>
+                <button
+                  onClick={handleAddCategory}
+                  disabled={isAdding}
+                  className="flex items-center px-4 py-2 bg-[var(--accent-color)] text-[var(--accent-text-color)] rounded-lg hover:bg-[var(--accent-color-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  <FaPlus className="mr-2" /> Adicionar Categoria
+                </button>
+              </div>
             </div>
-          )}
 
-          <div className="overflow-x-auto">
-            {isLoading ? (
-              <div className="p-6 flex justify-center bg-[var(--surface-color)]">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--accent-color)]"></div>
-              </div>
-            ) : categories.length === 0 ? (
-              <div className="p-6 text-center text-[var(--text-secondary-color)] bg-[var(--surface-color)]">
-                Nenhuma categoria cadastrada. Clique em "Adicionar Categoria"
-                para começar.
-              </div>
-            ) : (
-              <div className="overflow-hidden">
-                <table className="min-w-full divide-y divide-[var(--border-color)]">
-                  <thead className="bg-[var(--bg-color)]">
-                    <tr>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-[var(--text-secondary-color)] uppercase tracking-wider"
-                      >
-                        Nome
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-[var(--text-secondary-color)] uppercase tracking-wider"
-                      >
-                        Descrição
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-right text-xs font-medium text-[var(--text-secondary-color)] uppercase tracking-wider"
-                      >
-                        Ações
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-[var(--surface-color)] divide-y divide-[var(--border-color)]">
-                    {categories.map((category) => (
-                      <tr
-                        key={category.id}
-                        className="hover:bg-[var(--bg-color)]"
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[var(--text-color)]">
-                          {category.name}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-[var(--text-secondary-color)]">
-                          {category.description || "-"}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <div className="flex justify-end space-x-1">
-                            <button
-                              onClick={() => handleEditCategory(category)}
-                              className="p-2 text-[var(--accent-color)] hover:text-[var(--accent-color-hover)] rounded-full hover:bg-[var(--bg-color)] transition-colors cursor-pointer"
-                              title="Editar"
-                            >
-                              <FaEdit className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(category.id)}
-                              className="p-2 text-[var(--error-color)] hover:opacity-80 rounded-full hover:bg-[var(--bg-color)] transition-colors cursor-pointer"
-                              title="Excluir"
-                            >
-                              <FaTrash className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            {isAdding && (
+              <div className="p-6 border-b border-[var(--border-color)] bg-[var(--bg-color)]">
+                <h3 className="text-lg font-medium text-[var(--text-color)] mb-4">
+                  {isEditing ? "Editar Categoria" : "Nova Categoria"}
+                </h3>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--text-secondary-color)] mb-1">
+                      Nome <span className="text-[var(--error-color)]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--surface-color)] text-[var(--text-color)] focus:ring-2 focus:ring-[var(--accent-color)] focus:border-transparent transition-colors cursor-text"
+                      placeholder="Digite o nome da categoria"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--text-secondary-color)] mb-1">
+                      Descrição
+                    </label>
+                    <textarea
+                      name="description"
+                      value={formData.description}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--surface-color)] text-[var(--text-color)] focus:ring-2 focus:ring-[var(--accent-color)] focus:border-transparent transition-colors cursor-text"
+                      rows={3}
+                      placeholder="Adicione uma descrição para a categoria (opcional)"
+                    />
+                  </div>
+                  <div className="flex justify-end space-x-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAdding(false);
+                        setIsEditing(null);
+                      }}
+                      className="px-4 py-2 text-sm font-medium text-[var(--text-color)] bg-[var(--surface-color)] border border-[var(--border-color)] rounded-lg hover:bg-[var(--bg-color)] transition-colors flex items-center cursor-pointer"
+                    >
+                      <FaTimes className="mr-2" /> Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-2 text-sm font-medium text-[var(--accent-text-color)] bg-[var(--accent-color)] hover:bg-[var(--accent-color-hover)] rounded-lg transition-colors flex items-center cursor-pointer"
+                    >
+                      <FaSave className="mr-2" />{" "}
+                      {isEditing ? "Atualizar" : "Salvar"}
+                    </button>
+                  </div>
+                </form>
               </div>
             )}
+
+            <div className="overflow-x-auto">
+              {isLoading ? (
+                <div className="p-6 flex justify-center bg-[var(--surface-color)]">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--accent-color)]"></div>
+                </div>
+              ) : categories.length === 0 ? (
+                <div className="p-6 text-center text-[var(--text-secondary-color)] bg-[var(--surface-color)]">
+                  Nenhuma categoria cadastrada. Clique em "Adicionar Categoria"
+                  para começar.
+                </div>
+              ) : (
+                <>
+                  {/* Search bar for categories */}
+                  <div className="p-4 border-b border-[var(--border-color)]">
+                    <div className="relative max-w-md">
+                      <i className="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary-color)]"></i>
+                      <input
+                        type="text"
+                        placeholder="Pesquisar categorias..."
+                        value={categorySearch}
+                        onChange={(e) => setCategorySearch(e.target.value)}
+                        className="w-full pl-10 pr-10 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--surface-color)] text-[var(--text-color)]"
+                      />
+                      {categorySearch && (
+                        <button
+                          onClick={() => setCategorySearch("")}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary-color)] hover:text-[var(--text-color)] cursor-pointer"
+                        >
+                          <i className="fa-solid fa-times"></i>
+                        </button>
+                      )}
+                    </div>
+                    {categorySearch && (
+                      <p className="text-sm text-[var(--text-secondary-color)] mt-1">
+                        {filteredCategories.length} categoria(s) encontrada(s)
+                      </p>
+                    )}
+                  </div>
+
+                  {filteredCategories.length === 0 ? (
+                    <div className="p-6 text-center text-[var(--text-secondary-color)]">
+                      Nenhuma categoria encontrada para "{categorySearch}".
+                    </div>
+                  ) : (
+                    <div className="overflow-hidden">
+                      <table className="min-w-full divide-y divide-[var(--border-color)]">
+                        <thead className="bg-[var(--bg-color)]">
+                          <tr>
+                            <th
+                              scope="col"
+                              className="px-6 py-3 text-left text-xs font-medium text-[var(--text-secondary-color)] uppercase tracking-wider"
+                            >
+                              Nome
+                            </th>
+                            <th
+                              scope="col"
+                              className="px-6 py-3 text-left text-xs font-medium text-[var(--text-secondary-color)] uppercase tracking-wider"
+                            >
+                              Descrição
+                            </th>
+                            <th
+                              scope="col"
+                              className="px-6 py-3 text-right text-xs font-medium text-[var(--text-secondary-color)] uppercase tracking-wider"
+                            >
+                              Ações
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-[var(--surface-color)] divide-y divide-[var(--border-color)]">
+                          {paginatedCategories.map((category) => (
+                            <tr
+                              key={category.id}
+                              className="hover:bg-[var(--bg-color)]"
+                            >
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[var(--text-color)]">
+                                {category.name}
+                              </td>
+                              <td className="px-6 py-4 text-sm text-[var(--text-secondary-color)]">
+                                {category.description || "-"}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <div className="flex justify-end space-x-1">
+                                  <button
+                                    onClick={() => handleEditCategory(category)}
+                                    className="p-2 text-[var(--accent-color)] hover:text-[var(--accent-color-hover)] rounded-full hover:bg-[var(--bg-color)] transition-colors cursor-pointer"
+                                    title="Editar"
+                                  >
+                                    <FaEdit className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDelete(category.id)}
+                                    className="p-2 text-[var(--error-color)] hover:opacity-80 rounded-full hover:bg-[var(--bg-color)] transition-colors cursor-pointer"
+                                    title="Excluir"
+                                  >
+                                    <FaTrash className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* Pagination */}
+                  {totalCategoryPages > 1 && (
+                    <div className="flex justify-center items-center gap-2 py-4 border-t border-[var(--border-color)]">
+                      <button
+                        onClick={() =>
+                          setCategoryPage((p) => Math.max(1, p - 1))
+                        }
+                        disabled={categoryPage === 1}
+                        className="px-3 py-1.5 rounded border border-[var(--border-color)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer hover:bg-[var(--surface-color)]"
+                      >
+                        <i className="fa-solid fa-chevron-left"></i>
+                      </button>
+                      <span className="text-sm text-[var(--text-secondary-color)]">
+                        Página {categoryPage} de {totalCategoryPages}
+                      </span>
+                      <button
+                        onClick={() =>
+                          setCategoryPage((p) =>
+                            Math.min(totalCategoryPages, p + 1)
+                          )
+                        }
+                        disabled={categoryPage === totalCategoryPages}
+                        className="px-3 py-1.5 rounded border border-[var(--border-color)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer hover:bg-[var(--surface-color)]"
+                      >
+                        <i className="fa-solid fa-chevron-right"></i>
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="mt-8 text-center text-sm text-[var(--text-secondary-color)]">
           <p>
@@ -399,7 +524,7 @@ const AdminDashboard: React.FC = () => {
 
       {/* Import Categories Modal */}
       {showImportModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity flex items-center justify-center p-4 z-50">
           <div className="bg-[var(--surface-color)] rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <CategoryImport

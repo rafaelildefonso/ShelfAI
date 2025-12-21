@@ -95,6 +95,8 @@ app.use("/api/v1/notifications", notificationRoutes);
 app.use("/api/v1/activities", activityRoutes);
 app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/ai", geminiRoutes);
+import productTemplateRoutes from "./routes/productTemplateRoutes.js";
+app.use("/api/v1/product-templates", productTemplateRoutes);
 
 // Rota de saúde
 
